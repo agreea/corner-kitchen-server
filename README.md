@@ -7,7 +7,6 @@
 * As a user, I want to know that my order has been sent to the food truck
 * As a user, I want to see a history of my orders
 * As a user, I want to be able to be able to pay for my order from the app through Stripe
-
 * As a foodtruck, I want to broadcast my location, menu, and closing time to nearby users
 * As a foodtruck, I want to receive orders over SMS
 * As a foodtruck, I want to be able to receive payment for food purchased on the app through Stripe
