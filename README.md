@@ -11,6 +11,7 @@
 * As a foodtruck, I want to broadcast my location, menu, and closing time to nearby users
 * As a foodtruck, I want to receive orders over SMS
 * As a foodtruck, I want to be able to receive payment for food purchased on the app through Stripe
+
 ## MVP Models
 
 ### Users
