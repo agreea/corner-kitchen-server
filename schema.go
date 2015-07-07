@@ -39,6 +39,7 @@ type Menu struct {
 type MenuItem struct {
 	// Raw fields
 	Id          int64
+	Menu_id     int64
 	Name        string
 	Price       float64
 	Description string
@@ -128,4 +129,63 @@ func GetTrucksNearLocation(db *sql.DB, lat, lon float64, radius float64) ([]*Tru
 		trucks = append(trucks, truck)
 	}
 	return trucks, nil
+}
+
+func GetMenusForTruck(db *sql.DB, truck_id int64) ([]*Menu, error) {
+	rows, err := db.Query(`
+		SELECT Id, Truck_id, Name, Description
+		FROM Menu
+		WHERE Truck_id = ?`, truck_id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	menus := make([]*Menu, 0)
+	for rows.Next() {
+		menu := new(Menu)
+		if err := rows.Scan(
+			&menu.Id,
+			&menu.Truck_id,
+			&menu.Name,
+			&menu.Description,
+		); err != nil {
+			return nil, err
+		}
+		menu.Items, err = GetItemsForMenu(db, menu.Id)
+		if err != nil {
+			return nil, err
+		}
+		menus = append(menus, menu)
+	}
+	return menus, nil
+}
+
+func GetItemsForMenu(db *sql.DB, menu_id int64) ([]*MenuItem, error) {
+	rows, err := db.Query(`
+		SELECT Id, Menu_id, Name, Price, Description
+		FROM MenuItem
+		WHERE Menu_id = ?`, menu_id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]*MenuItem, 0)
+	for rows.Next() {
+		item := new(MenuItem)
+		if err := rows.Scan(
+			&item.Id,
+			&item.Menu_id,
+			&item.Name,
+			&item.Price,
+			&item.Description,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, nil
 }
