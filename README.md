@@ -21,6 +21,7 @@
 
 ### Foodtrucks
 * id
+* name
 * location
 * menu_id (could be same as id?)
 * open_til (epoch seconds, 0 == closed)
@@ -42,3 +43,20 @@
 * menu_item_id
 * customer_location (at time of order)
 * foodtruck_location (at time of order)
+* pickup_time (15 minute intervals)
+
+## Information Flow
+
+### GET Feed
+* User sends GET request to server with their location, id, and the desired radius (in meters)
+* Server sends back the within-radius foodtrucks' name, id, location, open_til, and profile_picture_url
+
+### GET Menu
+* User sends GET request for the menu items associated with foodtruck_id
+* Server sends back each menu item's title, price, and description
+### POST Order
+* User sends an order consisting of user_id, Array of menu_item_ids, pickup_time, customer_location, and foodtruck_id to server, timestamp
+* Server sends confirmation if foodtruck is still open and the order was sent, an error with a message otherwise
+### GET History
+* User sends id
+* Server sends all orders associated with that name
