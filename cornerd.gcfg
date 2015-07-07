@@ -1,10 +1,10 @@
 [Mysql]
-mysqlUser = ""
-mysqlPassword = ""
+mysqlUser = "corner-kitchen"
+mysqlPassword = "QL2Nz2sUP3UX2EMM"
 mysqlIPProto = "tcp"
-mysqlServerAddr = "localhost"
+mysqlServerAddr = "192.168.0.1"
 mysqlServerPort = "3306"
-mysqlDatabase = ""
+mysqlDatabase = "corner-kitchen"
 
 [Logging]
 LogFile = "/opt/api/prod/cornerd.log"

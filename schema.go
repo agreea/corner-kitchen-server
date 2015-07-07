@@ -1,0 +1,131 @@
+package main
+
+import (
+	"database/sql"
+	"time"
+)
+
+/*
+ * Trucks and meuns
+ */
+
+type Truck struct {
+	// Raw fields
+	Id           int64
+	Name         string
+	Location_lat string
+	Location_lon string
+	Open_until   time.Time
+	Phone        string
+	Description  string
+
+	// Go fields
+	Distance float64
+	Menus    []*Menu
+	Open_now bool
+}
+
+type Menu struct {
+	// Raw fields
+	Id          int64
+	Truck_id    int64
+	Name        string
+	Description string
+
+	// Go fields
+	Items []*MenuItem
+}
+
+type MenuItem struct {
+	// Raw fields
+	Id          int64
+	Name        string
+	Price       float64
+	Description string
+}
+
+type Order struct {
+	// Raw fields
+	Id       int64
+	User_id  int64
+	Truck_id int64
+	Date     time.Time
+
+	// Go fields
+	Items []*OrderItem
+}
+
+type OrderItem struct {
+	// Raw fields
+	Id       int64
+	Order_id int64
+	Item_id  int64
+	Quantity int64
+}
+
+type UserData struct {
+	// Raw fields
+	Id            int64
+	Username      string
+	Password_hash string
+	Password_salt string
+	Email         string
+
+	// Go fields
+	Orders []*Order
+}
+
+func GetTrucksNearLocation(db *sql.DB, lat, lon float64, radius float64) ([]*Truck, error) {
+	// Speed up the query a bit by doing a rough narrow before calculating
+	// all the distances we might not need
+
+	/*
+		//TODO: Correct calculations for the bounding box
+		rlat_min := math.Max(lat-2, -90.0)
+		rlat_max := math.Min(lat+2, 90.0)
+		rlon_min := math.Max(lon-2, -180.0)
+		rlon_max := math.Min(lon+2, 180.0)
+		WHERE Location_lat BETWEEN ? AND ?
+		AND   Location_lon BETWEEN ? AND ?
+	*/
+
+	rows, err := db.Query(`
+		SELECT Id, Name, Location_lat, Location_lon, Open_until, Phone, Description,
+		( 3959 * acos( cos( radians(?) )
+               * cos( radians( Location_lat ) )
+               * cos( radians( Location_lon ) - radians(?) )
+               + sin( radians(?) )
+               * sin( radians( Location_lat ) ) ) ) AS Distance
+		FROM Truck
+		HAVING Distance < ? ORDER BY Distance`,
+		lat, lon, lat, radius,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	trucks := make([]*Truck, 0)
+	for rows.Next() {
+		truck := new(Truck)
+		if err := rows.Scan(
+			&truck.Id,
+			&truck.Name,
+			&truck.Location_lat,
+			&truck.Location_lon,
+			&truck.Open_until,
+			&truck.Phone,
+			&truck.Description,
+			&truck.Distance,
+		); err != nil {
+			return nil, err
+		}
+		if truck.Open_until.After(time.Now()) {
+			truck.Open_now = true
+		} else {
+			truck.Open_now = false
+		}
+		trucks = append(trucks, truck)
+	}
+	return trucks, nil
+}
