@@ -52,3 +52,19 @@ func (t *TruckServlet) Find(r *http.Request) *ApiResult {
 	}
 	return APISuccess(trucks)
 }
+
+func (t *TruckServlet) Menu(r *http.Request) *ApiResult {
+	truck_id_s := r.Form.Get("truck_id")
+
+	truck_id, err := strconv.ParseInt(truck_id_s, 10, 64)
+	if err != nil {
+		return APIError("Malformed truck ID", 400)
+	}
+
+	menus, err := GetMenusForTruck(t.db, truck_id)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	return APISuccess(menus)
+}
