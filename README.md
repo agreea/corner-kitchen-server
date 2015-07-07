@@ -54,6 +54,7 @@
 ### GET Menu
 * User sends GET request for the menu items associated with foodtruck_id
 * Server sends back each menu item's title, price, and description
+
 ### POST Order
 * User sends an order consisting of user_id, Array of menu_item_ids, pickup_time, customer_location, and foodtruck_id to server, timestamp
 * Server sends confirmation if foodtruck is still open and the order was sent, an error with a message otherwise
