@@ -65,6 +65,7 @@ func init_server() {
 
 	//session_manager := NewSessionManager(&server_config)
 	api_handler.AddServlet("/version", NewVersionServlet())
+	api_handler.AddServlet("/truck", NewTruckServlet(&server_config))
 
 	// Start listening to HTTP requests
 	if err := http_server.ListenAndServe(); err != nil {
