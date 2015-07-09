@@ -4,4 +4,5 @@ all:
 	go get "code.google.com/p/go-uuid/uuid"
 	go get "code.google.com/p/go.crypto/pbkdf2"
 	go get "github.com/rschlaikjer/go-apache-logformat"
+	go get "bitbucket.org/ckvist/twilio/twirest"
 	go build -o cornerd -ldflags "-X main.build_version ${VERSION}${VERSION_DIRTY}"
