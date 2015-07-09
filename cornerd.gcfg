@@ -18,3 +18,8 @@ WriteTimeout = "10s"
 
 [Memcache]
 Host = "localhost:11211"
+
+[Twilio]
+SID = "***REMOVED***"
+Token = "***REMOVED***"
+From = "8452432425"

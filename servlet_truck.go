@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bitbucket.org/ckvist/twilio/twirest"
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
@@ -11,6 +12,7 @@ import (
 type TruckServlet struct {
 	db            *sql.DB
 	server_config *Config
+	twirest       *twirest.TwilioClient
 }
 
 func NewTruckServlet(server_config *Config) *TruckServlet {
@@ -23,6 +25,8 @@ func NewTruckServlet(server_config *Config) *TruckServlet {
 		log.Fatal("NewTruckServlet", "Failed to open database:", err)
 	}
 	t.db = db
+
+	t.twirest = twirest.NewClient(server_config.Twilio.SID, server_config.Twilio.Token)
 
 	return t
 }
@@ -53,6 +57,22 @@ func (t *TruckServlet) Find(r *http.Request) *ApiResult {
 	return APISuccess(trucks)
 }
 
+func (t *TruckServlet) Message(r *http.Request) *ApiResult {
+	message := r.Form.Get("message")
+	to := r.Form.Get("number")
+
+	msg := twirest.SendMessage{
+		Text: message,
+		To:   to,
+		From: t.server_config.Twilio.From}
+	resp, err := t.twirest.Request(msg)
+
+	if err != nil {
+		log.Println(err)
+		return APIError(err.Error(), 500)
+	}
+	return APISuccess(resp.Message.Status)
+}
 func (t *TruckServlet) Menu(r *http.Request) *ApiResult {
 	truck_id_s := r.Form.Get("truck_id")
 

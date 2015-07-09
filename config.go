@@ -37,6 +37,12 @@ type Config struct {
 	Memcache struct {
 		Host string
 	}
+
+	Twilio struct {
+		SID   string
+		Token string
+		From  string
+	}
 }
 
 func (kc Config) GetSqlURI() string {
