@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bitbucket.org/ckvist/twilio/twirest"
 	"flag"
 	"log"
 	"net/http"
@@ -64,9 +65,10 @@ func init_server() {
 	}
 
 	session_manager := NewSessionManager(&server_config)
+	twilio_client := twirest.NewClient(server_config.Twilio.SID, server_config.Twilio.Token)
 	api_handler.AddServlet("/version", NewVersionServlet())
 	api_handler.AddServlet("/user", NewUserServlet(&server_config, session_manager))
-	api_handler.AddServlet("/truck", NewTruckServlet(&server_config))
+	api_handler.AddServlet("/truck", NewTruckServlet(&server_config, session_manager, twilio_client))
 
 	// Start listening to HTTP requests
 	if err := http_server.ListenAndServe(); err != nil {
