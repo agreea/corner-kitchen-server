@@ -39,6 +39,7 @@ type Menu struct {
 type MenuItem struct {
 	// Raw fields
 	Id          int64
+	Truck_id    int64
 	Menu_id     int64
 	Name        string
 	Price       float64
@@ -73,7 +74,7 @@ type UserData struct {
 	password_reset_key string
 
 	// Go fields
-	Orders        []*Order
+	orders        []*Order
 	Session_token string
 }
 
@@ -153,6 +154,10 @@ func GetTrucksNearLocation(db *sql.DB, lat, lon float64, radius float64) ([]*Tru
 		); err != nil {
 			return nil, err
 		}
+		truck.Menus, err = GetMenusForTruck(db, truck.Id)
+		if err != nil {
+			return nil, err
+		}
 		if truck.Open_until.After(time.Now()) {
 			truck.Open_now = true
 		} else {
@@ -185,7 +190,7 @@ func GetMenusForTruck(db *sql.DB, truck_id int64) ([]*Menu, error) {
 		); err != nil {
 			return nil, err
 		}
-		menu.Items, err = GetItemsForMenu(db, menu.Id)
+		menu.Items, err = GetItemsForMenu(db, menu)
 		if err != nil {
 			return nil, err
 		}
@@ -194,11 +199,11 @@ func GetMenusForTruck(db *sql.DB, truck_id int64) ([]*Menu, error) {
 	return menus, nil
 }
 
-func GetItemsForMenu(db *sql.DB, menu_id int64) ([]*MenuItem, error) {
+func GetItemsForMenu(db *sql.DB, menu *Menu) ([]*MenuItem, error) {
 	rows, err := db.Query(`
 		SELECT Id, Menu_id, Name, Price, Description
 		FROM MenuItem
-		WHERE Menu_id = ?`, menu_id,
+		WHERE Menu_id = ?`, menu.Id,
 	)
 	if err != nil {
 		return nil, err
@@ -217,6 +222,7 @@ func GetItemsForMenu(db *sql.DB, menu_id int64) ([]*MenuItem, error) {
 		); err != nil {
 			return nil, err
 		}
+		item.Truck_id = menu.Truck_id
 		items = append(items, item)
 	}
 	return items, nil
