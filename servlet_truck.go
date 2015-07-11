@@ -93,6 +93,24 @@ func (t *TruckServlet) Find_food(r *http.Request) *ApiResult {
 	return APISuccess(food_list)
 }
 
+func (t *TruckServlet) Get_item(r *http.Request) *ApiResult {
+	item_id_s := r.Form.Get("item_id")
+
+	item_id, err := strconv.ParseInt(item_id_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	item, err := GetMenuItemById(t.db, item_id)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	return APISuccess(item)
+}
+
 func (t *TruckServlet) Message(r *http.Request) *ApiResult {
 	message := r.Form.Get("message")
 	to := r.Form.Get("number")
