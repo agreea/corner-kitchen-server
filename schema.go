@@ -46,7 +46,15 @@ type MenuItem struct {
 	Price       float64
 	Description string
 
-	Options []*MenuItemOption
+	ListOptions   []*MenuItemOption
+	ToggleOptions []*MenuToggleOption
+}
+
+type MenuToggleOption struct {
+	Id             int64
+	Item_id        int64
+	Name           string
+	Price_modifier float64
 }
 
 type MenuItemOption struct {
@@ -242,8 +250,39 @@ func GetItemsForMenu(db *sql.DB, menu *Menu) ([]*MenuItem, error) {
 			return nil, err
 		}
 		item.Truck_id = menu.Truck_id
-		item.Options, err = GetOptionsForMenuItem(db, item.Id)
+		item.ListOptions, err = GetOptionsForMenuItem(db, item.Id)
 		if err != nil {
+			return nil, err
+		}
+		item.ToggleOptions, err = GetToggleOptionsForMenuItem(db, item.Id)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, nil
+}
+
+func GetToggleOptionsForMenuItem(db *sql.DB, item_id int64) ([]*MenuToggleOption, error) {
+	rows, err := db.Query(`
+		SELECT Id, Item_id, Name, Price_modifier
+		FROM MenuItemToggle
+		WHERE Item_id = ?`, item_id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]*MenuToggleOption, 0)
+	for rows.Next() {
+		item := new(MenuToggleOption)
+		if err := rows.Scan(
+			&item.Id,
+			&item.Item_id,
+			&item.Name,
+			&item.Price_modifier,
+		); err != nil {
 			return nil, err
 		}
 		items = append(items, item)
@@ -300,7 +339,12 @@ func GetMenuItemById(db *sql.DB, item_id int64) (*MenuItem, error) {
 	}
 
 	var err error
-	item.Options, err = GetOptionsForMenuItem(db, item.Id)
+	item.ListOptions, err = GetOptionsForMenuItem(db, item.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	item.ToggleOptions, err = GetToggleOptionsForMenuItem(db, item.Id)
 	if err != nil {
 		return nil, err
 	}
