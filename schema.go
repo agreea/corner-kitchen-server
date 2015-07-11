@@ -280,6 +280,32 @@ func GetOptionsForMenuItem(db *sql.DB, item_id int64) ([]*MenuItemOption, error)
 
 }
 
+func GetMenuItemById(db *sql.DB, item_id int64) (*MenuItem, error) {
+	row := db.QueryRow(`
+		SELECT Id, Menu_id, Name, Price, Description
+		FROM MenuItem
+		WHERE Id = ?`, item_id)
+
+	item := new(MenuItem)
+	if err := row.Scan(
+		&item.Id,
+		&item.Menu_id,
+		&item.Name,
+		&item.Price,
+		&item.Description,
+	); err != nil {
+		return nil, err
+	}
+
+	var err error
+	item.Options, err = GetOptionsForMenuItem(db, item.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	return item, nil
+}
+
 func GetOptionValuesForMenuItem(db *sql.DB, option_id int64) ([]*MenuItemOptionItem, error) {
 	rows, err := db.Query(`
 		SELECT Id, Option_id, Option_name, Price_modifier
