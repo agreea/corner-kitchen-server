@@ -31,6 +31,7 @@ type Menu struct {
 	Truck_id    int64
 	Name        string
 	Description string
+	Flagship    bool
 
 	// Go fields
 	Items []*MenuItem
@@ -187,7 +188,7 @@ func GetTrucksNearLocation(db *sql.DB, lat, lon float64, radius float64) ([]*Tru
 
 func GetMenusForTruck(db *sql.DB, truck_id int64) ([]*Menu, error) {
 	rows, err := db.Query(`
-		SELECT Id, Truck_id, Name, Description
+		SELECT Id, Truck_id, Name, Description, Flagship
 		FROM Menu
 		WHERE Truck_id = ?`, truck_id,
 	)
@@ -204,6 +205,7 @@ func GetMenusForTruck(db *sql.DB, truck_id int64) ([]*Menu, error) {
 			&menu.Truck_id,
 			&menu.Name,
 			&menu.Description,
+			&menu.Flagship,
 		); err != nil {
 			return nil, err
 		}
