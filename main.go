@@ -63,8 +63,9 @@ func init_server() {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	//session_manager := NewSessionManager(&server_config)
+	session_manager := NewSessionManager(&server_config)
 	api_handler.AddServlet("/version", NewVersionServlet())
+	api_handler.AddServlet("/user", NewUserServlet(&server_config, session_manager))
 	api_handler.AddServlet("/truck", NewTruckServlet(&server_config))
 
 	// Start listening to HTTP requests

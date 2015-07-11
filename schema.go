@@ -66,14 +66,46 @@ type OrderItem struct {
 
 type UserData struct {
 	// Raw fields
-	Id            int64
-	Username      string
-	Password_hash string
-	Password_salt string
-	Email         string
+	Id                 int64
+	Email              string
+	password_hash      string
+	password_salt      string
+	password_reset_key string
 
 	// Go fields
-	Orders []*Order
+	Orders        []*Order
+	Session_token string
+}
+
+type Session struct {
+	User    *UserData
+	Expires time.Time
+}
+
+func GetUserById(db *sql.DB, id int64) (*UserData, error) {
+	row := db.QueryRow(`SELECT Id, Email, Password_salt, Password_hash, Password_reset_key
+        FROM User WHERE Id = ?`, id)
+	return readUserLine(row)
+}
+
+func GetUserByEmail(db *sql.DB, email string) (*UserData, error) {
+	row := db.QueryRow(`SELECT Id, Email, Password_salt, Password_hash, Password_reset_key
+        FROM User WHERE Email = ?`, email)
+	return readUserLine(row)
+}
+
+func readUserLine(row *sql.Row) (*UserData, error) {
+	user_data := new(UserData)
+	if err := row.Scan(
+		&user_data.Id,
+		&user_data.Email,
+		&user_data.password_salt,
+		&user_data.password_hash,
+		&user_data.password_reset_key); err != nil {
+		return nil, err
+	}
+
+	return user_data, nil
 }
 
 func GetTrucksNearLocation(db *sql.DB, lat, lon float64, radius float64) ([]*Truck, error) {
