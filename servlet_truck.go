@@ -87,7 +87,9 @@ func (t *TruckServlet) Find_food(r *http.Request) *ApiResult {
 	food_list := make([]*MenuItem, 0)
 	for _, truck := range trucks {
 		for _, menu := range truck.Menus {
-			food_list = append(food_list, menu.Items...)
+			if menu.Flagship {
+				food_list = append(food_list, menu.Items...)
+			}
 		}
 	}
 	return APISuccess(food_list)
