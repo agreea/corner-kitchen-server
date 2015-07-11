@@ -44,6 +44,23 @@ type MenuItem struct {
 	Name        string
 	Price       float64
 	Description string
+
+	Options []*MenuItemOption
+}
+
+type MenuItemOption struct {
+	Id      int64
+	Item_id int64
+	Name    string
+
+	Values []*MenuItemOptionItem
+}
+
+type MenuItemOptionItem struct {
+	Id             int64
+	Option_id      int64
+	Option_name    string
+	Price_modifier float64
 }
 
 type Order struct {
@@ -223,7 +240,70 @@ func GetItemsForMenu(db *sql.DB, menu *Menu) ([]*MenuItem, error) {
 			return nil, err
 		}
 		item.Truck_id = menu.Truck_id
+		item.Options, err = GetOptionsForMenuItem(db, item.Id)
+		if err != nil {
+			return nil, err
+		}
 		items = append(items, item)
 	}
 	return items, nil
+}
+
+func GetOptionsForMenuItem(db *sql.DB, item_id int64) ([]*MenuItemOption, error) {
+	rows, err := db.Query(`
+		SELECT Id, Item_id, Name
+		FROM MenuItemOption
+		WHERE Item_id = ?`, item_id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]*MenuItemOption, 0)
+	for rows.Next() {
+		item := new(MenuItemOption)
+		if err := rows.Scan(
+			&item.Id,
+			&item.Item_id,
+			&item.Name,
+		); err != nil {
+			return nil, err
+		}
+		item.Values, err = GetOptionValuesForMenuItem(db, item.Id)
+		if err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, nil
+
+}
+
+func GetOptionValuesForMenuItem(db *sql.DB, option_id int64) ([]*MenuItemOptionItem, error) {
+	rows, err := db.Query(`
+		SELECT Id, Option_id, Option_name, Price_modifier
+		FROM MenuItemOptionItem
+		WHERE Option_id = ?`, option_id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	items := make([]*MenuItemOptionItem, 0)
+	for rows.Next() {
+		item := new(MenuItemOptionItem)
+		if err := rows.Scan(
+			&item.Id,
+			&item.Option_id,
+			&item.Option_name,
+			&item.Price_modifier,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, item)
+	}
+	return items, nil
+
 }
