@@ -15,6 +15,7 @@ type Truck struct {
 	Name         string
 	Location_lat string
 	Location_lon string
+	Open_from    time.Time
 	Open_until   time.Time
 	Phone        string
 	Description  string
@@ -135,7 +136,7 @@ func readUserLine(row *sql.Row) (*UserData, error) {
 	return user_data, nil
 }
 
-func GetTrucksNearLocation(db *sql.DB, lat, lon float64, radius float64) ([]*Truck, error) {
+func GetTrucksNearLocation(db *sql.DB, lat, lon float64, radius float64, open_from, open_til time.Time) ([]*Truck, error) {
 	// Speed up the query a bit by doing a rough narrow before calculating
 	// all the distances we might not need
 
@@ -150,15 +151,26 @@ func GetTrucksNearLocation(db *sql.DB, lat, lon float64, radius float64) ([]*Tru
 	*/
 
 	rows, err := db.Query(`
-		SELECT Id, Name, Location_lat, Location_lon, Open_until, Phone, Description,
+		SELECT Id, Name, Location_lat, Location_lon, Open_from, Open_until, Phone, Description,
 		( 3959 * acos( cos( radians(?) )
                * cos( radians( Location_lat ) )
                * cos( radians( Location_lon ) - radians(?) )
                + sin( radians(?) )
                * sin( radians( Location_lat ) ) ) ) AS Distance
 		FROM Truck
-		HAVING Distance < ? ORDER BY Distance`,
-		lat, lon, lat, radius,
+		HAVING Distance < ?
+		AND (
+			(Open_from <= ? AND Open_until >= ?)
+			OR
+			(Open_from <= ? AND Open_until >= ?)
+			OR
+			(Open_from >= ? AND Open_until <= ?)
+			OR
+			(Open_from <= ? AND Open_until >= ?)
+		)
+		ORDER BY Distance`,
+		lat, lon, lat, radius, open_from, open_from, open_til, open_til,
+		open_from, open_til, open_from, open_til,
 	)
 	if err != nil {
 		return nil, err
@@ -173,6 +185,7 @@ func GetTrucksNearLocation(db *sql.DB, lat, lon float64, radius float64) ([]*Tru
 			&truck.Name,
 			&truck.Location_lat,
 			&truck.Location_lon,
+			&truck.Open_from,
 			&truck.Open_until,
 			&truck.Phone,
 			&truck.Description,

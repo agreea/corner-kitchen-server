@@ -39,6 +39,8 @@ func (t *TruckServlet) Find_truck(r *http.Request) *ApiResult {
 	lat_s := r.Form.Get("lat")
 	lon_s := r.Form.Get("lon")
 	radius_s := r.Form.Get("radius")
+	open_from_unix_s := r.Form.Get("open_from")
+	open_til_unix_s := r.Form.Get("open_til")
 
 	lat, err := strconv.ParseFloat(lat_s, 64)
 	if err != nil {
@@ -52,8 +54,19 @@ func (t *TruckServlet) Find_truck(r *http.Request) *ApiResult {
 	if err != nil {
 		return APIError("Malformed radius", 400)
 	}
+	open_til_unix, err := strconv.ParseInt(open_til_unix_s, 10, 64)
+	if err != nil {
+		return APIError("Malformed open to time", 400)
+	}
+	open_til := time.Unix(open_til_unix, 0)
 
-	trucks, err := GetTrucksNearLocation(t.db, lat, lon, radius)
+	open_from_unix, err := strconv.ParseInt(open_from_unix_s, 10, 64)
+	if err != nil {
+		return APIError("Malformed open from time", 400)
+	}
+	open_from := time.Unix(open_from_unix, 0)
+
+	trucks, err := GetTrucksNearLocation(t.db, lat, lon, radius, open_from, open_til)
 	if err != nil {
 		log.Println(err)
 		return nil
@@ -65,6 +78,7 @@ func (t *TruckServlet) Open_up(r *http.Request) *ApiResult {
 	lat_s := r.Form.Get("lat")
 	lon_s := r.Form.Get("lon")
 	truck_id_s := r.Form.Get("truck_id")
+	open_from_unix_s := r.Form.Get("open_from")
 	open_til_unix_s := r.Form.Get("open_til")
 
 	lat, err := strconv.ParseFloat(lat_s, 64)
@@ -88,12 +102,19 @@ func (t *TruckServlet) Open_up(r *http.Request) *ApiResult {
 	}
 	open_til := time.Unix(open_til_unix, 0)
 
+	open_from_unix, err := strconv.ParseInt(open_from_unix_s, 10, 64)
+	if err != nil {
+		return APIError("Malformed open from time", 400)
+	}
+	open_from := time.Unix(open_from_unix, 0)
+
 	_, err = t.db.Exec(`
 		UPDATE Truck SET
 		Location_lat = ?,
 		Location_lon = ?,
+		Open_from = ?,
 		Open_until = ?
-		WHERE Id = ?`, lat, lon, open_til, truck_id)
+		WHERE Id = ?`, lat, lon, open_from, open_til, truck_id)
 	if err != nil {
 		log.Println(err)
 		return nil
@@ -106,6 +127,8 @@ func (t *TruckServlet) Find_food(r *http.Request) *ApiResult {
 	lat_s := r.Form.Get("lat")
 	lon_s := r.Form.Get("lon")
 	radius_s := r.Form.Get("radius")
+	open_from_unix_s := r.Form.Get("open_from")
+	open_til_unix_s := r.Form.Get("open_til")
 
 	lat, err := strconv.ParseFloat(lat_s, 64)
 	if err != nil {
@@ -119,8 +142,19 @@ func (t *TruckServlet) Find_food(r *http.Request) *ApiResult {
 	if err != nil {
 		return APIError("Malformed radius", 400)
 	}
+	open_til_unix, err := strconv.ParseInt(open_til_unix_s, 10, 64)
+	if err != nil {
+		return APIError("Malformed open to time", 400)
+	}
+	open_til := time.Unix(open_til_unix, 0)
 
-	trucks, err := GetTrucksNearLocation(t.db, lat, lon, radius)
+	open_from_unix, err := strconv.ParseInt(open_from_unix_s, 10, 64)
+	if err != nil {
+		return APIError("Malformed open from time", 400)
+	}
+	open_from := time.Unix(open_from_unix, 0)
+
+	trucks, err := GetTrucksNearLocation(t.db, lat, lon, radius, open_from, open_til)
 	if err != nil {
 		log.Println(err)
 		return nil
