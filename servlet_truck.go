@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type TruckServlet struct {
@@ -58,6 +59,47 @@ func (t *TruckServlet) Find_truck(r *http.Request) *ApiResult {
 		return nil
 	}
 	return APISuccess(trucks)
+}
+
+func (t *TruckServlet) Open_up(r *http.Request) *ApiResult {
+	lat_s := r.Form.Get("lat")
+	lon_s := r.Form.Get("lon")
+	truck_id_s := r.Form.Get("truck_id")
+	open_til_unix_s := r.Form.Get("open_til")
+
+	lat, err := strconv.ParseFloat(lat_s, 64)
+	if err != nil {
+		return APIError("Malformed latitude", 400)
+	}
+
+	lon, err := strconv.ParseFloat(lon_s, 64)
+	if err != nil {
+		return APIError("Malformed longitude", 400)
+	}
+
+	truck_id, err := strconv.ParseInt(truck_id_s, 10, 64)
+	if err != nil {
+		return APIError("Malformed truck ID", 400)
+	}
+
+	open_til_unix, err := strconv.ParseInt(open_til_unix_s, 10, 64)
+	if err != nil {
+		return APIError("Malformed open to time", 400)
+	}
+	open_til := time.Unix(open_til_unix, 0)
+
+	_, err = t.db.Exec(`
+		UPDATE Truck SET
+		Location_lat = ?,
+		Location_lon = ?,
+		Open_until = ?
+		WHERE Id = ?`, lat, lon, open_til, truck_id)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	return APISuccess("OK")
 }
 
 func (t *TruckServlet) Find_food(r *http.Request) *ApiResult {
