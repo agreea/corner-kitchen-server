@@ -46,6 +46,7 @@ type MenuItem struct {
 	Name        string
 	Price       float64
 	Description string
+	Pic_url     string
 
 	ListOptions   []*MenuItemOption
 	ToggleOptions []*MenuToggleOption
@@ -241,7 +242,7 @@ func GetMenusForTruck(db *sql.DB, truck_id int64) ([]*Menu, error) {
 
 func GetItemsForMenu(db *sql.DB, menu *Menu) ([]*MenuItem, error) {
 	rows, err := db.Query(`
-		SELECT Id, Menu_id, Name, Price, Description
+		SELECT Id, Menu_id, Name, Price, Description, Pic_url
 		FROM MenuItem
 		WHERE Menu_id = ?`, menu.Id,
 	)
@@ -259,6 +260,7 @@ func GetItemsForMenu(db *sql.DB, menu *Menu) ([]*MenuItem, error) {
 			&item.Name,
 			&item.Price,
 			&item.Description,
+			&item.Pic_url,
 		); err != nil {
 			return nil, err
 		}
