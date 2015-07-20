@@ -1,8 +1,9 @@
 package main
 
 import (
-	"bitbucket.org/ckvist/twilio/twirest"
 	"database/sql"
+	"encoding/json"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"net/http"
@@ -13,11 +14,11 @@ import (
 type TruckServlet struct {
 	db              *sql.DB
 	server_config   *Config
-	twilio_client   *twirest.TwilioClient
+	twilio_queue    chan *SMS
 	session_manager *SessionManager
 }
 
-func NewTruckServlet(server_config *Config, session_manager *SessionManager, twilio_client *twirest.TwilioClient) *TruckServlet {
+func NewTruckServlet(server_config *Config, session_manager *SessionManager, twilio_queue chan *SMS) *TruckServlet {
 	t := new(TruckServlet)
 
 	t.server_config = server_config
@@ -30,7 +31,7 @@ func NewTruckServlet(server_config *Config, session_manager *SessionManager, twi
 
 	t.session_manager = session_manager
 
-	t.twilio_client = twilio_client
+	t.twilio_queue = twilio_queue
 
 	return t
 }
@@ -189,27 +190,23 @@ func (t *TruckServlet) Get_item(r *http.Request) *ApiResult {
 	return APISuccess(item)
 }
 
-func (t *TruckServlet) Message(r *http.Request) *ApiResult {
-	message := r.Form.Get("message")
-	to := r.Form.Get("number")
-
-	msg := twirest.SendMessage{
-		Text: message,
-		To:   to,
-		From: t.server_config.Twilio.From}
-	resp, err := t.twilio_client.Request(msg)
-
-	if err != nil {
-		log.Println(err)
-		return APIError(err.Error(), 500)
-	}
-	return APISuccess(resp.Message.Status)
+type OrderJson []OrderJsonItem
+type OrderJsonItem struct {
+	Id            int64   `json:"item_id"`
+	Quantity      int64   `json:quantity`
+	ListOptions   []int64 `json:"listoptions"`
+	ToggleOptions []int64 `json:"toggleoptions"`
 }
 
 func (t *TruckServlet) Order(r *http.Request) *ApiResult {
-	//truck_id := r.Form.Get("truck_id")
+	truck_id_s := r.Form.Get("truck_id")
+	truck_id, err := strconv.ParseInt(truck_id_s, 10, 64)
+	if err != nil {
+		return APIError("Malformed truck ID", 400)
+	}
+
 	session_id := r.Form.Get("session")
-	session_valid, _, err := t.session_manager.GetSession(session_id)
+	session_valid, session, err := t.session_manager.GetSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return nil
@@ -218,7 +215,65 @@ func (t *TruckServlet) Order(r *http.Request) *ApiResult {
 		return APIError("Invalid session token", 401)
 	}
 
-	return APIError("Unimplemented", 400)
+	items_json := r.Form.Get("items")
+	log.Println(items_json)
+	var order_body OrderJson
+	err = json.Unmarshal([]byte(items_json), &order_body)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	log.Println(order_body)
+
+	// Generate order
+	order := new(Order)
+	order.User_id = session.User.Id
+	order.Truck_id = truck_id
+	order.Date = time.Now()
+
+	// Collect full data on items
+	order_items := make([]*OrderItem, len(order_body))
+	for i, item := range order_body {
+		orderitem := new(OrderItem)
+		orderitem.Order_id = order.Id
+		orderitem.Item_id = item.Id
+		orderitem.Quantity = item.Quantity
+
+		orderitem.ToggleOptions = item.ToggleOptions
+		orderitem.ListOptionValues = item.ListOptions
+
+		order_items[i] = orderitem
+	}
+
+	order.Items = order_items
+
+	// Save the order to the DB
+	err = SaveOrderToDB(t.db, order)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	// Send notifications
+	msg := new(SMS)
+	msg.To = session.User.Phone
+	order_text := ""
+	for _, item := range order_body {
+		mitem, err := GetMenuItemById(t.db, item.Id)
+		if err != nil {
+			log.Println(err)
+			return nil
+		}
+		if len(order_text) == 0 {
+			order_text = mitem.Name
+		} else {
+			order_text = fmt.Sprintf("%s, %s", order_text, mitem.Name)
+		}
+	}
+	msg.Message = fmt.Sprintf("Your order (%s) has been placed!", order_text)
+	t.twilio_queue <- msg
+
+	return APISuccess("OK")
 }
 
 func (t *TruckServlet) Menu(r *http.Request) *ApiResult {

@@ -5,6 +5,11 @@ import (
 	"time"
 )
 
+type SMS struct {
+	To      string
+	Message string
+}
+
 /*
  * Trucks and meuns
  */
@@ -80,6 +85,7 @@ type Order struct {
 	User_id  int64
 	Truck_id int64
 	Date     time.Time
+	Phone    string
 
 	// Go fields
 	Items []*OrderItem
@@ -91,6 +97,10 @@ type OrderItem struct {
 	Order_id int64
 	Item_id  int64
 	Quantity int64
+
+	// ID numbers into the toggle / list option tables
+	ToggleOptions    []int64
+	ListOptionValues []int64
 }
 
 type UserData struct {
@@ -100,6 +110,7 @@ type UserData struct {
 	password_hash      string
 	password_salt      string
 	password_reset_key string
+	Phone              string
 
 	// Go fields
 	orders        []*Order
@@ -112,13 +123,13 @@ type Session struct {
 }
 
 func GetUserById(db *sql.DB, id int64) (*UserData, error) {
-	row := db.QueryRow(`SELECT Id, Email, Password_salt, Password_hash, Password_reset_key
+	row := db.QueryRow(`SELECT Id, Email, Password_salt, Password_hash, Password_reset_key, Phone
         FROM User WHERE Id = ?`, id)
 	return readUserLine(row)
 }
 
 func GetUserByEmail(db *sql.DB, email string) (*UserData, error) {
-	row := db.QueryRow(`SELECT Id, Email, Password_salt, Password_hash, Password_reset_key
+	row := db.QueryRow(`SELECT Id, Email, Password_salt, Password_hash, Password_reset_key, Phone
         FROM User WHERE Email = ?`, email)
 	return readUserLine(row)
 }
@@ -130,7 +141,9 @@ func readUserLine(row *sql.Row) (*UserData, error) {
 		&user_data.Email,
 		&user_data.password_salt,
 		&user_data.password_hash,
-		&user_data.password_reset_key); err != nil {
+		&user_data.password_reset_key,
+		&user_data.Phone,
+	); err != nil {
 		return nil, err
 	}
 
@@ -393,4 +406,62 @@ func GetOptionValuesForMenuItem(db *sql.DB, option_id int64) ([]*MenuItemOptionI
 	}
 	return items, nil
 
+}
+
+func SaveOrderToDB(db *sql.DB, order *Order) error {
+	// Insert top level order item
+	result, err := db.Exec("INSERT INTO `Order` (User_id, Truck_id, Date) VALUES (?, ?, ?)",
+		order.User_id, order.Truck_id, order.Date)
+	if err != nil {
+		return err
+	}
+	order.Id, err = result.LastInsertId()
+	if err != nil {
+		return err
+	}
+
+	// Insert each of the items in the order
+	// For each item, also insert mappings for the toggle / list options
+
+	for _, item := range order.Items {
+		result, err = db.Exec(
+			`INSERT INTO OrderItem
+			(Order_id, Item_id, Quantity)
+			VALUES
+			(?, ?, ?)`,
+			order.Id, item.Item_id, item.Quantity)
+		if err != nil {
+			return err
+		}
+		item.Id, err = result.LastInsertId()
+		if err != nil {
+			return err
+		}
+
+		for _, toggle_value_id := range item.ToggleOptions {
+			_, err := db.Exec(
+				`INSERT INTO OrderToggledOptions
+				(Order_item_id, Toggle_value_id)
+				VALUES
+				(?, ?)`,
+				item.Id, toggle_value_id)
+			if err != nil {
+				return err
+			}
+		}
+
+		for _, list_value_id := range item.ListOptionValues {
+			_, err := db.Exec(
+				`INSERT INTO OrderSelectedOptions
+				(Order_item_id, Value_id)
+				VALUES
+				(?, ?)`,
+				item.Id, list_value_id)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }
