@@ -65,6 +65,8 @@ func (t *ApiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	lw := apachelog.NewLoggingWriter(w, r, t.AccessLog)
 	defer lw.EmitLog()
 
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
 	if servlet, servlet_exists := t.Servlets[r.RequestURI]; servlet_exists {
 		r.ParseForm()
 		method := r.Form.Get("method")

@@ -66,9 +66,11 @@ func init_server() {
 
 	session_manager := NewSessionManager(&server_config)
 	twilio_client := twirest.NewClient(server_config.Twilio.SID, server_config.Twilio.Token)
+	twilio_messagequeue := make(chan *SMS, 100)
+	go workTwilioQueue(twilio_client, twilio_messagequeue)
 	api_handler.AddServlet("/version", NewVersionServlet())
 	api_handler.AddServlet("/user", NewUserServlet(&server_config, session_manager))
-	api_handler.AddServlet("/truck", NewTruckServlet(&server_config, session_manager, twilio_client))
+	api_handler.AddServlet("/truck", NewTruckServlet(&server_config, session_manager, twilio_messagequeue))
 
 	// Start listening to HTTP requests
 	if err := http_server.ListenAndServe(); err != nil {
@@ -76,6 +78,21 @@ func init_server() {
 	}
 
 	log.Println("Listening on " + bind_address)
+}
+
+func workTwilioQueue(client *twirest.TwilioClient, queue chan *SMS) {
+	for {
+		qmsg := <-queue
+
+		msg := twirest.SendMessage{
+			Text: qmsg.Message,
+			To:   qmsg.To,
+			From: server_config.Twilio.From}
+		_, err := client.Request(msg)
+		if err != nil {
+			log.Println(err)
+		}
+	}
 }
 
 func main() {
