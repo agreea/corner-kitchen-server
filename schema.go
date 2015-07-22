@@ -134,6 +134,12 @@ func GetUserByEmail(db *sql.DB, email string) (*UserData, error) {
 	return readUserLine(row)
 }
 
+func GetUserByPhone(db *sql.DB, phone string) (*UserData, error) {
+	row := db.QueryRow(`SELECT Id, Email, Password_salt, Password_hash, Password_reset_key, Phone
+        FROM User WHERE Phone = ?`, phone)
+	return readUserLine(row)
+}
+
 func readUserLine(row *sql.Row) (*UserData, error) {
 	user_data := new(UserData)
 	if err := row.Scan(
