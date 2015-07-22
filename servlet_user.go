@@ -56,11 +56,11 @@ func (t *UserServlet) Validate(r *http.Request) *ApiResult {
 // Session tokens are stored in a local cache, as well as back to the DB to
 // support multi-server architecture. A cache miss will result in a DB read.
 func (t *UserServlet) Login(r *http.Request) *ApiResult {
-	email := r.Form.Get("email")
+	phone := r.Form.Get("phone")
 	pass := r.Form.Get("pass")
 
 	// Verify the password
-	password_valid, err := t.verify_password_for_email(email, pass)
+	password_valid, err := t.verify_password_for_phone(phone, pass)
 	if err != nil {
 		log.Println("Login", err)
 		return nil
@@ -68,7 +68,7 @@ func (t *UserServlet) Login(r *http.Request) *ApiResult {
 
 	if password_valid {
 		// Successful login
-		userdata, err := t.process_login(email)
+		userdata, err := t.process_login(phone)
 		if err != nil {
 			log.Println("process_login", err)
 			return nil
@@ -76,8 +76,8 @@ func (t *UserServlet) Login(r *http.Request) *ApiResult {
 			return APISuccess(userdata)
 		}
 	} else {
-		// Invalid email / password combination
-		return APIError("Invalid email and/or password", 200)
+		// Invalid phone / password combination
+		return APIError("Invalid phone and/or password", 200)
 	}
 }
 
@@ -115,8 +115,8 @@ func (t *UserServlet) Delete(r *http.Request) *ApiResult {
 
 // Verify a password for a username.
 // Returns whether or not the password was valid and whether an error occurred.
-func (t *UserServlet) verify_password_for_email(email, pass string) (bool, error) {
-	rows, err := t.db.Query("SELECT Password_hash, Password_salt FROM User WHERE Email = ?", email)
+func (t *UserServlet) verify_password_for_phone(phone, pass string) (bool, error) {
+	rows, err := t.db.Query("SELECT Password_hash, Password_salt FROM User WHERE Phone = ?", phone)
 	if err != nil {
 		return false, err
 	}
@@ -155,8 +155,8 @@ func (t *UserServlet) verify_password_for_email(email, pass string) (bool, error
 
 // Fetches a user's data and creates a session for them.
 // Returns a pointer to the userdata and an error.
-func (t *UserServlet) process_login(email string) (*UserData, error) {
-	userdata, err := GetUserByEmail(t.db, email)
+func (t *UserServlet) process_login(phone string) (*UserData, error) {
+	userdata, err := GetUserByPhone(t.db, phone)
 	if err != nil {
 		return nil, err
 	}
@@ -171,41 +171,41 @@ func (t *UserServlet) process_login(email string) (*UserData, error) {
 
 // Create a new user, then allocate a new session.
 func (t *UserServlet) Register(r *http.Request) *ApiResult {
-	email := r.Form.Get("email")
+	phone := r.Form.Get("phone")
 	pass := r.Form.Get("pass")
 
 	// If any of the fields (other than classyear) are nil, error out.
-	if pass == "" || email == "" {
+	if pass == "" || phone == "" {
 		return APIError("Missing value for one or more fields", 400)
 	}
 
 	// Check if the username is already taken
-	email_exists, err := t.email_exists(email)
+	phone_exists, err := t.phone_exists(phone)
 	if err != nil {
 		log.Println("Register", err)
 		return nil
 	}
-	if email_exists {
-		return APIError(fmt.Sprintf("Email %s is already taken", email), 200)
+	if phone_exists {
+		return APIError(fmt.Sprintf("Phone # %s is already taken", phone), 200)
 	}
 
 	// Create the user
 	_, err = t.db.Exec(`INSERT INTO User
-		(Email) VALUES (?)`,
-		email)
+		(Phone) VALUES (?)`,
+		phone)
 	if err != nil {
 		log.Println("Register", err)
 		return nil
 	}
 
 	// Set the password for the user
-	err = t.set_password_for_user(email, pass)
+	err = t.set_password_for_user(phone, pass)
 	if err != nil {
 		log.Println(err)
 	}
 
 	// Log in as the new user
-	userdata, err := t.process_login(email)
+	userdata, err := t.process_login(phone)
 	if err != nil {
 		log.Println("process_login", err)
 		return nil
@@ -217,13 +217,13 @@ func (t *UserServlet) Register(r *http.Request) *ApiResult {
 // Sets the password for a user by username.
 // Generates a new salt as well.
 // Values are stored as base64 encoded strings.
-func (t *UserServlet) set_password_for_user(user, pass string) error {
+func (t *UserServlet) set_password_for_user(phone, pass string) error {
 	password_salt := t.generate_random_bytestring(64)
 	password_hash := t.generate_password_hash([]byte(pass), password_salt)
-	_, err := t.db.Exec("UPDATE User SET Password_hash = ?, Password_salt = ? WHERE Email = ?",
+	_, err := t.db.Exec("UPDATE User SET Password_hash = ?, Password_salt = ? WHERE Phone = ?",
 		base64.StdEncoding.EncodeToString(password_hash),
 		base64.StdEncoding.EncodeToString(password_salt),
-		user,
+		phone,
 	)
 	return err
 }
@@ -263,12 +263,12 @@ http://degreesheep.com/#/reset/%s/%s`, user_data.First_name, user, reset_token))
 // and if valid updates the user's salt and password.
 // Returns a new session.
 func (t *UserServlet) Reset_password(r *http.Request) *ApiResult {
-	email := r.Form.Get("user")
+	phone := r.Form.Get("phone")
 	reset_key := r.Form.Get("reset_key")
 	new_pass := r.Form.Get("new_pass")
 
 	// Fetch the user information, including password reset key
-	user_data, err := GetUserByEmail(t.db, email)
+	user_data, err := GetUserByPhone(t.db, phone)
 	if err != nil {
 		log.Println("Reset_password", err)
 		return nil
@@ -280,10 +280,10 @@ func (t *UserServlet) Reset_password(r *http.Request) *ApiResult {
 	}
 
 	// Update the user
-	t.set_password_for_user(email, new_pass)
+	t.set_password_for_user(phone, new_pass)
 
 	// Start a new session
-	userdata, err := t.process_login(email)
+	userdata, err := t.process_login(phone)
 	if err != nil {
 		log.Println("process_login", err)
 		return nil
@@ -294,8 +294,8 @@ func (t *UserServlet) Reset_password(r *http.Request) *ApiResult {
 
 // Check if a username already exists in the degreesheep DB.
 // Returns an error if any database operation fails.
-func (t *UserServlet) email_exists(email string) (bool, error) {
-	rows, err := t.db.Query("SELECT Id FROM User WHERE Email = ?", email)
+func (t *UserServlet) phone_exists(phone string) (bool, error) {
+	rows, err := t.db.Query("SELECT Id FROM User WHERE Phone = ?", phone)
 	if err != nil {
 		return true, err
 	}
