@@ -69,7 +69,7 @@ func init_server() {
 	twilio_messagequeue := make(chan *SMS, 100)
 	go workTwilioQueue(twilio_client, twilio_messagequeue)
 	api_handler.AddServlet("/version", NewVersionServlet())
-	api_handler.AddServlet("/user", NewUserServlet(&server_config, session_manager))
+	api_handler.AddServlet("/user", NewUserServlet(&server_config, session_manager, twilio_messagequeue))
 	api_handler.AddServlet("/truck", NewTruckServlet(&server_config, session_manager, twilio_messagequeue))
 
 	// Start listening to HTTP requests
