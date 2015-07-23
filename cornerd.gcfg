@@ -2,7 +2,7 @@
 mysqlUser = "corner-kitchen"
 mysqlPassword = "QL2Nz2sUP3UX2EMM"
 mysqlIPProto = "tcp"
-mysqlServerAddr = "192.168.0.1"
+mysqlServerAddr = "127.0.0.1"
 mysqlServerPort = "3306"
 mysqlDatabase = "corner-kitchen"
 
