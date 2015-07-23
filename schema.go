@@ -111,6 +111,7 @@ type UserData struct {
 	password_salt      string
 	password_reset_key string
 	Phone              string
+	Verified           bool
 
 	// Go fields
 	orders        []*Order
@@ -123,19 +124,22 @@ type Session struct {
 }
 
 func GetUserById(db *sql.DB, id int64) (*UserData, error) {
-	row := db.QueryRow(`SELECT Id, Email, Password_salt, Password_hash, Password_reset_key, Phone
+	row := db.QueryRow(`SELECT Id, Email, Password_salt, Password_hash,
+		Password_reset_key, Phone, Verified
         FROM User WHERE Id = ?`, id)
 	return readUserLine(row)
 }
 
 func GetUserByEmail(db *sql.DB, email string) (*UserData, error) {
-	row := db.QueryRow(`SELECT Id, Email, Password_salt, Password_hash, Password_reset_key, Phone
+	row := db.QueryRow(`SELECT Id, Email, Password_salt, Password_hash,
+		Password_reset_key, Phone, Verified
         FROM User WHERE Email = ?`, email)
 	return readUserLine(row)
 }
 
 func GetUserByPhone(db *sql.DB, phone string) (*UserData, error) {
-	row := db.QueryRow(`SELECT Id, Email, Password_salt, Password_hash, Password_reset_key, Phone
+	row := db.QueryRow(`SELECT Id, Email, Password_salt, Password_hash,
+		Password_reset_key, Phone, Verified
         FROM User WHERE Phone = ?`, phone)
 	return readUserLine(row)
 }
@@ -149,6 +153,7 @@ func readUserLine(row *sql.Row) (*UserData, error) {
 		&user_data.password_hash,
 		&user_data.password_reset_key,
 		&user_data.Phone,
+		&user_data.Verified,
 	); err != nil {
 		return nil, err
 	}

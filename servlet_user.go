@@ -19,11 +19,12 @@ type UserServlet struct {
 	random          *rand.Rand
 	server_config   *Config
 	session_manager *SessionManager
+	twilio_queue    chan *SMS
 }
 
 const alphanumerics = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 
-func NewUserServlet(server_config *Config, session_manager *SessionManager) *UserServlet {
+func NewUserServlet(server_config *Config, session_manager *SessionManager, twilio_queue chan *SMS) *UserServlet {
 	t := new(UserServlet)
 	t.random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
@@ -35,6 +36,8 @@ func NewUserServlet(server_config *Config, session_manager *SessionManager) *Use
 		log.Fatal("NewUserServlet", "Failed to open database:", err)
 	}
 	t.db = db
+
+	t.twilio_queue = twilio_queue
 
 	return t
 }
@@ -72,8 +75,12 @@ func (t *UserServlet) Login(r *http.Request) *ApiResult {
 		if err != nil {
 			log.Println("process_login", err)
 			return nil
-		} else {
+		}
+
+		if userdata.Verified {
 			return APISuccess(userdata)
+		} else {
+			return APIError("This phone number is not verified", 200)
 		}
 	} else {
 		// Invalid phone / password combination
@@ -204,13 +211,55 @@ func (t *UserServlet) Register(r *http.Request) *ApiResult {
 		log.Println(err)
 	}
 
-	// Log in as the new user
-	userdata, err := t.process_login(phone)
+	// Set the verification code for the user
+	verification_code := t.generate_random_alphanumeric(6)
+	_, err = t.db.Exec(
+		`UPDATE User SET Verification_code = ? WHERE Phone = ?`,
+		verification_code, phone)
 	if err != nil {
-		log.Println("process_login", err)
+		log.Println(err)
 		return nil
+	}
+
+	// Send the verification code for the user
+	msg := new(SMS)
+	msg.To = phone
+	msg.Message = fmt.Sprintf("Your verification code is %s", verification_code)
+	t.twilio_queue <- msg
+
+	return APISuccess("Confirmation code has been sent")
+}
+
+func (t *UserServlet) Verify(r *http.Request) *ApiResult {
+	phone := r.Form.Get("phone")
+	code := r.Form.Get("code")
+
+	row := t.db.QueryRow(`SELECT Verification_code FROM User WHERE Phone = ?`, phone)
+	var stored_code string
+	err := row.Scan(&stored_code)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	if code == stored_code {
+		// Mark the account as verified
+		_, err := t.db.Exec(`UPDATE User SET Verified = 1 WHERE Phone = ?`, phone)
+		if err != nil {
+			log.Println(err)
+			return nil
+		}
+
+		// Log in as the new user
+		userdata, err := t.process_login(phone)
+		if err != nil {
+			log.Println("process_login", err)
+			return nil
+		} else {
+			return APISuccess(userdata)
+		}
 	} else {
-		return APISuccess(userdata)
+		return APIError("The verification code provided does not match", 200)
 	}
 }
 
