@@ -107,6 +107,8 @@ type UserData struct {
 	// Raw fields
 	Id                 int64
 	Email              string
+	First_name         string
+	Last_name          string
 	password_hash      string
 	password_salt      string
 	password_reset_key string
@@ -124,21 +126,24 @@ type Session struct {
 }
 
 func GetUserById(db *sql.DB, id int64) (*UserData, error) {
-	row := db.QueryRow(`SELECT Id, Email, Password_salt, Password_hash,
+	row := db.QueryRow(`SELECT Id, Email, First_name, Last_name,
+		Password_salt, Password_hash,
 		Password_reset_key, Phone, Verified
         FROM User WHERE Id = ?`, id)
 	return readUserLine(row)
 }
 
 func GetUserByEmail(db *sql.DB, email string) (*UserData, error) {
-	row := db.QueryRow(`SELECT Id, Email, Password_salt, Password_hash,
+	row := db.QueryRow(`SELECT Id, Email, First_name, Last_name,
+		Password_salt, Password_hash,
 		Password_reset_key, Phone, Verified
         FROM User WHERE Email = ?`, email)
 	return readUserLine(row)
 }
 
 func GetUserByPhone(db *sql.DB, phone string) (*UserData, error) {
-	row := db.QueryRow(`SELECT Id, Email, Password_salt, Password_hash,
+	row := db.QueryRow(`SELECT Id, Email, First_name, Last_name,
+		Password_salt, Password_hash,
 		Password_reset_key, Phone, Verified
         FROM User WHERE Phone = ?`, phone)
 	return readUserLine(row)
@@ -149,6 +154,8 @@ func readUserLine(row *sql.Row) (*UserData, error) {
 	if err := row.Scan(
 		&user_data.Id,
 		&user_data.Email,
+		&user_data.First_name,
+		&user_data.Last_name,
 		&user_data.password_salt,
 		&user_data.password_hash,
 		&user_data.password_reset_key,
