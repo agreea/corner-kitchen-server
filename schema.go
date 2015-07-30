@@ -168,6 +168,26 @@ func readUserLine(row *sql.Row) (*UserData, error) {
 	return user_data, nil
 }
 
+func GetTruckById(db *sql.DB, id int64) (*Truck, error) {
+	row := db.QueryRow(`SELECT Id, Name, Location_lat, Location_lon,
+		Open_from, Open_until, Phone, Description FROM Truck
+		WHERE Id = ?`, id)
+	t := new(Truck)
+	if err := row.Scan(
+		&t.Id,
+		&t.Name,
+		&t.Location_lat,
+		&t.Location_lon,
+		&t.Open_from,
+		&t.Open_until,
+		&t.Phone,
+		&t.Description,
+	); err != nil {
+		return nil, err
+	}
+	return t, nil
+}
+
 func GetTrucksNearLocation(db *sql.DB, lat, lon float64, radius float64, open_from, open_til time.Time) ([]*Truck, error) {
 	// Speed up the query a bit by doing a rough narrow before calculating
 	// all the distances we might not need

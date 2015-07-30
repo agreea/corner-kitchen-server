@@ -254,7 +254,7 @@ func (t *TruckServlet) Order(r *http.Request) *ApiResult {
 		return nil
 	}
 
-	// Send notifications
+	// Send user notification
 	msg := new(SMS)
 	msg.To = session.User.Phone
 	order_text := ""
@@ -271,6 +271,17 @@ func (t *TruckServlet) Order(r *http.Request) *ApiResult {
 		}
 	}
 	msg.Message = fmt.Sprintf("Your order (%s) has been placed!", order_text)
+	t.twilio_queue <- msg
+
+	// Send truck notification
+	msg = new(SMS)
+	truck, err := GetTruckById(t.db, order.Truck_id)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	msg.To = truck.Phone
+	msg.Message = fmt.Sprintf("%s wants: %s", session.User.First_name, order_text)
 	t.twilio_queue <- msg
 
 	return APISuccess("OK")
