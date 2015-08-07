@@ -4,7 +4,14 @@ import (
 	"net/http"
 )
 
+const api_version = 1
+
 type VersionServlet struct {
+}
+
+type VersionResponse struct {
+	BuildVersion string
+	APIVersion   int
 }
 
 func NewVersionServlet() *VersionServlet {
@@ -13,5 +20,10 @@ func NewVersionServlet() *VersionServlet {
 }
 
 func (t *VersionServlet) ServeHTTP(r *http.Request) *ApiResult {
-	return APISuccess(build_version)
+	return APISuccess(
+		VersionResponse{
+			build_version,
+			api_version,
+		},
+	)
 }
