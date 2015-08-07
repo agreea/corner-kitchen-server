@@ -75,6 +75,26 @@ func (t *TruckServlet) Find_truck(r *http.Request) *ApiResult {
 	return APISuccess(trucks)
 }
 
+func (t *TruckServlet) Close_down(r *http.Request) *ApiResult {
+	truck_id_s := r.Form.Get("truck_id")
+
+	_, err := t.db.Exec(`
+		UPDATE Truck SET
+		Open_until = ?
+		WHERE Id = ?`, time.Now(), truck_id_s)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	return APISuccess("OK")
+}
+
 func (t *TruckServlet) Open_up(r *http.Request) *ApiResult {
 	lat_s := r.Form.Get("lat")
 	lon_s := r.Form.Get("lon")
