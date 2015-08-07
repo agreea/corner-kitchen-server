@@ -179,12 +179,13 @@ func (t *UserServlet) process_login(phone string) (*UserData, error) {
 // Create a new user, then allocate a new session.
 func (t *UserServlet) Register(r *http.Request) *ApiResult {
 	phone := r.Form.Get("phone")
+	email := r.Form.Get("email")
 	pass := r.Form.Get("pass")
 	firstname := r.Form.Get("firstname")
 	lastname := r.Form.Get("lastname")
 
 	// If any of the fields (other than classyear) are nil, error out.
-	if pass == "" || phone == "" || firstname == "" || lastname == "" {
+	if pass == "" || phone == "" || firstname == "" || lastname == "" || email == "" {
 		return APIError("Missing value for one or more fields", 400)
 	}
 
@@ -200,8 +201,8 @@ func (t *UserServlet) Register(r *http.Request) *ApiResult {
 
 	// Create the user
 	_, err = t.db.Exec(`INSERT INTO User
-		(Phone, First_name, Last_name) VALUES (?, ?, ?)`,
-		phone, firstname, lastname)
+		(Email, Phone, First_name, Last_name) VALUES (?, ?, ?, ?)`,
+		email, phone, firstname, lastname)
 	if err != nil {
 		log.Println("Register", err)
 		return nil
