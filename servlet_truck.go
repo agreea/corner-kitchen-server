@@ -101,6 +101,7 @@ func (t *TruckServlet) Open_up(r *http.Request) *ApiResult {
 	truck_id_s := r.Form.Get("truck_id")
 	open_from_unix_s := r.Form.Get("open_from")
 	open_til_unix_s := r.Form.Get("open_til")
+	session_id := r.Form.Get("session")
 
 	lat, err := strconv.ParseFloat(lat_s, 64)
 	if err != nil {
@@ -128,6 +129,25 @@ func (t *TruckServlet) Open_up(r *http.Request) *ApiResult {
 		return APIError("Malformed open from time", 400)
 	}
 	open_from := time.Unix(open_from_unix, 0)
+
+	session_valid, session, err := t.session_manager.GetSession(session_id)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	if !session_valid {
+		return APIError("Invalid session token", 401)
+	}
+
+	truck, err := GetTruckById(t.db, truck_id)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	if session.User.Id != truck.Owner {
+		return APIError("Not autorized to open for truck", 401)
+	}
 
 	_, err = t.db.Exec(`
 		UPDATE Truck SET

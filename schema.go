@@ -17,6 +17,7 @@ type SMS struct {
 type Truck struct {
 	// Raw fields
 	Id           int64
+	Owner        int64
 	Name         string
 	Location_lat string
 	Location_lon string
@@ -169,12 +170,13 @@ func readUserLine(row *sql.Row) (*UserData, error) {
 }
 
 func GetTruckById(db *sql.DB, id int64) (*Truck, error) {
-	row := db.QueryRow(`SELECT Id, Name, Location_lat, Location_lon,
+	row := db.QueryRow(`SELECT Id, Owner, Name, Location_lat, Location_lon,
 		Open_from, Open_until, Phone, Description FROM Truck
 		WHERE Id = ?`, id)
 	t := new(Truck)
 	if err := row.Scan(
 		&t.Id,
+		&t.Owner,
 		&t.Name,
 		&t.Location_lat,
 		&t.Location_lon,
