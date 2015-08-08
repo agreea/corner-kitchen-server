@@ -185,7 +185,7 @@ func (t *UserServlet) Register(r *http.Request) *ApiResult {
 	lastname := r.Form.Get("lastname")
 
 	// If any of the fields (other than classyear) are nil, error out.
-	if pass == "" || phone == "" || firstname == "" || lastname == "" || email == "" {
+	if pass == "" || phone == "" || firstname == "" || lastname == "" {
 		return APIError("Missing value for one or more fields", 400)
 	}
 
