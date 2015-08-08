@@ -77,11 +77,36 @@ func (t *TruckServlet) Find_truck(r *http.Request) *ApiResult {
 
 func (t *TruckServlet) Close_down(r *http.Request) *ApiResult {
 	truck_id_s := r.Form.Get("truck_id")
+	session_id := r.Form.Get("session")
 
-	_, err := t.db.Exec(`
+	truck_id, err := strconv.ParseInt(truck_id_s, 10, 64)
+	if err != nil {
+		return APIError("Malformed truck ID", 400)
+	}
+
+	session_valid, session, err := t.session_manager.GetSession(session_id)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	if !session_valid {
+		return APIError("Invalid session token", 401)
+	}
+
+	truck, err := GetTruckById(t.db, truck_id)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	if session.User.Id != truck.Owner {
+		return APIError("Not autorized to open for truck", 401)
+	}
+
+	_, err = t.db.Exec(`
 		UPDATE Truck SET
 		Open_until = ?
-		WHERE Id = ?`, time.Now(), truck_id_s)
+		WHERE Id = ?`, time.Now(), truck_id)
 	if err != nil {
 		log.Println(err)
 		return nil
