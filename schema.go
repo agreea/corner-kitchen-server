@@ -331,6 +331,25 @@ func GetItemsForMenu(db *sql.DB, menu *Menu) ([]*MenuItem, error) {
 	return items, nil
 }
 
+func GetToggleOptionById(db *sql.DB, item_id int64) (*MenuToggleOption, error) {
+	row := db.QueryRow(`
+		SELECT Id, Item_id, Name, Price_modifier
+		FROM MenuItemToggle
+		WHERE Id = ?`, item_id)
+
+	item := new(MenuToggleOption)
+	if err := row.Scan(
+		&item.Id,
+		&item.Item_id,
+		&item.Name,
+		&item.Price_modifier,
+	); err != nil {
+		return nil, err
+	}
+
+	return item, nil
+}
+
 func GetToggleOptionsForMenuItem(db *sql.DB, item_id int64) ([]*MenuToggleOption, error) {
 	rows, err := db.Query(`
 		SELECT Id, Item_id, Name, Price_modifier
@@ -417,6 +436,24 @@ func GetMenuItemById(db *sql.DB, item_id int64) (*MenuItem, error) {
 		return nil, err
 	}
 
+	return item, nil
+}
+
+func GetListOptionValueById(db *sql.DB, option_id int64) (*MenuItemOptionItem, error) {
+	row := db.QueryRow(`
+		SELECT Id, Option_id, Option_name, Price_modifier
+		FROM MenuItemOptionItem
+		WHERE Id = ?`, option_id,
+	)
+	item := new(MenuItemOptionItem)
+	if err := row.Scan(
+		&item.Id,
+		&item.Option_id,
+		&item.Option_name,
+		&item.Price_modifier,
+	); err != nil {
+		return nil, err
+	}
 	return item, nil
 }
 

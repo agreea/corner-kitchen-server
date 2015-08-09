@@ -280,6 +280,16 @@ func (t *TruckServlet) Order(r *http.Request) *ApiResult {
 		return APIError("Invalid session token", 401)
 	}
 
+	// Check if the truck is still open
+	truck, err := GetTruckById(t.db, truck_id)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	if truck.Open_until.Before(time.Now()) {
+		return APIError("This truck is currently closed and not accepting orders", 400)
+	}
+
 	items_json := r.Form.Get("items")
 	log.Println(items_json)
 	var order_body OrderJson
@@ -340,13 +350,42 @@ func (t *TruckServlet) Order(r *http.Request) *ApiResult {
 
 	// Send truck notification
 	msg = new(SMS)
-	truck, err := GetTruckById(t.db, order.Truck_id)
-	if err != nil {
-		log.Println(err)
-		return nil
-	}
 	msg.To = truck.Phone
-	msg.Message = fmt.Sprintf("%s wants: %s", session.User.First_name, order_text)
+	full_order_text := ""
+	for _, item := range order_body {
+		mitem, err := GetMenuItemById(t.db, item.Id)
+
+		if err != nil {
+			log.Println(err)
+			return nil
+		}
+
+		item_desc := ""
+		for _, listopt := range item.ListOptions {
+			opt, err := GetListOptionValueById(t.db, listopt)
+			if err != nil {
+				log.Println(err)
+				return nil
+			}
+			item_desc = fmt.Sprintf("%s, %s", opt.Option_name)
+		}
+
+		for _, toggleopt := range item.ToggleOptions {
+			opt, err := GetToggleOptionById(t.db, toggleopt)
+			if err != nil {
+				log.Println(err)
+				return nil
+			}
+			item_desc = fmt.Sprintf("%s, %s", opt.Name)
+		}
+
+		if len(order_text) == 0 {
+			full_order_text = fmt.Sprintf("%s (%s)", mitem.Name, item_desc)
+		} else {
+			full_order_text = fmt.Sprintf("%s, %s (%s)", full_order_text, mitem.Name, item_desc)
+		}
+	}
+	msg.Message = fmt.Sprintf("%s wants: %s", session.User.First_name, full_order_text)
 	t.twilio_queue <- msg
 
 	return APISuccess("OK")
