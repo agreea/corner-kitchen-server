@@ -306,6 +306,13 @@ func (t *TruckServlet) Order(r *http.Request) *ApiResult {
 	order.Truck_id = truck_id
 	order.Date = time.Now()
 
+	pickup_time_s := r.Form.Get("pickup_time")
+	pickup_time, err := strconv.ParseInt(pickup_time_s, 10, 64)
+	if err != nil {
+		return APIError("Invalid pickup time", 400)
+	}
+	order.Pickup_time = time.Unix(pickup_time, 0)
+
 	// Collect full data on items
 	order_items := make([]*OrderItem, len(order_body))
 	for i, item := range order_body {
@@ -385,7 +392,12 @@ func (t *TruckServlet) Order(r *http.Request) *ApiResult {
 			full_order_text = fmt.Sprintf("%s, %s (%s)", full_order_text, mitem.Name, item_desc)
 		}
 	}
-	msg.Message = fmt.Sprintf("%s wants: %s", session.User.First_name, full_order_text)
+	msg.Message = fmt.Sprintf(
+		"%s wants: %s, pickup: %s",
+		session.User.First_name,
+		full_order_text,
+		order.Pickup_time,
+	)
 	t.twilio_queue <- msg
 
 	return APISuccess("OK")

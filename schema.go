@@ -82,11 +82,12 @@ type MenuItemOptionItem struct {
 
 type Order struct {
 	// Raw fields
-	Id       int64
-	User_id  int64
-	Truck_id int64
-	Date     time.Time
-	Phone    string
+	Id          int64
+	User_id     int64
+	Truck_id    int64
+	Date        time.Time
+	Pickup_time time.Time
+	Phone       string
 
 	// Go fields
 	Items []*OrderItem
@@ -487,8 +488,11 @@ func GetOptionValuesForMenuItem(db *sql.DB, option_id int64) ([]*MenuItemOptionI
 
 func SaveOrderToDB(db *sql.DB, order *Order) error {
 	// Insert top level order item
-	result, err := db.Exec("INSERT INTO `Order` (User_id, Truck_id, Date) VALUES (?, ?, ?)",
-		order.User_id, order.Truck_id, order.Date)
+	result, err := db.Exec(
+		"INSERT INTO `Order`"+
+			`(User_id, Truck_id, Date, Pickup_time)
+		VALUES (?, ?, ?, ?)`,
+		order.User_id, order.Truck_id, order.Date, order.Pickup_time)
 	if err != nil {
 		return err
 	}
