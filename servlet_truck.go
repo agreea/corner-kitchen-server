@@ -374,7 +374,11 @@ func (t *TruckServlet) Order(r *http.Request) *ApiResult {
 				log.Println(err)
 				return nil
 			}
-			item_desc = fmt.Sprintf("%s, %s", item_desc, opt.Option_name)
+			if len(item_desc) == 0 {
+				item_desc = fmt.Sprintf("%s", opt.Option_name)
+			} else {
+				item_desc = fmt.Sprintf("%s, %s", item_desc, opt.Option_name)
+			}
 		}
 
 		for _, toggleopt := range item.ToggleOptions {
@@ -383,7 +387,11 @@ func (t *TruckServlet) Order(r *http.Request) *ApiResult {
 				log.Println(err)
 				return nil
 			}
-			item_desc = fmt.Sprintf("%s, %s", item_desc, opt.Name)
+			if len(item_desc) == 0 {
+				item_desc = fmt.Sprintf("%s", opt.Name)
+			} else {
+				item_desc = fmt.Sprintf("%s, %s", item_desc, opt.Name)
+			}
 		}
 
 		if len(order_text) == 0 {
