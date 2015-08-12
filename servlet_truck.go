@@ -400,11 +400,12 @@ func (t *TruckServlet) Order(r *http.Request) *ApiResult {
 			full_order_text = fmt.Sprintf("%s, %s (%s)", full_order_text, mitem.Name, item_desc)
 		}
 	}
+	const layout = "Jan 2, 2006 at 3:04pm (EST)"
 	msg.Message = fmt.Sprintf(
 		"%s wants: %s, pickup: %s",
 		session.User.First_name,
 		full_order_text,
-		order.Pickup_time,
+		order.Pickup_time.Format(layout),
 	)
 	t.twilio_queue <- msg
 
