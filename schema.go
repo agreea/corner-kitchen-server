@@ -588,3 +588,35 @@ func GetPaymentToken(db *sql.DB, token_uuid string) (*PaymentToken, error) {
 
 	return payment_data, nil
 }
+
+func GetTrucksForOwner(db *sql.DB, user *UserData) ([]*Truck, error) {
+	rows, err := db.Query(`
+		SELECT Id, Name, Location_lat, Location_lon, Open_from, Open_until, Phone, Description
+		FROM Truck
+		WHERE Owner = ?`,
+		user.Id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	trucks := make([]*Truck, 0)
+	for rows.Next() {
+		truck := new(Truck)
+		if err := rows.Scan(
+			&truck.Id,
+			&truck.Name,
+			&truck.Location_lat,
+			&truck.Location_lon,
+			&truck.Open_from,
+			&truck.Open_until,
+			&truck.Phone,
+			&truck.Description,
+		); err != nil {
+			return nil, err
+		}
+		trucks = append(trucks, truck)
+	}
+	return trucks, nil
+}
