@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"code.google.com/p/go-uuid/uuid"
 	"code.google.com/p/go.crypto/pbkdf2"
 	"crypto/sha256"
 	"database/sql"
@@ -40,6 +41,38 @@ func NewUserServlet(server_config *Config, session_manager *SessionManager, twil
 	t.twilio_queue = twilio_queue
 
 	return t
+}
+
+func (t *UserServlet) Add_stripe_token(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	session_valid, session, err := t.session_manager.GetSession(session_id)
+	if err != nil {
+		log.Println("Validate", err)
+		return nil
+	}
+	if !session_valid {
+		return APIError("Session not valid", 401)
+	}
+
+	token := new(PaymentToken)
+	token.User_id = session.User.Id
+	token.Name = r.Form.Get("token_name")
+	token.stripe_key = r.Form.Get("stripe_token")
+	token.Token = uuid.New()
+	err = SavePaymentToken(t.db, token)
+
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	token, err = GetPaymentToken(t.db, token.Token)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	return APISuccess(token)
 }
 
 func (t *UserServlet) Validate(r *http.Request) *ApiResult {

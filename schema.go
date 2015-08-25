@@ -105,6 +105,15 @@ type OrderItem struct {
 	ListOptionValues []int64
 }
 
+type PaymentToken struct {
+	Id         int64
+	User_id    int64
+	Name       string
+	stripe_key string
+	Token      string
+	Created    time.Time
+}
+
 type UserData struct {
 	// Raw fields
 	Id                 int64
@@ -545,4 +554,37 @@ func SaveOrderToDB(db *sql.DB, order *Order) error {
 	}
 
 	return nil
+}
+
+func SavePaymentToken(db *sql.DB, token *PaymentToken) error {
+	_, err := db.Exec(
+		`INSERT INTO PaymentToken
+		(User_id, Name, Stripe_key, Token)
+		VALUES
+		(?, ?, ?, ?)
+		`,
+		token.User_id,
+		token.Name,
+		token.stripe_key,
+		token.Token,
+	)
+	return err
+}
+
+func GetPaymentToken(db *sql.DB, token_uuid string) (*PaymentToken, error) {
+	row := db.QueryRow(`SELECT Id, User_id, Name, Stripe_key, Token, Created
+        FROM PaymentToken WHERE Token = ?`, token_uuid)
+	payment_data := new(PaymentToken)
+	if err := row.Scan(
+		&payment_data.Id,
+		&payment_data.User_id,
+		&payment_data.Name,
+		&payment_data.stripe_key,
+		&payment_data.Token,
+		&payment_data.Created,
+	); err != nil {
+		return nil, err
+	}
+
+	return payment_data, nil
 }
