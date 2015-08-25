@@ -75,6 +75,24 @@ func (t *UserServlet) Add_stripe_token(r *http.Request) *ApiResult {
 	return APISuccess(token)
 }
 
+func (t *UserServlet) My_trucks(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	session_valid, session, err := t.session_manager.GetSession(session_id)
+	if err != nil {
+		log.Println("Validate", err)
+		return nil
+	}
+	if !session_valid {
+		return APIError("Session not valid", 401)
+	}
+	truck_list, err := GetTrucksForOwner(t.db, session.User)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	return APISuccess(truck_list)
+}
+
 func (t *UserServlet) Validate(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	session_valid, session, err := t.session_manager.GetSession(session_id)
