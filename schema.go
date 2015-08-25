@@ -620,3 +620,13 @@ func GetTrucksForOwner(db *sql.DB, user *UserData) ([]*Truck, error) {
 	}
 	return trucks, nil
 }
+
+func SetOwnerForTruck(db *sql.DB, truck_id int64, user_id int64) error {
+	_, err := db.Exec(`
+		UPDATE Truck
+		SET Owner = ?
+		WHERE Id = ?`,
+		user_id, truck_id,
+	)
+	return err
+}

@@ -12,6 +12,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -93,6 +94,41 @@ func (t *UserServlet) My_trucks(r *http.Request) *ApiResult {
 	return APISuccess(truck_list)
 }
 
+func (t *UserServlet) Claim_truck(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	session_valid, session, err := t.session_manager.GetSession(session_id)
+	if err != nil {
+		log.Println("Validate", err)
+		return nil
+	}
+	if !session_valid {
+		return APIError("Session not valid", 401)
+	}
+
+	truck_id_s := r.Form.Get("truck_id")
+	truck_id, err := strconv.ParseInt(truck_id_s, 10, 64)
+	if err != nil {
+		return APIError("Malformed truck ID", 400)
+	}
+
+	truck, err := GetTruckById(t.db, truck_id)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	if truck.Owner != 0 {
+		return APIError("This truck is already claimed", 400)
+	}
+
+	err = SetOwnerForTruck(t.db, truck.Id, session.User.Id)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	return APISuccess("OK")
+}
 func (t *UserServlet) Validate(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	session_valid, session, err := t.session_manager.GetSession(session_id)
