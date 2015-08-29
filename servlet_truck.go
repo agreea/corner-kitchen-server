@@ -330,7 +330,14 @@ func (t *TruckServlet) Order(r *http.Request) *ApiResult {
 	order.Items = order_items
 
 	// Save the order to the DB
-	err = SaveOrderToDB(t.db, order)
+	_, err = SaveOrderToDB(t.db, order)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
+	// Now, calculate the cost of the order
+	order_cost, err := CalculateOrderCost(t.db, order)
 	if err != nil {
 		log.Println(err)
 		return nil
@@ -352,7 +359,7 @@ func (t *TruckServlet) Order(r *http.Request) *ApiResult {
 			order_text = fmt.Sprintf("%s, %s", order_text, mitem.Name)
 		}
 	}
-	msg.Message = fmt.Sprintf("Your order (%s) has been placed!", order_text)
+	msg.Message = fmt.Sprintf("Your order (%s) has been placed! Yout total is $%f", order_text, order_cost)
 	t.twilio_queue <- msg
 
 	// Send truck notification

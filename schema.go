@@ -495,7 +495,7 @@ func GetOptionValuesForMenuItem(db *sql.DB, option_id int64) ([]*MenuItemOptionI
 
 }
 
-func SaveOrderToDB(db *sql.DB, order *Order) error {
+func SaveOrderToDB(db *sql.DB, order *Order) (int64, error) {
 	// Insert top level order item
 	result, err := db.Exec(
 		"INSERT INTO `Order`"+
@@ -503,11 +503,11 @@ func SaveOrderToDB(db *sql.DB, order *Order) error {
 		VALUES (?, ?, ?, ?)`,
 		order.User_id, order.Truck_id, order.Date, order.Pickup_time)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	order.Id, err = result.LastInsertId()
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	// Insert each of the items in the order
@@ -521,11 +521,11 @@ func SaveOrderToDB(db *sql.DB, order *Order) error {
 			(?, ?, ?)`,
 			order.Id, item.Item_id, item.Quantity)
 		if err != nil {
-			return err
+			return 0, err
 		}
 		item.Id, err = result.LastInsertId()
 		if err != nil {
-			return err
+			return 0, err
 		}
 
 		for _, toggle_value_id := range item.ToggleOptions {
@@ -536,7 +536,7 @@ func SaveOrderToDB(db *sql.DB, order *Order) error {
 				(?, ?)`,
 				item.Id, toggle_value_id)
 			if err != nil {
-				return err
+				return 0, err
 			}
 		}
 
@@ -548,12 +548,12 @@ func SaveOrderToDB(db *sql.DB, order *Order) error {
 				(?, ?)`,
 				item.Id, list_value_id)
 			if err != nil {
-				return err
+				return 0, err
 			}
 		}
 	}
 
-	return nil
+	return order.Id, nil
 }
 
 func SavePaymentToken(db *sql.DB, token *PaymentToken) error {
