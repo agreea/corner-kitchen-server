@@ -38,6 +38,7 @@ type MailChimpRegistration struct {
 
 func (t *KitchenServlet) Register(r *http.Request) *ApiResult {
 	email := r.Form.Get("email")
+	wants_to_host_s := r.Form.Get("host")
 	mcr := MailChimpRegistration{
 		email,
 		"subscribed",
@@ -71,9 +72,16 @@ func (t *KitchenServlet) Register(r *http.Request) *ApiResult {
 		return nil
 	}
 
+	var wants_to_host int64
+	if strings.ToLower(wants_to_host_s) == "true" {
+		wants_to_host = 1
+	} else {
+		wants_to_host = 0
+	}
 	_, err = t.db.Exec(
-		`INSERT INTO MealHost (Email, Will_host) VALUES (?, 1)`,
+		`INSERT INTO MealHost (Email, Will_host) VALUES (?, ?)`,
 		email,
+		wants_to_host,
 	)
 	if err != nil {
 		log.Println(err)
