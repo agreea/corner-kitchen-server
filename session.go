@@ -51,7 +51,7 @@ func (t *SessionManager) CreateSessionForUser(uid int64) (string, error) {
 	// Create the session object and put it in the local cache
 	UserSession := new(Session)
 	UserSession.User = user_data
-	UserSession.Expires = time.Now().Add(48 * time.Hour)
+	UserSession.Expires = time.Now().Add(60 * time.Day)
 
 	// Store the token in the database
 	_, err = t.db.Exec(`INSERT INTO  UserSession (
@@ -65,6 +65,34 @@ func (t *SessionManager) CreateSessionForUser(uid int64) (string, error) {
 
 	return session_uuid, nil
 }
+
+func (t *SessionManager) CreateSessionForGuest(uid int64) (string, error) {
+	session_uuid := uuid.New()
+
+	// Get the user's info
+	guest_data, err := GetGuestById(t.db, uid)
+	if err != nil {
+		return "", err
+	}
+	guest_session_exists, err := GuestSessionExists(uid)
+	// Create the session object and put it in the local cache
+	GuestSession := new(KitchenSession)
+	GuestSession.Guest = guest_data
+	GuestSession.Expires = time.Now().Add(60 * time.Day)
+
+	// Store the token in the database
+	_, err = t.db.Exec(`INSERT INTO  GuestSession (
+		Token, Guest_id, Expire_time ) VALUES (?, ?, ?)`, session_uuid, uid, GuestSession.Expires)
+	if err != nil {
+		// This isn't a fatal error since the session will be known by this API
+		// server, but the session will be lost if the api server is restarted.
+		// Can also lead to premature expiry in highly available API clusters.
+		log.Println("CreateSessionForGuest", err)
+	}
+
+	return session_uuid, nil
+}
+
 
 // Deletes a session from the database and local cache
 func (t *SessionManager) DestroySession(session_uuid string) error {
@@ -95,6 +123,33 @@ func (t *SessionManager) GetSession(session_uuid string) (session_exists bool, s
 
 	// If it isn't in cache or DB, return false.
 	return false, nil, nil
+}
+
+func (t *SessionManager) GetGuestSession(session_uuid string) (session_exists bool, session *KitchenSession, err error) {
+	err = nil
+	in_db, uid, expires, err := t.get_guest_session_from_db(session_uuid)
+	if err != nil {
+		return false, nil, err
+	}
+	if in_db {
+		GuestSession := new(KitchenSession)
+		GuestSession.Guest, err = GetGuestById(t.db, uid)
+		if err != nil {
+			return false, nil, err
+		}
+		GuestSession.Expires = expires
+		return true, GuestSession, nil
+	}
+}
+
+func (t *SessionManager) GetGuestSessionById(guest_id int) (session string, err error) {
+	err = nil
+	in_db, session, err := t.get_guest_session_from_db_by_id(guest_id)
+	if err != nil {
+		return "", nil, err
+	} else if in_db {
+		return session, nil
+	}
 }
 
 // Check if a session exists in the database and is still valid.
@@ -129,3 +184,52 @@ func (t *SessionManager) get_session_from_db(session_uuid string) (exists bool, 
 	// Otherwise, we got a valid token
 	return true, user_id, expire_time, nil
 }
+
+func (t *SessionManager) get_guest_session_from_db(session_uuid string) (exists bool, user_id int64, expire_time time.Time, err error) {
+
+	rows, err := t.db.Query(`
+		SELECT User_id, Expire_time
+		FROM GuestSession
+		WHERE Token = ? AND Expire_time > CURRENT_TIMESTAMP()`, session_uuid)
+	if err != nil {
+		return false, 0, time.Now(), err
+	}
+	defer rows.Close()
+
+	num_rows := 0
+	for rows.Next() {
+		num_rows++
+		if err := rows.Scan(&user_id, &expire_time); err != nil {
+			return false, 0, time.Now(), err
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return false, 0, time.Now(), err
+	}
+	// If we got no rows, the session is invalid / expired.
+	if num_rows == 0 {
+		return false, 0, time.Now(), nil
+	}
+
+	// Otherwise, we got a valid token
+	return true, user_id, expire_time, nil
+}
+// returns true with a session value if there is a valid session for that user
+func (t *SessionManager) get_guest_session_from_db_by_id(guest_id int) (exists bool, session string, err error) {
+	
+	row, err := t.db.Query(`
+		SELECT Token
+		FROM GuestSession
+		WHERE Guest_id = ? AND Expire_time > CURRENT_TIMESTAMP()`, guest_id)
+	if err != nil {
+		return false, 0, time.Now(), err
+	}
+	defer row.Close()
+	session := new(String)
+	if err := row.Scan(&session); err != nil {
+		return nil, err
+	}
+	// Otherwise, we got a valid token
+	return true, *session, nil
+}
+
