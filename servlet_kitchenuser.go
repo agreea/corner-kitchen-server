@@ -84,26 +84,49 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 		// send back the chakula token
 		// create a long-lived access token from the short lived one
 	fbToken := r.Form.Get("fbToken")
-	resp, err := http.Get("https://graph.facebook.com/me?fields=id,name,email&access_token="+fbToken)
+	resp, err := t.get_fb_data_for_token(fbToken)
+
 	if err != nil {
 		return APIError("Invalid Facebook Login", 400)
-	} else {
-        defer response.Body.Close()
-        contents, err := ioutil.ReadAll(response.Body)
-        if err != nil {
-            fmt.Printf("%s", err)
-            os.Exit(1)
-        } else if t.fb_id_exists(resp.id) {
+	}
+	fb_id_exists, err := t.fb_id_exists(resp.id)
+	if err != nil {
+		return APIError("Could not login", 500)
+	}
+    if fb_id_exists {
 			// process login
-		} else {
-			userdata, err := t.create_user(resp)
+	} else {
+		userdata, err := t.create_user(resp)
 		if err != nil {
 			return APIError("Failed to create user", 500)
 		}
 		return APISuccess(userdata)
 	}
-    }
 }
+
+// Returns json data
+// Todo: json encoding response body contents
+func (t *KitchenUserServlet) get_fb_data_for_token(fbToken string, err error) (*map[string]interface{}, err error) {
+	resp, err := http.Get("https://graph.facebook.com/me?fields=id,name,email&access_token="+fbToken)
+	if err != nil {
+		return nil, err
+	} else {
+		defer resp.Body.Close()
+		contents, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		} else {
+			var f interface{}
+			err := json.Unmarshal(b, &f)
+			if err != nil{
+				return nil, err
+			} else {
+				return f.(map[string]interface{}), nil
+			}
+		}
+	}
+}
+
 
 func (t *KitchenUserServlet) Get(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
@@ -139,20 +162,26 @@ func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 
 // Fetches a user's data and creates a session for them.
 // Returns a pointer to the userdata and an error.
-func (t *KitchenUserServlet) process_login(fbid int) (*GuestData, error) {
+func (t *KitchenUserServlet) process_login(fbid int) (string, error) {
 	guestdata, err := GetGuestByFbId(t.db, fbid)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-	guestdata.Session_token, err = t.session_manager.CreateSessionForUser(userdata.Id)
+	guest_session, err := t.session_manager.GetGuestSessionById(guestdata.Id)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
-
-	return userdata, nil
+	if guest_session != "" {
+		return guest_session, nil
+	}
+	guestdata.Session_token, err = t.session_manager.CreateSessionForGuest(guestdata.Id)
+	if err != nil {
+		return "", err
+	}
+	return guestdata.Session_token, nil
 }
 
-func (t *KitchenUserServlet) create_user(resp *http.Response) (*UserData, error) {
+func (t *KitchenUserServlet) create_guest(resp *http.Response) (*GuestData, error) {
 	email := resp.email
 	fb_id := resp.id
 	name := resp.name
@@ -177,9 +206,7 @@ func (t *KitchenUserServlet) create_user(resp *http.Response) (*UserData, error)
 		log.Println("Register", err)
 		return nil
 	}
-
 	return APISuccess("Confirmation code has been sent")
-
 }
 
 // Check if a fbId already exists in the chakula DB.
