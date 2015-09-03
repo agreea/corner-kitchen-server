@@ -51,7 +51,7 @@ func (t *SessionManager) CreateSessionForUser(uid int64) (string, error) {
 	// Create the session object and put it in the local cache
 	UserSession := new(Session)
 	UserSession.User = user_data
-	UserSession.Expires = time.Now().Add(60 * time.Day)
+	UserSession.Expires = time.Now().Add(60 * 24 * time.Hour)
 
 	// Store the token in the database
 	_, err = t.db.Exec(`INSERT INTO  UserSession (
@@ -68,17 +68,22 @@ func (t *SessionManager) CreateSessionForUser(uid int64) (string, error) {
 
 func (t *SessionManager) CreateSessionForGuest(uid int64) (string, error) {
 	session_uuid := uuid.New()
-
+	guest_session, err := t.GetGuestSessionById(uid)
+	if err != nil {
+		return "", err
+	}
+	if guest_session != "" {
+		return guest_session, err
+	}
 	// Get the user's info
 	guest_data, err := GetGuestById(t.db, uid)
 	if err != nil {
 		return "", err
 	}
-	guest_session_exists, err := GuestSessionExists(uid)
 	// Create the session object and put it in the local cache
 	GuestSession := new(KitchenSession)
 	GuestSession.Guest = guest_data
-	GuestSession.Expires = time.Now().Add(60 * time.Day)
+	GuestSession.Expires = time.Now().Add(60 * 24 * time.Hour)
 
 	// Store the token in the database
 	_, err = t.db.Exec(`INSERT INTO  GuestSession (
@@ -139,16 +144,20 @@ func (t *SessionManager) GetGuestSession(session_uuid string) (session_exists bo
 		}
 		GuestSession.Expires = expires
 		return true, GuestSession, nil
+	} else {
+		return false, nil, nil
 	}
 }
 
-func (t *SessionManager) GetGuestSessionById(guest_id int) (session string, err error) {
+func (t *SessionManager) GetGuestSessionById(guest_id int64) (session string, err error) {
 	err = nil
 	in_db, session, err := t.get_guest_session_from_db_by_id(guest_id)
 	if err != nil {
-		return "", nil, err
+		return "", err
 	} else if in_db {
 		return session, nil
+	} else {
+		return "", nil
 	}
 }
 
@@ -215,21 +224,20 @@ func (t *SessionManager) get_guest_session_from_db(session_uuid string) (exists 
 	return true, user_id, expire_time, nil
 }
 // returns true with a session value if there is a valid session for that user
-func (t *SessionManager) get_guest_session_from_db_by_id(guest_id int) (exists bool, session string, err error) {
+func (t *SessionManager) get_guest_session_from_db_by_id(guest_id int64) (exists bool, session string, err error) {
 	
 	row, err := t.db.Query(`
 		SELECT Token
 		FROM GuestSession
 		WHERE Guest_id = ? AND Expire_time > CURRENT_TIMESTAMP()`, guest_id)
 	if err != nil {
-		return false, 0, time.Now(), err
+		return false, "", err
 	}
 	defer row.Close()
-	session := new(String)
 	if err := row.Scan(&session); err != nil {
-		return nil, err
+		return false, "", err
 	}
 	// Otherwise, we got a valid token
-	return true, *session, nil
+	return true, session, nil
 }
 
