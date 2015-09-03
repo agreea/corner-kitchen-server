@@ -136,12 +136,57 @@ type Session struct {
 	Expires time.Time
 }
 
+type GuestData struct {
+	Id 				int64
+	Email 			string
+	Name 			string
+	Prof_pic_url	string
+	Facebook_id		int64
+	Stripe_cust_id	string
+
+	// Go fields
+	Session_token 	string
+
+}
+
+type KitchenSession struct {
+	Guest *GuestData
+	Expires time.Time
+}
+
+type Meal struct {
+	Id 				int64
+	HostId			int64
+	Price 			int64
+}
+
+type Host struct {
+	Id 				int64
+	GuestId 		int64
+	Address 		string
+	Phone 			int64
+	Stripe_conntect string
+}
+
+type Request struct {
+	Id 				int64
+	GuestId 		int64
+	MealId			int64
+	Status 			int64
+}
+
 func GetUserById(db *sql.DB, id int64) (*UserData, error) {
 	row := db.QueryRow(`SELECT Id, Email, First_name, Last_name,
 		Password_salt, Password_hash,
 		Password_reset_key, Phone, Verified
         FROM User WHERE Id = ?`, id)
 	return readUserLine(row)
+}
+
+func GetGuestByFbId(db *sql.DB, fbId int64) (*UserData, error) {
+	row := db.QueryRow(`SELECT Id, Email, Name, Prof_pic_url, Stripe_cust_id, 
+		Facebook_id FROM Guest WHERE Facebook_id = ?`, fbId)
+	return readGuestLine(row)
 }
 
 func GetUserByEmail(db *sql.DB, email string) (*UserData, error) {
@@ -177,6 +222,20 @@ func readUserLine(row *sql.Row) (*UserData, error) {
 	}
 
 	return user_data, nil
+}
+
+func readGuestLine(row *sql.Row) (*GuestData, error) {
+	guest_data := new(GuestData)
+	if err := row.Scan(
+		&guest_data.Id,
+		&guest_data.Email,
+		&guest_data.Name,
+		&guest_data.Prof_pic_url,
+		&guest_data.Stripe_cust_id
+	); err != nil {
+		return nil, err
+	}
+	return guest_data, nil
 }
 
 func GetTruckById(db *sql.DB, id int64) (*Truck, error) {
