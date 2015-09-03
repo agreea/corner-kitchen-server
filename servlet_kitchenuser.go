@@ -79,51 +79,39 @@ func (t *KitchenUserServlet) Add_stripe_token(r *http.Request) *ApiResult {
 // support multi-server architecture. A cache miss will result in a DB read.
 func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 	// if you don't have the fb in your guest table, 
-		// create a new entry (fbId, email, pic url)
-		// create a chakula token for the new guest
-		// send back the chakula token
 		// create a long-lived access token from the short lived one
 	fbToken := r.Form.Get("fbToken")
 	resp, err := t.get_fb_data_for_token(fbToken)
-
 	if err != nil {
 		return APIError("Invalid Facebook Login", 400)
 	}
-	fb_id_exists, err := t.fb_id_exists(resp.id)
+	if resp["error"] != nil {
+		return APIError("Error connecting to Facebook", 500)
+	}
+	fbId := resp["id"]
+	fb_id_exists, err := t.fb_id_exists(resp["id"])
 	if err != nil {
 		return APIError("Could not login", 500)
 	}
     if fb_id_exists {
-			// process login
+			t.process_login(fbId)
 	} else {
-		userdata, err := t.create_user(resp)
+		guestData, err := t.create_guest(resp["email"], resp["name"], resp["id"])
 		if err != nil {
 			return APIError("Failed to create user", 500)
 		}
-		return APISuccess(userdata)
+		return APISuccess(guestData)
 	}
 }
 
 // Returns json data
 // Todo: json encoding response body contents
-func (t *KitchenUserServlet) get_fb_data_for_token(fbToken string, err error) (*map[string]interface{}, err error) {
-	resp, err := http.Get("https://graph.facebook.com/me?fields=id,name,email&access_token="+fbToken)
+func (t *KitchenUserServlet) get_fb_data_for_token(fbToken string) (map[string]interface{}, err error) {
+	resp, err := ExecuteGetForJSON("https://graph.facebook.com/me?fields=id,name,email&access_token="+fbToken)
 	if err != nil {
 		return nil, err
 	} else {
-		defer resp.Body.Close()
-		contents, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		} else {
-			var f interface{}
-			err := json.Unmarshal(b, &f)
-			if err != nil{
-				return nil, err
-			} else {
-				return f.(map[string]interface{}), nil
-			}
-		}
+		return resp, nil
 	}
 }
 
@@ -173,40 +161,27 @@ func (t *KitchenUserServlet) process_login(fbid int) (string, error) {
 	}
 	if guest_session != "" {
 		return guest_session, nil
+	} else {
+		guestdata.Session_token, err = t.session_manager.CreateSessionForGuest(guestdata.Id)
+		if err != nil {
+			return "", err
+		}
+		return guestdata.Session_token, nil
 	}
-	guestdata.Session_token, err = t.session_manager.CreateSessionForGuest(guestdata.Id)
-	if err != nil {
-		return "", err
-	}
-	return guestdata.Session_token, nil
 }
-
-func (t *KitchenUserServlet) create_guest(resp *http.Response) (*GuestData, error) {
-	email := resp.email
-	fb_id := resp.id
-	name := resp.name
-	if email == "" || fb_id == "" || name == "" {
-		return APIError("Missing value for one or more fields", 400)
-	}
-	profpicurl = "http://graph.facebook.com/" + fbId + "/picture?width=400"
-	// Check if the username is already taken
-	fb_id_exists, err := t.fb_id_exists(phone)
-	if err != nil {
-		log.Println("Register", err)
-		return nil
-	}
-	if fb_id_exists {
-		return nil, new(Error)
-	}
-	// Create the user
+// Create a new user + session based off of the data returned from facebook and return a GuestData object
+func (t *KitchenUserServlet) create_guest(email string, name string, fb_id string) (*GuestData, error) {
+	prof_pic_url := "http://graph.facebook.com/" + fbId + "/picture?width=400"
 	_, err = t.db.Exec(`INSERT INTO Guest
 		(Email, Name, FbId, profpic) VALUES (?, ?, ?, ?)`,
-		email, phone, fbId, profpicurl)
+		email, name, fb_id, prof_pic_url)
+	guestData := GetGuestByFbId(fb_id)
+	guestData.Session_token = t.session_manager.CreateSessionForGuest(guestData.Id)
 	if err != nil {
 		log.Println("Register", err)
-		return nil
+		return nil, err
 	}
-	return APISuccess("Confirmation code has been sent")
+	return guestData, nil
 }
 
 // Check if a fbId already exists in the chakula DB.

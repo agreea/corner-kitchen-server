@@ -579,7 +579,6 @@ func SaveOrderToDB(db *sql.DB, order *Order) (int64, error) {
 
 	// Insert each of the items in the order
 	// For each item, also insert mappings for the toggle / list options
-
 	for _, item := range order.Items {
 		result, err = db.Exec(
 			`INSERT INTO OrderItem
@@ -698,7 +697,7 @@ func SetOwnerForTruck(db *sql.DB, truck_id int64, user_id int64) error {
 	return err
 }
 
-func execute_get(url string) (response map[string]interface{}, err error) {
+func ExecutGetForJSON(url string) (response map[string]interface{}, err error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
