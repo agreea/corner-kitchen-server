@@ -1,13 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"code.google.com/p/go-uuid/uuid"
 	"code.google.com/p/go.crypto/pbkdf2"
 	"crypto/sha256"
 	"database/sql"
-	"encoding/base64"
-	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"math/rand"
@@ -22,8 +19,6 @@ type KitchenUserServlet struct {
 	server_config   *Config
 	session_manager *SessionManager
 }
-
-const alphanumerics = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890"
 
 func NewKitchenUserServlet(server_config *Config, session_manager *SessionManager) *KitchenUserServlet {
 	t := new(KitchenUserServlet)
@@ -88,15 +83,19 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 	if resp["error"] != nil {
 		return APIError("Error connecting to Facebook", 500)
 	}
-	fbId := resp["id"]
-	fb_id_exists, err := t.fb_id_exists(resp["id"])
+	fbId := resp["id"].(int)
+	fb_id_exists, err := t.fb_id_exists(resp["id"].(int))
 	if err != nil {
 		return APIError("Could not login", 500)
 	}
     if fb_id_exists {
-			t.process_login(fbId)
+    	guestData, err := t.process_login(fbId)
+    	if err != nil {
+			return APIError("Could not login", 500)
+    	}
+		return APISuccess(guestData)
 	} else {
-		guestData, err := t.create_guest(resp["email"], resp["name"], resp["id"])
+		guestData, err := t.create_guest(resp["email"].(string), resp["name"].(string), resp["id"].(int))
 		if err != nil {
 			return APIError("Failed to create user", 500)
 		}
@@ -106,8 +105,8 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 
 // Returns json data
 // Todo: json encoding response body contents
-func (t *KitchenUserServlet) get_fb_data_for_token(fbToken string) (map[string]interface{}, err error) {
-	resp, err := ExecuteGetForJSON("https://graph.facebook.com/me?fields=id,name,email&access_token="+fbToken)
+func (t *KitchenUserServlet) get_fb_data_for_token(fb_token string) (resp map[string]interface{}, err error) {
+	resp, err = ExecuteGetForJSON("https://graph.facebook.com/me?fields=id,name,email&access_token=" + fb_token)
 	if err != nil {
 		return nil, err
 	} else {
@@ -139,7 +138,6 @@ func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 	if !session_valid {
 		return APIError("Session has expired. Please log in again", 200)
 	}
-
 	_, err = t.db.Exec("DELETE FROM User where Id = ?", session.User.Id)
 	if err != nil {
 		log.Println(err)
@@ -150,35 +148,39 @@ func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 
 // Fetches a user's data and creates a session for them.
 // Returns a pointer to the userdata and an error.
-func (t *KitchenUserServlet) process_login(fbid int) (string, error) {
-	guestdata, err := GetGuestByFbId(t.db, fbid)
+func (t *KitchenUserServlet) process_login(fbid int) (*GuestData, error) {
+	guestData, err := GetGuestByFbId(t.db, int64(fbid))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	guest_session, err := t.session_manager.GetGuestSessionById(guestdata.Id)
+	guest_session, err := t.session_manager.GetGuestSessionById(guestData.Id)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	if guest_session != "" {
-		return guest_session, nil
+		guestData.Session_token = guest_session
+		return guestData, nil
 	} else {
-		guestdata.Session_token, err = t.session_manager.CreateSessionForGuest(guestdata.Id)
+		guestData.Session_token, err = t.session_manager.CreateSessionForGuest(guestData.Id)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		return guestdata.Session_token, nil
+		return guestData, nil
 	}
 }
 // Create a new user + session based off of the data returned from facebook and return a GuestData object
-func (t *KitchenUserServlet) create_guest(email string, name string, fb_id string) (*GuestData, error) {
-	prof_pic_url := "http://graph.facebook.com/" + fbId + "/picture?width=400"
-	_, err = t.db.Exec(`INSERT INTO Guest
+func (t *KitchenUserServlet) create_guest(email string, name string, fb_id int) (*GuestData, error) {
+	prof_pic_url := "http://graph.facebook.com/" + strconv.Itoa(fb_id) + "/picture?width=400"
+	_, err := t.db.Exec(`INSERT INTO Guest
 		(Email, Name, FbId, profpic) VALUES (?, ?, ?, ?)`,
 		email, name, fb_id, prof_pic_url)
-	guestData := GetGuestByFbId(fb_id)
-	guestData.Session_token = t.session_manager.CreateSessionForGuest(guestData.Id)
+	guestData, err := GetGuestByFbId(t.db, int64(fb_id))
 	if err != nil {
-		log.Println("Register", err)
+		log.Println("Create guest", err)
+	}
+	guestData.Session_token, err = t.session_manager.CreateSessionForGuest(guestData.Id)
+	if err != nil {
+		log.Println("Create guest", err)
 		return nil, err
 	}
 	return guestData, nil

@@ -3,6 +3,9 @@ package main
 import (
 	"database/sql"
 	"time"
+	"encoding/json"
+	"net/http"
+	"io/ioutil"
 )
 
 type SMS struct {
@@ -183,13 +186,14 @@ func GetUserById(db *sql.DB, id int64) (*UserData, error) {
 	return readUserLine(row)
 }
 
-func GetGuestByFbId(db *sql.DB, fbId int64) (*UserData, error) {
-	row := db.QueryRow(`SELECT Id, Email, Name, Prof_pic_url, Stripe_cust_id, 
-		Facebook_id FROM Guest WHERE Facebook_id = ?`, fbId)
+func GetGuestByFbId(db *sql.DB, fb_id int64) (*GuestData, error) {
+	row := db.QueryRow(`SELECT Id, Email, Name, Prof_pic_url, 
+		Stripe_cust_id, Facebook_id 
+		FROM Guest WHERE Facebook_id = ?`, fb_id)
 	return readGuestLine(row)
 }
 
-func GetGuestByFbId(db *sql.DB, id int64) (*UserData, error) {
+func GetGuestById(db *sql.DB, id int64) (*GuestData, error) {
 	row := db.QueryRow(`SELECT Id, Email, Name, Prof_pic_url, 
 		Stripe_cust_id, Facebook_id 
 		FROM Guest WHERE Id = ?`, id)
@@ -239,7 +243,7 @@ func readGuestLine(row *sql.Row) (*GuestData, error) {
 		&guest_data.Name,
 		&guest_data.Facebook_id,
 		&guest_data.Prof_pic_url,
-		&guest_data.Stripe_cust_id
+		&guest_data.Stripe_cust_id,
 	); err != nil {
 		return nil, err
 	}
@@ -697,7 +701,7 @@ func SetOwnerForTruck(db *sql.DB, truck_id int64, user_id int64) error {
 	return err
 }
 
-func ExecutGetForJSON(url string) (response map[string]interface{}, err error) {
+func ExecuteGetForJSON(url string) (response map[string]interface{}, err error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -716,4 +720,4 @@ func ExecutGetForJSON(url string) (response map[string]interface{}, err error) {
 			}
 		}
 	}
-
+}
