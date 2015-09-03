@@ -25,7 +25,6 @@ func NewKitchenServlet(server_config *Config, session_manager *SessionManager) *
 		log.Fatal("NewTruckServlet", "Failed to open database:", err)
 	}
 	t.db = db
-
 	t.session_manager = session_manager
 
 	return t
