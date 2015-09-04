@@ -77,8 +77,6 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 		// create a long-lived access token from the short lived one
 	fbToken := r.Form.Get("fbToken")
 	resp, err := t.get_fb_data_for_token(fbToken)
-	return APISuccess(resp)
-
 	if err != nil {
 		return APIError("Invalid Facebook Login", 400)
 	}
@@ -87,6 +85,7 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 	}
 	fbId := resp["id"].(int)
 	fb_id_exists, err := t.fb_id_exists(resp["id"].(int))
+	return APISuccess(fb_id_exists)
 	if err != nil {
 		return APIError("Could not login", 500)
 	}
