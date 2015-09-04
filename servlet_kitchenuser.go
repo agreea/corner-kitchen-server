@@ -96,7 +96,6 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
     	}
 		return APISuccess(guestData)
 	} else {
-		return APISuccess("guestData")
 		guestData, err := t.create_guest(resp.Email, resp.Name, fb_id)
 		if err != nil {
 			return APIError("Failed to create user", 500)
@@ -190,6 +189,7 @@ func (t *KitchenUserServlet) create_guest(email string, name string, fb_id strin
 	guestData, err := GetGuestByFbId(t.db, fb_id)
 	if err != nil {
 		log.Println("Create guest", err)
+		return nil, err
 	}
 	guestData.Session_token, err = t.session_manager.CreateSessionForGuest(guestData.Id)
 	if err != nil {
