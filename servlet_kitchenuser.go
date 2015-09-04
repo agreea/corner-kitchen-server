@@ -87,6 +87,7 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 	fb_id := resp.Id
 	name := resp.Name
 	fb_id_exists, err := t.fb_id_exists(fb_id)
+
 	if err != nil {
 		return APIError("Could not login", 500)
 	}
@@ -97,6 +98,7 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
     	}
 		return APISuccess(guestData)
 	} else {
+		return APISuccess("guestData")
 		guestData, err := t.create_guest(resp.Email, name, fb_id)
 		if err != nil {
 			return APIError("Failed to create user", 500)
@@ -181,6 +183,7 @@ func (t *KitchenUserServlet) process_login(fb_id string) (*GuestData, error) {
 		return guestData, nil
 	}
 }
+
 // Create a new user + session based off of the data returned from facebook and return a GuestData object
 func (t *KitchenUserServlet) create_guest(email string, name string, fb_id string) (*GuestData, error) {
 	prof_pic_url := "http://graph.facebook.com/" + fb_id + "/picture?width=400"
