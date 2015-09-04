@@ -9,7 +9,6 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
 	"io/ioutil"
 	"encoding/json"
@@ -77,34 +76,34 @@ func (t *KitchenUserServlet) Add_stripe_token(r *http.Request) *ApiResult {
 func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 	// if you don't have the fb in your guest table, 
 		// create a long-lived access token from the short lived one
-	// fbToken := r.Form.Get("fbToken")
+	fbToken := r.Form.Get("fbToken")
 	return APISuccess("hey there")
-	// resp, err := t.get_fb_data_for_token(fbToken)
-	// if err != nil {
-	// 	return APIError("Invalid Facebook Login", 400)
-	// }
-	// if resp.Id == "" {
-	// 	return APIError("Error connecting to Facebook", 500)
-	// }
-	// return APISuccess("hey there")
-	// fb_id := resp.Id
-	// fb_id_exists, err := t.fb_id_exists(fb_id)
-	// if err != nil {
-	// 	return APIError("Could not login", 500)
-	// }
- //    if fb_id_exists {
- //    	guestData, err := t.process_login(fb_id)
- //    	if err != nil {
-	// 		return APIError("Could not login", 500)
- //    	}
-	// 	return APISuccess(guestData)
-	// } else {
-	// 	guestData, err := t.create_guest(resp.Email, resp.Name, fb_id)
-	// 	if err != nil {
-	// 		return APIError("Failed to create user", 500)
-	// 	}
-	// 	return APISuccess(guestData)
-	// }
+	resp, err := t.get_fb_data_for_token(fbToken)
+	if err != nil {
+		return APIError("Invalid Facebook Login", 400)
+	}
+	if resp.Id == "" {
+		return APIError("Error connecting to Facebook", 500)
+	}
+	return APISuccess("hey there")
+	fb_id := resp.Id
+	fb_id_exists, err := t.fb_id_exists(fb_id)
+	if err != nil {
+		return APIError("Could not login", 500)
+	}
+    if fb_id_exists {
+    	guestData, err := t.process_login(fb_id)
+    	if err != nil {
+			return APIError("Could not login", 500)
+    	}
+		return APISuccess(guestData)
+	} else {
+		guestData, err := t.create_guest(resp.Email, resp.Name, fb_id)
+		if err != nil {
+			return APIError("Failed to create user", 500)
+		}
+		return APISuccess(guestData)
+	}
 }
 
 // Returns json data
