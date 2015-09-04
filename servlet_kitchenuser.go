@@ -166,7 +166,7 @@ func (t *KitchenUserServlet) process_login(fb_id string) (*GuestData, error) {
 	if err != nil {
 		return nil, err
 	}
-	guest_session, err := t.session_manager.GetGuestSessionById(guestData.Id)
+	guest_session, err := t.session_manager.GetGuestSessionById(int64(guestData.Id))
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +174,7 @@ func (t *KitchenUserServlet) process_login(fb_id string) (*GuestData, error) {
 		guestData.Session_token = guest_session
 		return guestData, nil
 	} else {
-		guestData.Session_token, err = t.session_manager.CreateSessionForGuest(guestData.Id)
+		guestData.Session_token, err = t.session_manager.CreateSessionForGuest(int64(guestData.Id))
 		if err != nil {
 			return nil, err
 		}
@@ -192,7 +192,7 @@ func (t *KitchenUserServlet) create_guest(email string, name string, fb_id strin
 		log.Println("Create guest", err)
 		return nil, err
 	}
-	guestData.Session_token, err = t.session_manager.CreateSessionForGuest(guestData.Id)
+	guestData.Session_token, err = t.session_manager.CreateSessionForGuest(int64(guestData.Id))
 	if err != nil {
 		log.Println("Create guest", err)
 		return nil, err
