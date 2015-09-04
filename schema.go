@@ -99,7 +99,6 @@ type OrderItem struct {
 	Order_id int64
 	Item_id  int64
 	Quantity int64
-
 	// ID numbers into the toggle / list option tables
 	ToggleOptions    []int64
 	ListOptionValues []int64
@@ -146,7 +145,6 @@ type GuestData struct {
 
 	// Go fields
 	Session_token 	string
-
 }
 
 type FacebookResp struct {
