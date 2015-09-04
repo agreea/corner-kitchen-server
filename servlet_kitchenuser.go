@@ -1,7 +1,6 @@
 package main
 
 import (
-	"code.google.com/p/go-uuid/uuid"
 	"code.google.com/p/go.crypto/pbkdf2"
 	"crypto/sha256"
 	"database/sql"
@@ -33,41 +32,23 @@ func NewKitchenUserServlet(server_config *Config, session_manager *SessionManage
 		log.Fatal("NewKitchenUserServlet", "Failed to open database:", err)
 	}
 	t.db = db
-
 	return t
 }
 
 // TODO: Implement
-func (t *KitchenUserServlet) Add_stripe_token(r *http.Request) *ApiResult {
+func (t *KitchenUserServlet) AddStripe(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
-	session_valid, session, err := t.session_manager.GetSession(session_id)
+	stripe_token := r.Form.Get("StripeToken")
+	exists, kitchenSession, err := t.session_manager.GetGuestSession(session_id)
+	if !exists {
+		return APIError("Invalid Session", 400)
+	}
+	guestId := kitchenSession.Guest.Id
+	err = SaveStripeToken(t.db, stripe_token, guestId)
 	if err != nil {
-		log.Println("Validate", err)
-		return nil
+		return APIError("Failed to Save Stripe Data", 500)
 	}
-	if !session_valid {
-		return APIError("Session not valid", 401)
-	}
-
-	token := new(PaymentToken)
-	token.User_id = session.User.Id
-	token.Name = r.Form.Get("token_name")
-	token.stripe_key = r.Form.Get("stripe_token")
-	token.Token = uuid.New()
-	err = SavePaymentToken(t.db, token)
-
-	if err != nil {
-		log.Println(err)
-		return nil
-	}
-
-	token, err = GetPaymentToken(t.db, token.Token)
-	if err != nil {
-		log.Println(err)
-		return nil
-	}
-
-	return APISuccess(token)
+	return APISuccess(stripe_token)
 }
 
 // Create a login session for a user.
