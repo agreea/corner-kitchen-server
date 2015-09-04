@@ -98,7 +98,6 @@ func (t *SessionManager) CreateSessionForGuest(uid int64) (string, error) {
 	return session_uuid, nil
 }
 
-
 // Deletes a session from the database and local cache
 func (t *SessionManager) DestroySession(session_uuid string) error {
 	_, err := t.db.Exec("DELETE FROM  UserSession WHERE Token = ?", session_uuid)

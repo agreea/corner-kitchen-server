@@ -3,6 +3,8 @@ package main
 import (
 	"database/sql"
 	"time"
+	"github.com/stripe/stripe-go"
+	"github.com/stripe/stripe-go/customer"
 )
 
 type SMS struct {
@@ -103,7 +105,7 @@ type OrderItem struct {
 	ToggleOptions    []int64
 	ListOptionValues []int64
 }
-
+// For trucks
 type PaymentToken struct {
 	Id         int64
 	User_id    int64
@@ -135,6 +137,8 @@ type Session struct {
 	Expires time.Time
 }
 
+// The Dinner Structs
+
 type GuestData struct {
 	Id 				int64
 	Email 			string
@@ -162,6 +166,12 @@ type Meal struct {
 	Id 				int64
 	HostId			int64
 	Price 			int64
+}
+
+type StripeToken struct {
+	Id 				int64
+	Guest_id 		int64
+	Stripe_id 		int64
 }
 
 type Host struct {
@@ -642,6 +652,26 @@ func SavePaymentToken(db *sql.DB, token *PaymentToken) error {
 	return err
 }
 
+func SaveStripeToken(db *sql.DB, stripe_token string, guest_id int64) error {
+	stripe.Key = "***REMOVED***"
+
+	customerParams := &stripe.CustomerParams{
+  		Desc: "Customer for test@example.com",
+	}
+	customerParams.SetSource(stripe_token) // obtained with Stripe.js
+	c, err := customer.New(customerParams)
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(`
+		UPDATE Guest
+		SET Stripe_cust_id = ?
+		WHERE Id = ?`,
+		c.ID, guest_id,
+	)
+	return err
+}
+
 func GetPaymentToken(db *sql.DB, token_uuid string) (*PaymentToken, error) {
 	row := db.QueryRow(`SELECT Id, User_id, Name, Stripe_key, Token, Created
         FROM PaymentToken WHERE Token = ?`, token_uuid)
@@ -656,7 +686,6 @@ func GetPaymentToken(db *sql.DB, token_uuid string) (*PaymentToken, error) {
 	); err != nil {
 		return nil, err
 	}
-
 	return payment_data, nil
 }
 
