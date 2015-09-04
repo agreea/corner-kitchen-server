@@ -657,7 +657,7 @@ func SaveStripeToken(db *sql.DB, stripe_token string, guest_data *GuestData) err
 
 	customerParams := &stripe.CustomerParams{
   		Desc: guest_data.Name,
-  		Email: guest_data.Email
+  		Email: guest_data.Email,
 	}
 	customerParams.SetSource(stripe_token) // obtained with Stripe.js
 	c, err := customer.New(customerParams)
