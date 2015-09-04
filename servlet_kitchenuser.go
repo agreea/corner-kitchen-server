@@ -85,13 +85,10 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 		return APIError("Error connecting to Facebook", 500)
 	}
 	fb_id := resp.Id
-	return APISuccess("guestData")
-
 	fb_id_exists, err := t.fb_id_exists(fb_id)
 	if err != nil {
 		return APIError("Could not login", 500)
 	}
-	return APISuccess("guestData")
     if fb_id_exists {
     	guestData, err := t.process_login(fb_id)
     	if err != nil {
@@ -99,6 +96,7 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
     	}
 		return APISuccess(guestData)
 	} else {
+		return APISuccess("guestData")
 		guestData, err := t.create_guest(resp.Email, resp.Name, fb_id)
 		if err != nil {
 			return APIError("Failed to create user", 500)
