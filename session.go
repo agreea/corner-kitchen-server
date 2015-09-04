@@ -224,7 +224,7 @@ func (t *SessionManager) get_guest_session_from_db(session_uuid string) (exists 
 	return true, user_id, expire_time, nil
 }
 // returns true with a session value if there is a valid session for that user
-func (t *SessionManager) get_guest_session_from_db_by_id(guest_id int64) (exists bool, session *string, err error) {
+func (t *SessionManager) get_guest_session_from_db_by_id(guest_id int64) (exists bool, session string, err error) {
 	
 	row, err := t.db.Query(`
 		SELECT Token
@@ -234,9 +234,9 @@ func (t *SessionManager) get_guest_session_from_db_by_id(guest_id int64) (exists
 		return false, "", err
 	}
 	defer row.Close()
-	if err := row.Scan(&session); err != nil {
-		return false, "", err
-	}
+	// if err := row.Scan(&session); err != nil {
+	// 	return false, "", err
+	// }
 	// Otherwise, we got a valid token
 	return true, session, nil
 }
