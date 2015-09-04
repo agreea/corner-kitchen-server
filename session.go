@@ -76,24 +76,24 @@ func (t *SessionManager) CreateSessionForGuest(uid int64) (string, error) {
 	// 	return guest_session, err
 	// }
 	// Get the user's info
-	// guest_data, err := GetGuestById(t.db, uid)
-	// if err != nil {
-	// 	return "getting guest by id", err
-	// }
-	// Create the session object and put it in the local cache
-	// GuestSession := new(KitchenSession)
-	// GuestSession.Guest = guest_data
-	// GuestSession.Expires = time.Now().Add(60 * 24 * time.Hour)
+	guest_data, err := GetGuestById(t.db, uid)
+	if err != nil {
+		return "getting guest by id", err
+	}
+	Create the session object and put it in the local cache
+	GuestSession := new(KitchenSession)
+	GuestSession.Guest = guest_data
+	GuestSession.Expires = time.Now().Add(60 * 24 * time.Hour)
 
 	// Store the token in the database
-	// _, err = t.db.Exec(`INSERT INTO  GuestSession (
-	// 	Token, Guest_id, Expires ) VALUES (?, ?, ?)`, session_uuid, uid, GuestSession.Expires)
-	// if err != nil {
+	_, err = t.db.Exec(`INSERT INTO  GuestSession (
+		Token, Guest_id, Expires ) VALUES (?, ?, ?)`, session_uuid, uid, GuestSession.Expires)
+	if err != nil {
 	// 	// This isn't a fatal error since the session will be known by this API
 	// 	// server, but the session will be lost if the api server is restarted.
 	// 	// Can also lead to premature expiry in highly available API clusters.
-	// 	log.Println("CreateSessionForGuest", err)
-	// }
+		log.Println("CreateSessionForGuest", err)
+	}
 
 	return session_uuid, nil
 }
