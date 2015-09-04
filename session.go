@@ -70,7 +70,7 @@ func (t *SessionManager) CreateSessionForGuest(uid int64) (string, error) {
 	session_uuid := uuid.New()
 	guest_session, err := t.GetGuestSessionById(uid)
 	if err != nil {
-		return "", err
+		return "Getting session by id", err
 	}
 	if guest_session != "" {
 		return guest_session, err
@@ -78,7 +78,7 @@ func (t *SessionManager) CreateSessionForGuest(uid int64) (string, error) {
 	// Get the user's info
 	guest_data, err := GetGuestById(t.db, uid)
 	if err != nil {
-		return "", err
+		return "getting guest by id", err
 	}
 	// Create the session object and put it in the local cache
 	GuestSession := new(KitchenSession)
@@ -197,9 +197,9 @@ func (t *SessionManager) get_session_from_db(session_uuid string) (exists bool, 
 func (t *SessionManager) get_guest_session_from_db(session_uuid string) (exists bool, user_id int64, expire_time time.Time, err error) {
 
 	rows, err := t.db.Query(`
-		SELECT User_id, Expire_time
+		SELECT Guest_id, Expires
 		FROM GuestSession
-		WHERE Token = ? AND Expire_time > CURRENT_TIMESTAMP()`, session_uuid)
+		WHERE Token = ? AND Expires > CURRENT_TIMESTAMP()`, session_uuid)
 	if err != nil {
 		return false, 0, time.Now(), err
 	}
@@ -229,7 +229,7 @@ func (t *SessionManager) get_guest_session_from_db_by_id(guest_id int64) (exists
 	row, err := t.db.Query(`
 		SELECT Token
 		FROM GuestSession
-		WHERE Guest_id = ? AND Expire_time > CURRENT_TIMESTAMP()`, guest_id)
+		WHERE Guest_id = ? AND Expires > CURRENT_TIMESTAMP()`, guest_id)
 	if err != nil {
 		return false, "", err
 	}
