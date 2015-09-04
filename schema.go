@@ -668,7 +668,7 @@ func SaveStripeToken(db *sql.DB, stripe_token string, guest_data *GuestData) err
 		UPDATE Guest
 		SET Stripe_cust_id = ?
 		WHERE Id = ?`,
-		c.ID, guest_id,
+		c.ID, guest_data.Id,
 	)
 	return err
 }
