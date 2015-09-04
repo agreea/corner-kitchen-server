@@ -38,7 +38,7 @@ func NewKitchenUserServlet(server_config *Config, session_manager *SessionManage
 // TODO: Implement
 func (t *KitchenUserServlet) AddStripe(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
-	stripe_token := r.Form.Get("StripeToken")
+	stripe_token := r.Form.Get("stripeToken")
 	exists, kitchenSession, err := t.session_manager.GetGuestSession(session_id)
 	if !exists {
 		return APIError("Invalid Session", 400)
