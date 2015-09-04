@@ -189,14 +189,14 @@ func GetUserById(db *sql.DB, id int64) (*UserData, error) {
 
 func GetGuestByFbId(db *sql.DB, fb_id string) (*GuestData, error) {
 	row := db.QueryRow(`SELECT Id, Email, Name, Prof_pic_url, 
-		Stripe_cust_id, Facebook_id 
+		Facebook_id, Stripe_cust_id 
 		FROM Guest WHERE Facebook_id = ?`, fb_id)
 	return readGuestLine(row)
 }
 
 func GetGuestById(db *sql.DB, id int64) (*GuestData, error) {
 	row := db.QueryRow(`SELECT Id, Email, Name, Prof_pic_url, 
-		Stripe_cust_id, Facebook_id 
+		Facebook_id, Stripe_cust_id 
 		FROM Guest WHERE Id = ?`, id)
 	return readGuestLine(row)
 }
@@ -242,8 +242,8 @@ func readGuestLine(row *sql.Row) (*GuestData, error) {
 		&guest_data.Id,
 		&guest_data.Email,
 		&guest_data.Name,
-		&guest_data.Facebook_id,
 		&guest_data.Prof_pic_url,
+		&guest_data.Facebook_id,
 		&guest_data.Stripe_cust_id,
 	); err != nil {
 		return nil, err

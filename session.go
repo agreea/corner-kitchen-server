@@ -87,7 +87,7 @@ func (t *SessionManager) CreateSessionForGuest(uid int64) (string, error) {
 
 	// Store the token in the database
 	_, err = t.db.Exec(`INSERT INTO  GuestSession (
-		Token, Guest_id, Expire_time ) VALUES (?, ?, ?)`, session_uuid, uid, GuestSession.Expires)
+		Token, Guest_id, Expires ) VALUES (?, ?, ?)`, session_uuid, uid, GuestSession.Expires)
 	if err != nil {
 		// This isn't a fatal error since the session will be known by this API
 		// server, but the session will be lost if the api server is restarted.
