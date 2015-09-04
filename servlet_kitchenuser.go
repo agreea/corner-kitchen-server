@@ -81,9 +81,11 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 	if err != nil {
 		return APIError("Invalid Facebook Login", 400)
 	}
+	return APISuccess(resp)
 	if resp.Id == "" {
 		return APIError("Error connecting to Facebook", 500)
 	}
+
 	fb_id := resp.Id
 	name := resp.Name
 	fb_id_exists, err := t.fb_id_exists(fb_id)
