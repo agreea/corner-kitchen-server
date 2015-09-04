@@ -192,7 +192,7 @@ func (t *KitchenUserServlet) create_guest(email string, name string, fb_id strin
 		log.Println("Create guest", err)
 		return nil, err
 	}
-	guestData.Session_token, err = t.session_manager.CreateSessionForGuest(int64(guestData.Id))
+	// guestData.Session_token, err = t.session_manager.CreateSessionForGuest(int64(guestData.Id))
 	if err != nil {
 		log.Println("Create guest", err)
 		return nil, err
