@@ -152,6 +152,12 @@ type GuestData struct {
 
 }
 
+type FacebookResp struct {
+	Id 				int64
+	Email 			string
+	Name 			string
+}
+
 type KitchenSession struct {
 	Guest *GuestData
 	Expires time.Time
@@ -699,25 +705,4 @@ func SetOwnerForTruck(db *sql.DB, truck_id int64, user_id int64) error {
 		user_id, truck_id,
 	)
 	return err
-}
-
-func ExecuteGetForJSON(url string) (response map[string]interface{}, err error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, err
-	} else {
-		defer resp.Body.Close()
-		contents, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		} else {
-			var f interface{}
-			err := json.Unmarshal(contents, &f)
-			if err != nil{
-				return nil, err
-			} else {
-				return f.(map[string]interface{}), nil
-			}
-		}
-	}
 }

@@ -83,8 +83,8 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 	if resp["error"] != nil {
 		return APIError("Error connecting to Facebook", 500)
 	}
-	fbId := resp["id"].(int64)
 	return APISuccess(fbId)
+	fbId := resp["id"].(int64)
 	fb_id_exists, err := t.fb_id_exists(resp["id"].(int64))
 	if err != nil {
 		return APIError("Could not login", 500)
@@ -106,12 +106,23 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 
 // Returns json data
 // Todo: json encoding response body contents
-func (t *KitchenUserServlet) get_fb_data_for_token(fb_token string) (resp map[string]interface{}, err error) {
-	resp, err = ExecuteGetForJSON("https://graph.facebook.com/me?fields=id,name,email&access_token=" + fb_token)
+func (t *KitchenUserServlet) get_fb_data_for_token(fb_token string) (resp *FacebookResp, err error) {
+	resp, err = http.Get("https://graph.facebook.com/me?fields=id,name,email&access_token=" + fb_token)
 	if err != nil {
 		return nil, err
 	} else {
-		return resp, nil
+		defer resp.Body.Close()
+		contents, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		} else {
+			err := json.Unmarshal(contents, &resp)
+			if err != nil{
+				return nil, err
+			} else {
+				return resp, nil
+			}
+		}
 	}
 }
 
