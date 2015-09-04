@@ -68,13 +68,13 @@ func (t *SessionManager) CreateSessionForUser(uid int64) (string, error) {
 
 func (t *SessionManager) CreateSessionForGuest(uid int64) (string, error) {
 	session_uuid := uuid.New()
-	guest_session, err := t.GetGuestSessionById(uid)
-	if err != nil {
-		return "Getting session by id", err
-	}
-	if guest_session != "" {
-		return guest_session, err
-	}
+	// guest_session, err := t.GetGuestSessionById(uid)
+	// if err != nil {
+	// 	return "Getting session by id", err
+	// }
+	// if guest_session != "" {
+	// 	return guest_session, err
+	// }
 	// Get the user's info
 	guest_data, err := GetGuestById(t.db, uid)
 	if err != nil {
