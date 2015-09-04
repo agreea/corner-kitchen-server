@@ -89,6 +89,7 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 	if err != nil {
 		return APIError("Could not login", 500)
 	}
+	return APISuccess("guestData")
     if fb_id_exists {
     	guestData, err := t.process_login(fb_id)
     	if err != nil {
