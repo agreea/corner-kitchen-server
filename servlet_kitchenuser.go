@@ -185,7 +185,7 @@ func (t *KitchenUserServlet) create_guest(email string, name string, fb_id strin
 	prof_pic_url := "http://graph.facebook.com/" + fb_id + "/picture?width=400"
 	_, err := t.db.Exec(`INSERT INTO Guest
 		(Email, Name, Facebook_id, Prof_pic_url, Stripe_cust_id) VALUES (?, ?, ?, ?, ?)`,
-		email, name, fb_id, prof_pic_url, 0)
+		email, name, fb_id, prof_pic_url, 5)
 	guestData, err := GetGuestByFbId(t.db, fb_id)
 	if err != nil {
 		log.Println("Create guest", err)
