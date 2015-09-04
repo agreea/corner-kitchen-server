@@ -76,13 +76,13 @@ func (t *SessionManager) CreateSessionForGuest(uid int64) (string, error) {
 	// 	return guest_session, err
 	// }
 	// Get the user's info
-	// guest_data, err := GetGuestById(t.db, uid)
-	// if err != nil {
-	// 	return "getting guest by id", err
-	// }
-	// Create the session object and put it in the local cache
+	guest_data, err := GetGuestById(t.db, uid)
+	if err != nil {
+		return "getting guest by id", err
+	}
+	Create the session object and put it in the local cache
 	GuestSession := new(KitchenSession)
-	// GuestSession.Guest // = guest_data
+	GuestSession.Guest = guest_data
 	GuestSession.Expires = time.Now().Add(60 * 24 * time.Hour)
 
 	// Store the token in the database
