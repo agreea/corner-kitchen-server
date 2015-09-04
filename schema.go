@@ -652,11 +652,12 @@ func SavePaymentToken(db *sql.DB, token *PaymentToken) error {
 	return err
 }
 
-func SaveStripeToken(db *sql.DB, stripe_token string, guest_id int64) error {
+func SaveStripeToken(db *sql.DB, stripe_token string, guest_data *GuestData) error {
 	stripe.Key = "***REMOVED***"
 
 	customerParams := &stripe.CustomerParams{
-  		Desc: "Customer for test@example.com",
+  		Desc: guest_data.Name,
+  		Email: guest_data.Email
 	}
 	customerParams.SetSource(stripe_token) // obtained with Stripe.js
 	c, err := customer.New(customerParams)

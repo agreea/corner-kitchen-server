@@ -43,8 +43,8 @@ func (t *KitchenUserServlet) AddStripe(r *http.Request) *ApiResult {
 	if !exists {
 		return APIError("Invalid Session", 400)
 	}
-	guestId := kitchenSession.Guest.Id
-	err = SaveStripeToken(t.db, stripe_token, guestId)
+	guestData := kitchenSession.Guest
+	err = SaveStripeToken(t.db, stripe_token, guestId, guestData)
 	if err != nil {
 		return APIError("Failed to Save Stripe Data", 500)
 	}
