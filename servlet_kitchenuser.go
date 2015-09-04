@@ -83,10 +83,9 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 	if resp["error"] != nil {
 		return APIError("Error connecting to Facebook", 500)
 	}
-	fbId := resp["id"].(int)
+	fbId := resp["id"].(int64)
 	return APISuccess(fbId)
-
-	fb_id_exists, err := t.fb_id_exists(resp["id"].(int))
+	fb_id_exists, err := t.fb_id_exists(resp["id"].(int64))
 	if err != nil {
 		return APIError("Could not login", 500)
 	}
@@ -191,7 +190,7 @@ func (t *KitchenUserServlet) create_guest(email string, name string, fb_id int) 
 // Check if a fbId already exists in the chakula DB.
 // Returns an error if any database operation fails.
 func (t *KitchenUserServlet) fb_id_exists(fb_id int) (bool, error) {
-	rows, err := t.db.Query("SELECT Id FROM Guest WHERE FbId = ?", fb_id)
+	rows, err := t.db.Query("SELECT Id FROM Guest WHERE FbId = ?", int64(fb_id))
 	if err != nil {
 		return true, err
 	}
