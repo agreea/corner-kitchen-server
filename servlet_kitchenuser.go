@@ -11,6 +11,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"io/ioutil"
+	"encoding/json"
 )
 
 type KitchenUserServlet struct {
@@ -80,23 +82,23 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 	if err != nil {
 		return APIError("Invalid Facebook Login", 400)
 	}
-	if resp["error"] != nil {
+	if resp.Id == "" {
 		return APIError("Error connecting to Facebook", 500)
 	}
 	return APISuccess("hey there")
-	fbId := resp["id"].(int64)
-	fb_id_exists, err := t.fb_id_exists(resp["id"].(int64))
+	fb_id := resp.Id
+	fb_id_exists, err := t.fb_id_exists(fb_id)
 	if err != nil {
 		return APIError("Could not login", 500)
 	}
     if fb_id_exists {
-    	guestData, err := t.process_login(fbId)
+    	guestData, err := t.process_login(fb_id)
     	if err != nil {
 			return APIError("Could not login", 500)
     	}
 		return APISuccess(guestData)
 	} else {
-		guestData, err := t.create_guest(resp["email"].(string), resp["name"].(string), resp["id"].(int))
+		guestData, err := t.create_guest(resp.Email, resp.Name, fb_id)
 		if err != nil {
 			return APIError("Failed to create user", 500)
 		}
@@ -106,8 +108,8 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 
 // Returns json data
 // Todo: json encoding response body contents
-func (t *KitchenUserServlet) get_fb_data_for_token(fb_token string) (resp *FacebookResp, err error) {
-	resp, err = http.Get("https://graph.facebook.com/me?fields=id,name,email&access_token=" + fb_token)
+func (t *KitchenUserServlet) get_fb_data_for_token(fb_token string) (fbresponse *FacebookResp, err error) {
+	resp, err := http.Get("https://graph.facebook.com/me?fields=id,name,email&access_token=" + fb_token)
 	if err != nil {
 		return nil, err
 	} else {
@@ -116,11 +118,11 @@ func (t *KitchenUserServlet) get_fb_data_for_token(fb_token string) (resp *Faceb
 		if err != nil {
 			return nil, err
 		} else {
-			err := json.Unmarshal(contents, &resp)
+			err := json.Unmarshal(contents, &fbresponse)
 			if err != nil{
 				return nil, err
 			} else {
-				return resp, nil
+				return fbresponse, nil
 			}
 		}
 	}
@@ -160,8 +162,8 @@ func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 
 // Fetches a user's data and creates a session for them.
 // Returns a pointer to the userdata and an error.
-func (t *KitchenUserServlet) process_login(fbid int) (*GuestData, error) {
-	guestData, err := GetGuestByFbId(t.db, int64(fbid))
+func (t *KitchenUserServlet) process_login(fb_id string) (*GuestData, error) {
+	guestData, err := GetGuestByFbId(t.db, fb_id)
 	if err != nil {
 		return nil, err
 	}
@@ -181,12 +183,12 @@ func (t *KitchenUserServlet) process_login(fbid int) (*GuestData, error) {
 	}
 }
 // Create a new user + session based off of the data returned from facebook and return a GuestData object
-func (t *KitchenUserServlet) create_guest(email string, name string, fb_id int) (*GuestData, error) {
-	prof_pic_url := "http://graph.facebook.com/" + strconv.Itoa(fb_id) + "/picture?width=400"
+func (t *KitchenUserServlet) create_guest(email string, name string, fb_id string) (*GuestData, error) {
+	prof_pic_url := "http://graph.facebook.com/" + fb_id + "/picture?width=400"
 	_, err := t.db.Exec(`INSERT INTO Guest
-		(Email, Name, FbId, profpic) VALUES (?, ?, ?, ?)`,
+		(Email, Name, Facebook_id, profpic) VALUES (?, ?, ?, ?)`,
 		email, name, fb_id, prof_pic_url)
-	guestData, err := GetGuestByFbId(t.db, int64(fb_id))
+	guestData, err := GetGuestByFbId(t.db, fb_id)
 	if err != nil {
 		log.Println("Create guest", err)
 	}
@@ -200,8 +202,8 @@ func (t *KitchenUserServlet) create_guest(email string, name string, fb_id int) 
 
 // Check if a fbId already exists in the chakula DB.
 // Returns an error if any database operation fails.
-func (t *KitchenUserServlet) fb_id_exists(fb_id int) (bool, error) {
-	rows, err := t.db.Query("SELECT Id FROM Guest WHERE FbId = ?", int64(fb_id))
+func (t *KitchenUserServlet) fb_id_exists(fb_id string) (bool, error) {
+	rows, err := t.db.Query("SELECT Id FROM Guest WHERE Facebook_id = ?", fb_id)
 	if err != nil {
 		return true, err
 	}

@@ -3,9 +3,6 @@ package main
 import (
 	"database/sql"
 	"time"
-	"encoding/json"
-	"net/http"
-	"io/ioutil"
 )
 
 type SMS struct {
@@ -144,7 +141,7 @@ type GuestData struct {
 	Email 			string
 	Name 			string
 	Prof_pic_url	string
-	Facebook_id		int64
+	Facebook_id		string
 	Stripe_cust_id	string
 
 	// Go fields
@@ -153,7 +150,7 @@ type GuestData struct {
 }
 
 type FacebookResp struct {
-	Id 				int64
+	Id 				string
 	Email 			string
 	Name 			string
 }
@@ -192,7 +189,7 @@ func GetUserById(db *sql.DB, id int64) (*UserData, error) {
 	return readUserLine(row)
 }
 
-func GetGuestByFbId(db *sql.DB, fb_id int64) (*GuestData, error) {
+func GetGuestByFbId(db *sql.DB, fb_id string) (*GuestData, error) {
 	row := db.QueryRow(`SELECT Id, Email, Name, Prof_pic_url, 
 		Stripe_cust_id, Facebook_id 
 		FROM Guest WHERE Facebook_id = ?`, fb_id)
