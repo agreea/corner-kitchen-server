@@ -46,7 +46,6 @@ func (t *MealRequestServlet) SendRequest(r *http.Request) *ApiResult {
 	if host == nil {
 		return APIError("Couldn't process host", 400)
 	}
-
 	if err != nil {
 		return APIError("Couldn't process request", 400)
 	}

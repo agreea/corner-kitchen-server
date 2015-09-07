@@ -166,7 +166,7 @@ type Meal struct {
 	Id 				int64
 	Host_id			int64
 	Price 			float64
-	Title			int64
+	Title			string
 }
 
 type StripeToken struct {
