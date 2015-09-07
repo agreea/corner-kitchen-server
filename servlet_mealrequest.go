@@ -37,6 +37,16 @@ func (t *MealRequestServlet) SendRequest(r *http.Request) *ApiResult {
 	}
 	session_id := r.Form.Get("session")
 	guest, host, meal, err := t.get_guest_host_meal(meal_id, session_id)
+	if guest == nil {
+		return APIError("Couldn't process guest", 400)
+	}
+	if meal == nil {
+		return APIError("Couldn't process meal", 400)
+	}
+	if host == nil {
+		return APIError("Couldn't process host", 400)
+	}
+
 	if err != nil {
 		return APIError("Couldn't process request", 400)
 	}
@@ -63,14 +73,13 @@ func (t *MealRequestServlet) get_guest_host_meal(meal_id int64, session_id strin
 	meal, err := GetMealById(t.db, meal_id)
 	if err != nil {
 		log.Println(err)
-		return nil, nil, nil, err
+		return guest, nil, nil, err
 	}
-	// return guest, nil, meal, nil
 	// get the host
 	host, err := GetHostById(t.db, meal.Host_id)
 	if err != nil {
 		log.Println(err)
-		return nil, nil, nil, err
+		return guest, nil, meal, err
 	}
 
 	return guest, host, meal, nil
