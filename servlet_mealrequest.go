@@ -65,7 +65,7 @@ func (t *MealRequestServlet) get_guest_host_meal(meal_id int64, session_id strin
 		log.Println(err)
 		return nil, nil, nil, err
 	}
-	return guest, nil, meal, nil
+	// return guest, nil, meal, nil
 	// get the host
 	host, err := GetHostById(t.db, meal.Host_id)
 	if err != nil {
