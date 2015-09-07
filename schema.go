@@ -164,8 +164,9 @@ type KitchenSession struct {
 
 type Meal struct {
 	Id 				int64
-	HostId			int64
-	Price 			int64
+	Host_id			int64
+	Price 			float64
+	Title			int64
 }
 
 type StripeToken struct {
@@ -174,18 +175,18 @@ type StripeToken struct {
 	Stripe_id 		int64
 }
 
-type Host struct {
+type HostData struct {
 	Id 				int64
-	GuestId 		int64
+	Guest_id 		int64
 	Address 		string
-	Phone 			int64
+	Phone 			string
 	Stripe_conntect string
 }
 
-type Request struct {
+type MealRequest struct {
 	Id 				int64
-	GuestId 		int64
-	MealId			int64
+	Guest_id 		int64
+	Meal_id			int64
 	Status 			int64
 }
 
@@ -211,6 +212,20 @@ func GetGuestById(db *sql.DB, id int64) (*GuestData, error) {
 	return readGuestLine(row)
 }
 
+func GetHostByGuestId(db *sql.DB, id int64) (*HostData, error) {
+	row := db.QueryRow(`SELECT Id, Guest_id, Address, Phone, 
+		Stripe_connect 
+		FROM Host WHERE GuestId = ?`, id)
+	return readHostLine(row)
+}
+
+func GetHostById(db *sql.DB, id int64) (*HostData, error) {
+	row := db.QueryRow(`SELECT Id, Guest_id, Address, Phone, 
+		Stripe_connect 
+		FROM Host WHERE Id = ?`, id)
+	return readHostLine(row)
+}
+
 func GetUserByEmail(db *sql.DB, email string) (*UserData, error) {
 	row := db.QueryRow(`SELECT Id, Email, First_name, Last_name,
 		Password_salt, Password_hash,
@@ -226,6 +241,26 @@ func GetUserByPhone(db *sql.DB, phone string) (*UserData, error) {
         FROM User WHERE Phone = ?`, phone)
 	return readUserLine(row)
 }
+
+func GetMealById(db *sql.DB, id int64) (*Meal, error) {
+	row := db.QueryRow(`SELECT Id, Host_id, Price, Title
+        FROM Meal 
+        WHERE Id = ?`, id)
+	return readUserLine(row)
+}
+
+func GetMealRequestByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) (request_exists bool, meal_req *MealRequest, err error) {
+	row := db.QueryRow(`SELECT Id, Guest_id, Meal_id, Status
+        FROM MealRequest
+        WHERE Guest_id = ? AND Meal_id = ?`, guest_id, meal_id)
+	meal_req, err := readMealRequestLine(row)
+	// err thrown will be "NoRowsError"
+	if err != nil {
+		return false, nil, err
+	}
+	return true, meal_req, nil
+}
+
 
 func readUserLine(row *sql.Row) (*UserData, error) {
 	user_data := new(UserData)
@@ -260,6 +295,47 @@ func readGuestLine(row *sql.Row) (*GuestData, error) {
 	}
 	return guest_data, nil
 }
+
+func readHostLine(row *sql.Row) (*HostData, error) {
+	host_data := new(HostData)
+	if err := row.Scan(
+		&host_data.Id,
+		&host_data.GuestId,
+		&host_data.Address,
+		&host_data.Phone,
+		&host_data.Stripe_connect,
+	); err != nil {
+		return nil, err
+	}
+	return host_data, nil
+}
+
+func readMealLine(row *sql.Row) (*Meal, error) {
+	meal := new(HostData)
+	if err := row.Scan(
+		&meal.Id,
+		&meal.Host_id,
+		&meal.Price,
+		&meal.Title,
+	); err != nil {
+		return nil, err
+	}
+	return meal, nil
+}
+
+func readMealRequestLine(row *sql.Row) (*MealRequest, error) {
+	meal_req := new(MealRequest)
+	if err := row.Scan(
+		&meal_req.Id,
+		&meal_req.Guest_id,
+		&meal_req.Meal_id,
+		&meal_req.Status,
+	); err != nil {
+		return nil, err
+	}
+	return meal_req, nil
+}
+
 
 func GetTruckById(db *sql.DB, id int64) (*Truck, error) {
 	row := db.QueryRow(`SELECT Id, Owner, Name, Location_lat, Location_lon,
@@ -648,6 +724,20 @@ func SavePaymentToken(db *sql.DB, token *PaymentToken) error {
 		token.Name,
 		token.stripe_key,
 		token.Token,
+	)
+	return err
+}
+
+func SaveMealRequest(db *sql.DB, mealReq *MealRequest) error {
+	_, err := db.Exec(
+		`INSERT INTO MealRequest
+		(Guest_id, Meal_id, Status)
+		VALUES
+		(?, ?, ?)
+		`,
+		meal_req.Guest_id,
+		meal_req.Meal_id,
+		0,
 	)
 	return err
 }
