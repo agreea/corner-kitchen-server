@@ -180,7 +180,7 @@ type HostData struct {
 	Guest_id 		int64
 	Address 		string
 	Phone 			string
-	Stripe_conntect string
+	Stripe_connect 	string
 }
 
 type MealRequest struct {
@@ -246,19 +246,19 @@ func GetMealById(db *sql.DB, id int64) (*Meal, error) {
 	row := db.QueryRow(`SELECT Id, Host_id, Price, Title
         FROM Meal 
         WHERE Id = ?`, id)
-	return readUserLine(row)
+	return readMealLine(row)
 }
 
-func GetMealRequestByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) (request_exists bool, meal_req *MealRequest, err error) {
+func GetMealRequestByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) (meal_req *MealRequest, err error) {
 	row := db.QueryRow(`SELECT Id, Guest_id, Meal_id, Status
         FROM MealRequest
         WHERE Guest_id = ? AND Meal_id = ?`, guest_id, meal_id)
-	meal_req, err := readMealRequestLine(row)
+	meal_req, err = readMealRequestLine(row)
 	// err thrown will be "NoRowsError"
 	if err != nil {
-		return false, nil, err
+		return nil, err
 	}
-	return true, meal_req, nil
+	return meal_req, nil
 }
 
 
@@ -300,7 +300,7 @@ func readHostLine(row *sql.Row) (*HostData, error) {
 	host_data := new(HostData)
 	if err := row.Scan(
 		&host_data.Id,
-		&host_data.GuestId,
+		&host_data.Guest_id,
 		&host_data.Address,
 		&host_data.Phone,
 		&host_data.Stripe_connect,
@@ -311,7 +311,7 @@ func readHostLine(row *sql.Row) (*HostData, error) {
 }
 
 func readMealLine(row *sql.Row) (*Meal, error) {
-	meal := new(HostData)
+	meal := new(Meal)
 	if err := row.Scan(
 		&meal.Id,
 		&meal.Host_id,
@@ -728,7 +728,7 @@ func SavePaymentToken(db *sql.DB, token *PaymentToken) error {
 	return err
 }
 
-func SaveMealRequest(db *sql.DB, mealReq *MealRequest) error {
+func SaveMealRequest(db *sql.DB, meal_req *MealRequest) error {
 	_, err := db.Exec(
 		`INSERT INTO MealRequest
 		(Guest_id, Meal_id, Status)
