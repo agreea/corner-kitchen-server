@@ -16,6 +16,12 @@ type MealRequestServlet struct {
 	session_manager *SessionManager
 }
 
+type MealRequest_read struct {
+	guest_name		string
+	guest_pic		string
+	meal_title		string
+}
+
 func NewMealRequestServlet(server_config *Config, session_manager *SessionManager, twilio_queue chan *SMS) *MealRequestServlet {
 	t := new(MealRequestServlet)
 	t.server_config = server_config
@@ -54,6 +60,36 @@ func (t *MealRequestServlet) SendRequest(r *http.Request) *ApiResult {
 		return t.record_request(guest, host, meal)
 	}
 	return APIError("Meal request already exists", 400)
+}
+
+func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
+	request_id_s := r.Form.Get("requestId")
+	request_id, err := strconv.ParseInt(request_id_s, 10, 64)
+	if err != nil {
+		return APIError("Malformed meal ID", 400)
+	}
+	// get the request by its id (done)
+	request, err := GetMealRequestById(t.db, request_id)
+	if err != nil {
+		return APIError("Could not locate request", 400)
+	}
+	if request.Status != 0 {
+		return APISuccess("Request answered")
+	}
+	// get the guest data by their id
+	guest, err := GetGuestById(t.db, request.Guest_id)
+	if err != nil {
+		return APIError("Could not locate guest", 500)
+	}
+	request_read := new(MealRequest_read)
+	request_read.guest_name = guest.Name
+	request_read.guest_pic = GetFacebookPic(guest.Facebook_id)
+	meal, err := GetMealById(t.db, request.Meal_id)
+	if err != nil {
+		return APIError("Could not locate meal", 500)
+	}
+	request_read.meal_title = meal.Title
+	return APISuccess(request_read)
 }
 
 func (t *MealRequestServlet) get_guest_host_meal(meal_id int64, session_id string) (*GuestData, *HostData, *Meal, error) {
