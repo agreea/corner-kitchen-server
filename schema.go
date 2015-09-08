@@ -274,7 +274,15 @@ func GetMealRequestById(db *sql.DB, request_id int64) (*MealRequest, error) {
 	}
 	return meal_req, nil
 }
-
+func UpdateMealRequest(db *sql.DB, request_id int64, status int64) (error) {
+	_, err := db.Exec(`
+		UPDATE MealRequest
+		SET Status = ?
+		WHERE Id = ?`,
+		status, request_id,
+	)
+	return err
+}
 func readUserLine(row *sql.Row) (*UserData, error) {
 	user_data := new(UserData)
 	if err := row.Scan(
