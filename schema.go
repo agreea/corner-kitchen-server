@@ -143,7 +143,6 @@ type GuestData struct {
 	Id 				int64
 	Email 			string
 	Name 			string
-	Prof_pic_url	string
 	Facebook_id		string
 	Stripe_cust_id	string
 
@@ -199,17 +198,21 @@ func GetUserById(db *sql.DB, id int64) (*UserData, error) {
 }
 
 func GetGuestByFbId(db *sql.DB, fb_id string) (*GuestData, error) {
-	row := db.QueryRow(`SELECT Id, Email, Name, Prof_pic_url, 
+	row := db.QueryRow(`SELECT Id, Email, Name,
 		Facebook_id, Stripe_cust_id 
 		FROM Guest WHERE Facebook_id = ?`, fb_id)
 	return readGuestLine(row)
 }
 
 func GetGuestById(db *sql.DB, id int64) (*GuestData, error) {
-	row := db.QueryRow(`SELECT Id, Email, Name, Prof_pic_url, 
+	row := db.QueryRow(`SELECT Id, Email, Name, 
 		Facebook_id, Stripe_cust_id 
 		FROM Guest WHERE Id = ?`, id)
 	return readGuestLine(row)
+}
+
+func GetFacebookPic(fb_id string) (string) {
+	return "http://graph.facebook.com/" + fb_id + "/picture?width=400"
 }
 
 func GetHostByGuestId(db *sql.DB, id int64) (*HostData, error) {
@@ -261,6 +264,16 @@ func GetMealRequestByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64)
 	return meal_req, nil
 }
 
+func GetMealRequestById(db *sql.DB, request_id int64) (*MealRequest, error) {
+	row := db.QueryRow(`SELECT Id, Guest_id, Meal_id, Status
+        FROM MealRequest
+        WHERE Id = ?`, request_id)
+	meal_req, err := readMealRequestLine(row)
+	if err != nil {
+		return nil, err
+	}
+	return meal_req, nil
+}
 
 func readUserLine(row *sql.Row) (*UserData, error) {
 	user_data := new(UserData)
@@ -287,7 +300,6 @@ func readGuestLine(row *sql.Row) (*GuestData, error) {
 		&guest_data.Id,
 		&guest_data.Email,
 		&guest_data.Name,
-		&guest_data.Prof_pic_url,
 		&guest_data.Facebook_id,
 		&guest_data.Stripe_cust_id,
 	); err != nil {
