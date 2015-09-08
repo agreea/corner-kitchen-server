@@ -84,13 +84,12 @@ func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
 	request_read := new(MealRequest_read)
 	request_read.guest_name = guest.Name
 	request_read.guest_pic = GetFacebookPic(guest.Facebook_id)
-	log.Println(request_read.guest_name)
 	meal, err := GetMealById(t.db, request.Meal_id)
 	if err != nil {
 		return APIError("Could not locate meal", 500)
 	}
 	request_read.meal_title = meal.Title
-	return APISuccess(request_read)
+	return APISuccess(nil)
 }
 
 func (t *MealRequestServlet) get_guest_host_meal(meal_id int64, session_id string) (*GuestData, *HostData, *Meal, error) {
