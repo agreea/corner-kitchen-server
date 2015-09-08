@@ -16,12 +16,6 @@ type MealRequestServlet struct {
 	session_manager *SessionManager
 }
 
-type MealRequest_read struct {
-	guest_name		string
-	guest_pic		string
-	meal_title		string
-}
-
 func NewMealRequestServlet(server_config *Config, session_manager *SessionManager, twilio_queue chan *SMS) *MealRequestServlet {
 	t := new(MealRequestServlet)
 	t.server_config = server_config

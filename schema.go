@@ -189,6 +189,13 @@ type MealRequest struct {
 	Status 			int64
 }
 
+type MealRequest_read struct {
+	guest_name		string
+	guest_pic		string
+	meal_title		string
+}
+
+
 func GetUserById(db *sql.DB, id int64) (*UserData, error) {
 	row := db.QueryRow(`SELECT Id, Email, First_name, Last_name,
 		Password_salt, Password_hash,
