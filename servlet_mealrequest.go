@@ -74,7 +74,7 @@ func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
 		return APIError("Could not locate request", 400)
 	}
 	if request.Status != 0 {
-		return APISuccess("Request answered")
+		// return APISuccess("Request answered")
 	}
 	// get the guest data by their id
 	guest, err := GetGuestById(t.db, request.Guest_id)
