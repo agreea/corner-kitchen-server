@@ -20,6 +20,7 @@ type MealRequestRead struct {
 	Guest_name		string
 	Guest_pic		string
 	Meal_title		string
+	Status			int64
 }
 
 func NewMealRequestServlet(server_config *Config, session_manager *SessionManager, twilio_queue chan *SMS) *MealRequestServlet {
@@ -68,13 +69,10 @@ func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
 	if err != nil {
 		return APIError("Malformed meal ID", 400)
 	}
-	// get the request by its id (done)
+	// get the request by its id
 	request, err := GetMealRequestById(t.db, request_id)
 	if err != nil {
 		return APIError("Could not locate request", 400)
-	}
-	if request.Status != 0 {
-		return APISuccess("Request answered")
 	}
 	// get the guest data by their id
 	guest, err := GetGuestById(t.db, request.Guest_id)
@@ -84,6 +82,7 @@ func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
 	request_read := new(MealRequestRead)
 	request_read.Guest_name = guest.Name
 	request_read.Guest_pic = GetFacebookPic(guest.Facebook_id)
+	request_read.Status = request.Status
 	meal, err := GetMealById(t.db, request.Meal_id)
 	if err != nil {
 		return APIError("Could not locate meal", 500)
@@ -91,7 +90,35 @@ func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
 	request_read.Meal_title = meal.Title
 	return APISuccess(request_read)
 }
+func (t *MealRequestServlet) Respond(r *http.Request) *ApiResult {
+	request_id_s := r.Form.Get("requestId")
+	request_id, err := strconv.ParseInt(request_id_s, 10, 64)
+	if err != nil {
+		return APIError("Malformed meal ID", 400)
+	}
+	request, err := GetMealRequestById(t.db, request_id)
+	if err != nil {
+		return APIError("Could not locate request", 400)
+	}
+	if request.Status != 0 {
+		return APIError("You already responded to this request.", 400)
+	}
 
+	response_s := r.Form.Get("response")
+	response, err := strconv.ParseInt(response_s, 10, 64)
+	if response != 1 && response != -1 {
+		return APIError("Invalid response.", 400)
+	}
+	err = UpdateMealRequest(t.db, request_id, response)
+	if err != nil {
+		return APIError("Failed to record response.", 400)		
+	}
+	updated_request, err := GetMealRequestById(t.db, request_id)
+	if err != nil {
+		return APIError("Failed to record response.", 400)		
+	}
+	return APISuccess(updated_request)
+}
 func (t *MealRequestServlet) get_guest_host_meal(meal_id int64, session_id string) (*GuestData, *HostData, *Meal, error) {
 	// Get the guest info.
 	session_valid, session, err := t.session_manager.GetGuestSession(session_id)

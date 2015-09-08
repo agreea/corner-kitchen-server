@@ -124,7 +124,6 @@ func (t *SessionManager) GetSession(session_uuid string) (session_exists bool, s
 		UserSession.Expires = expires
 		return true, UserSession, nil
 	}
-
 	// If it isn't in cache or DB, return false.
 	return false, nil, nil
 }
