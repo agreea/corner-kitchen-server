@@ -17,9 +17,9 @@ type MealRequestServlet struct {
 }
 
 type MealRequestRead struct {
-	guest_name		string
-	guest_pic		string
-	meal_title		string
+	Guest_name		string
+	Guest_pic		string
+	Meal_title		string
 }
 
 func NewMealRequestServlet(server_config *Config, session_manager *SessionManager, twilio_queue chan *SMS) *MealRequestServlet {
@@ -77,18 +77,18 @@ func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
 		return APISuccess("Request answered")
 	}
 	// get the guest data by their id
-	// guest, err := GetGuestById(t.db, request.Guest_id)
-	// if err != nil {
-	// 	return APIError("Could not locate guest", 500)
-	// }
+	guest, err := GetGuestById(t.db, request.Guest_id)
+	if err != nil {
+		return APIError("Could not locate guest", 500)
+	}
 	request_read := new(MealRequestRead)
 	// request_read.guest_name = guest.Name
-	// request_read.guest_pic = GetFacebookPic(guest.Facebook_id)
-	// meal, err := GetMealById(t.db, request.Meal_id)
-	// if err != nil {
-	// 	return APIError("Could not locate meal", 500)
-	// }
-	// request_read.meal_title = meal.Title
+	request_read.guest_pic = GetFacebookPic(guest.Facebook_id)
+	meal, err := GetMealById(t.db, request.Meal_id)
+	if err != nil {
+		return APIError("Could not locate meal", 500)
+	}
+	request_read.meal_title = meal.Title
 	return APISuccess(request_read)
 }
 
