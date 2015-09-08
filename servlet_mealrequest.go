@@ -83,7 +83,7 @@ func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
 	}
 	request_read := new(MealRequestRead)
 	request_read.guest_name = guest.Name
-	request_read.guest_pic = GetFacebookPic(guest.Facebook_id)
+	// request_read.guest_pic = GetFacebookPic(guest.Facebook_id)
 	meal, err := GetMealById(t.db, request.Meal_id)
 	if err != nil {
 		return APIError("Could not locate meal", 500)
