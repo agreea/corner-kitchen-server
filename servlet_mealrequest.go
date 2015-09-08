@@ -16,7 +16,7 @@ type MealRequestServlet struct {
 	session_manager *SessionManager
 }
 
-type MealRequest_read struct {
+type MealRequestRead struct {
 	guest_name		string
 	guest_pic		string
 	meal_title		string
@@ -81,7 +81,7 @@ func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
 	if err != nil {
 		return APIError("Could not locate guest", 500)
 	}
-	request_read := new(MealRequest_read)
+	request_read := new(MealRequestRead)
 	request_read.guest_name = guest.Name
 	request_read.guest_pic = GetFacebookPic(guest.Facebook_id)
 	meal, err := GetMealById(t.db, request.Meal_id)
@@ -89,7 +89,7 @@ func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
 		return APIError("Could not locate meal", 500)
 	}
 	request_read.meal_title = meal.Title
-	return APISuccess(nil)
+	return APIError(request_read)
 }
 
 func (t *MealRequestServlet) get_guest_host_meal(meal_id int64, session_id string) (*GuestData, *HostData, *Meal, error) {
