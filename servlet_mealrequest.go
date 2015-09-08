@@ -89,7 +89,7 @@ func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
 		return APIError("Could not locate meal", 500)
 	}
 	request_read.meal_title = meal.Title
-	return APISuccess(guest)
+	return APISuccess(meal)
 }
 
 func (t *MealRequestServlet) get_guest_host_meal(meal_id int64, session_id string) (*GuestData, *HostData, *Meal, error) {
