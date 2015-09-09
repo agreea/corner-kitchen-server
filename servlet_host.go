@@ -41,7 +41,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	}
 	// guest := session.Guest
 	// host, err := GetHostByGuestId(t.db, guest.Id)
-	_, err = t.stripe_auth(auth)
+	stripeResponse, err = t.stripe_auth(auth)
 	// if err != nil {
 	// 	return APIError("Could not connect to Stripe", 500)
 	// } 
@@ -51,7 +51,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	// 	return APIError(stripe_error.(string) + stripeResponse["error_description"].(string), 400)
 	// }
 	// host.Id = 3
-	return APISuccess(nil)
+	return APISuccess(stripeResponse)
 	// get the authorization code done
 	// get the session done
 	// get the guest by the session done
