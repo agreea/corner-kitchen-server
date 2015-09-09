@@ -32,6 +32,7 @@ func NewHostServlet(server_config *Config, session_manager *SessionManager, twil
 }
 
 func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
+	log.Println("=======Stripe Connect called======")
 	auth := r.Form.Get("auth")
 	session_id := r.Form.Get("session")
 	valid, session, err := t.session_manager.GetGuestSession(session_id)
@@ -87,6 +88,7 @@ func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
 			log.Println("Uh oh")
 			return nil, err
 		} else {
+
 			return stripeJSON, nil
 		}
 	}
