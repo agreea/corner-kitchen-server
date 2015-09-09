@@ -100,7 +100,6 @@ func (t *KitchenUserServlet) get_fb_data_for_token(fb_token string) (fbresponse 
 	if err != nil {
 		return nil, err
 	} else {
-		log.Println("FB Token: Received response")
 		defer resp.Body.Close()
 		contents, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -129,6 +128,7 @@ func (t *KitchenUserServlet) get_fb_long_token(fb_token string) (long_token stri
 	if err != nil {
 		return "",0, err
 	} else {
+		log.Println("FB Token: Received response")
 		defer resp.Body.Close()
 		contents, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
@@ -137,18 +137,22 @@ func (t *KitchenUserServlet) get_fb_long_token(fb_token string) (long_token stri
 			fbJSON := make(map[string]interface{})
 			err := json.Unmarshal(contents, &fbJSON)
 			if err != nil {
+				log.Println(err)
 				return "",0, err
 			} else {
 				// if there's an error in the request:
-				if _, error_present := fbJSON["error"]; error_present {
+				if fb_error, error_present := fbJSON["error"]; error_present {
+					log.Println(fb_error)
 					return "", 0, err
 				} 
 				long_token = fbJSON["access_token"].(string)
 				expires_s := fbJSON["expires"].(string)
 				expires64, err := strconv.ParseInt(expires_s, 10, 64)
 				if err != nil {
+					log.Println(err)
 					return long_token, 0, err
 				}
+				log.Println("Successfully got token: " + long_token)
 				return long_token, int(expires64), nil
 			}
 		}
