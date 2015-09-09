@@ -40,7 +40,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	}
 	guest := session.Guest
 	
-	host, err = GetHostByGuestId(t.db, guest.Id)
+	host, err := GetHostByGuestId(t.db, guest.Id)
 	if err != nil {
 		return APIError("Could not locate host", 500)
 	}
