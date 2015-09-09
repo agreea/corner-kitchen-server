@@ -89,9 +89,9 @@ func (t *SessionManager) CreateSessionForGuest(uid int64) (string, error) {
 	_, err = t.db.Exec(`INSERT INTO  GuestSession (
 		Token, Guest_id, Expires ) VALUES (?, ?, ?)`, session_uuid, uid, GuestSession.Expires)
 	if err != nil {
-	// 	// This isn't a fatal error since the session will be known by this API
-	// 	// server, but the session will be lost if the api server is restarted.
-	// 	// Can also lead to premature expiry in highly available API clusters.
+		// 	// This isn't a fatal error since the session will be known by this API
+		// 	// server, but the session will be lost if the api server is restarted.
+		// 	// Can also lead to premature expiry in highly available API clusters.
 		log.Println("CreateSessionForGuest", err)
 	}
 
@@ -225,7 +225,7 @@ func (t *SessionManager) get_guest_session_from_db(session_uuid string) (exists 
 
 // returns true with a session value if there is a valid session for that user
 func (t *SessionManager) get_guest_session_from_db_by_id(guest_id int64) (exists bool, session string, err error) {
-	
+
 	row, err := t.db.Query(`
 		SELECT Token
 		FROM GuestSession
@@ -240,15 +240,3 @@ func (t *SessionManager) get_guest_session_from_db_by_id(guest_id int64) (exists
 	// Otherwise, we got a valid token
 	return true, session, nil
 }
-
-
-
-
-
-
-
-
-
-
-
-

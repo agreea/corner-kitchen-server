@@ -2,9 +2,9 @@ package main
 
 import (
 	"database/sql"
-	"time"
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/customer"
+	"time"
 )
 
 type SMS struct {
@@ -105,6 +105,7 @@ type OrderItem struct {
 	ToggleOptions    []int64
 	ListOptionValues []int64
 }
+
 // For trucks
 type PaymentToken struct {
 	Id         int64
@@ -140,53 +141,53 @@ type Session struct {
 // The Dinner Structs
 
 type GuestData struct {
-	Id 				int64
-	Email 			string
-	Name 			string
-	Facebook_id		string
-	Stripe_cust_id	string
+	Id             int64
+	Email          string
+	Name           string
+	Facebook_id    string
+	Stripe_cust_id string
 
 	// Go fields
-	Session_token 	string
+	Session_token string
 }
 
 type FacebookResp struct {
-	Id 				string
-	Email 			string
-	Name 			string
+	Id    string
+	Email string
+	Name  string
 }
 
 type KitchenSession struct {
-	Guest *GuestData
+	Guest   *GuestData
 	Expires time.Time
 }
 
 type Meal struct {
-	Id 				int64
-	Host_id			int64
-	Price 			float64
-	Title			string
+	Id      int64
+	Host_id int64
+	Price   float64
+	Title   string
 }
 
 type StripeToken struct {
-	Id 				int64
-	Guest_id 		int64
-	Stripe_id 		int64
+	Id        int64
+	Guest_id  int64
+	Stripe_id int64
 }
 
 type HostData struct {
-	Id 				int64
-	Guest_id 		int64
-	Address 		string
-	Phone 			string
-	Stripe_connect 	string
+	Id             int64
+	Guest_id       int64
+	Address        string
+	Phone          string
+	Stripe_connect string
 }
 
 type MealRequest struct {
-	Id 				int64
-	Guest_id 		int64
-	Meal_id			int64
-	Status 			int64
+	Id       int64
+	Guest_id int64
+	Meal_id  int64
+	Status   int64
 }
 
 func GetUserById(db *sql.DB, id int64) (*UserData, error) {
@@ -211,7 +212,7 @@ func GetGuestById(db *sql.DB, id int64) (*GuestData, error) {
 	return readGuestLine(row)
 }
 
-func GetFacebookPic(fb_id string) (string) {
+func GetFacebookPic(fb_id string) string {
 	return "https://graph.facebook.com/" + fb_id + "/picture?width=400"
 }
 
@@ -274,7 +275,7 @@ func GetMealRequestById(db *sql.DB, request_id int64) (*MealRequest, error) {
 	}
 	return meal_req, nil
 }
-func UpdateMealRequest(db *sql.DB, request_id int64, status int64) (error) {
+func UpdateMealRequest(db *sql.DB, request_id int64, status int64) error {
 	_, err := db.Exec(`
 		UPDATE MealRequest
 		SET Status = ?
@@ -355,7 +356,6 @@ func readMealRequestLine(row *sql.Row) (*MealRequest, error) {
 	}
 	return meal_req, nil
 }
-
 
 func GetTruckById(db *sql.DB, id int64) (*Truck, error) {
 	row := db.QueryRow(`SELECT Id, Owner, Name, Location_lat, Location_lon,
@@ -766,8 +766,8 @@ func SaveStripeToken(db *sql.DB, stripe_token string, guest_data *GuestData) err
 	stripe.Key = "***REMOVED***"
 
 	customerParams := &stripe.CustomerParams{
-  		Desc: guest_data.Name,
-  		Email: guest_data.Email,
+		Desc:  guest_data.Name,
+		Email: guest_data.Email,
 	}
 	customerParams.SetSource(stripe_token) // obtained with Stripe.js
 	c, err := customer.New(customerParams)

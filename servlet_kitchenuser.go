@@ -4,13 +4,13 @@ import (
 	"code.google.com/p/go.crypto/pbkdf2"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/json"
 	_ "github.com/go-sql-driver/mysql"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
 	"time"
-	"io/ioutil"
-	"encoding/json"
 )
 
 type KitchenUserServlet struct {
@@ -55,8 +55,8 @@ func (t *KitchenUserServlet) AddStripe(r *http.Request) *ApiResult {
 // Session tokens are stored in a local cache, as well as back to the DB to
 // support multi-server architecture. A cache miss will result in a DB read.
 func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
-	// if you don't have the fb in your guest table, 
-		// create a long-lived access token from the short lived one
+	// if you don't have the fb in your guest table,
+	// create a long-lived access token from the short lived one
 	fbToken := r.Form.Get("fbToken")
 	resp, err := t.get_fb_data_for_token(fbToken)
 	if err != nil {
@@ -73,11 +73,11 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 		return APIError("Could not login", 500)
 	}
 
-    if fb_id_exists {
-    	guestData, err := t.process_login(fb_id)
-    	if err != nil {
+	if fb_id_exists {
+		guestData, err := t.process_login(fb_id)
+		if err != nil {
 			return APIError("Could not login", 500)
-    	}
+		}
 		return APISuccess(guestData)
 	} else {
 		guestData, err := t.create_guest(resp.Email, name, fb_id)
@@ -101,7 +101,7 @@ func (t *KitchenUserServlet) get_fb_data_for_token(fb_token string) (fbresponse 
 			return nil, err
 		} else {
 			err := json.Unmarshal(contents, &fbresponse)
-			if err != nil{
+			if err != nil {
 				return nil, err
 			} else {
 				return fbresponse, nil
@@ -109,7 +109,6 @@ func (t *KitchenUserServlet) get_fb_data_for_token(fb_token string) (fbresponse 
 		}
 	}
 }
-
 
 func (t *KitchenUserServlet) Get(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")

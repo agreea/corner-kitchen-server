@@ -17,10 +17,10 @@ type MealRequestServlet struct {
 }
 
 type MealRequestRead struct {
-	Guest_name		string
-	Guest_pic		string
-	Meal_title		string
-	Status			int64
+	Guest_name string
+	Guest_pic  string
+	Meal_title string
+	Status     int64
 }
 
 func NewMealRequestServlet(server_config *Config, session_manager *SessionManager, twilio_queue chan *SMS) *MealRequestServlet {
@@ -113,11 +113,11 @@ func (t *MealRequestServlet) Respond(r *http.Request) *ApiResult {
 	}
 	err = UpdateMealRequest(t.db, request_id, response)
 	if err != nil {
-		return APIError("Failed to record response.", 400)		
+		return APIError("Failed to record response.", 400)
 	}
 	updated_request, err := GetMealRequestById(t.db, request_id)
 	if err != nil {
-		return APIError("Failed to record response.", 400)		
+		return APIError("Failed to record response.", 400)
 	}
 	return APISuccess(updated_request)
 }
@@ -165,9 +165,9 @@ func (t *MealRequestServlet) record_request(guest *GuestData, host *HostData, me
 	// Text the host "<session.Guest.Name> wants to join <meal.Title>. Please respond here: https://yaychakula.com/req/<reqId> "
 	msg := new(SMS)
 	msg.To = host.Phone
-	msg.Message = fmt.Sprintf("Yo! %s wants to join %s. Please respond: https://yaychakula.com/request.html?Id=%d", 
-								guest.Name, meal.Title, 
-								saved_request.Id)
+	msg.Message = fmt.Sprintf("Yo! %s wants to join %s. Please respond: https://yaychakula.com/request.html?Id=%d",
+		guest.Name, meal.Title,
+		saved_request.Id)
 	t.twilio_queue <- msg
 	return APISuccess(meal_req)
 }
