@@ -68,19 +68,23 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 	fb_id := resp.Id
 	name := resp.Name
 	fb_id_exists, err := t.fb_id_exists(fb_id)
-
 	if err != nil {
 		return APIError("Could not login", 500)
 	}
-
+	long_token, expires, err := t.get_fb_data_for_token(fbToken)
+	if err != nil || expires == 0 {
+		return APIError("Could not connect to Facebook", 500)
+	}
 	if fb_id_exists {
-		guestData, err := t.process_login(fb_id)
+		// update fb credentials for fb_id
+		guestData, err := t.process_login(fb_id, long_token, expires)
 		if err != nil {
 			return APIError("Could not login", 500)
 		}
 		return APISuccess(guestData)
 	} else {
-		guestData, err := t.create_guest(resp.Email, name, fb_id)
+		// also include long token and expires
+		guestData, err := t.create_guest(resp.Email, name, fb_id, long_token, expires)
 		if err != nil {
 			return APIError("Failed to create user", 500)
 		}
@@ -110,9 +114,45 @@ func (t *KitchenUserServlet) get_fb_data_for_token(fb_token string) (fbresponse 
 	}
 }
 
+// get the longterm access token
+// store it with the user
+// 
+func (t *KitchenUserServlet) get_fb_long_token(fb_token string) (long_token string, expires int64, err error) {
+	resp, err := http.Get("https://graph.facebook.com/oauth/access_token?" +
+							"grant_type=fb_exchange_token&client_id=828767043907424" +
+							"&client_secret=***REMOVED***&fb_exchange_token=" + fb_token)
+	if err != nil {
+		return "",0, err
+	} else {
+		defer resp.Body.Close()
+		contents, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return "",0, err
+		} else {
+			fbJSON := make(map[string]interface{})
+			err := json.Unmarshal(contents, &fbJSON)
+			if err != nil {
+				return "",0, err
+			} else {
+				// if there's an error in the request:
+				if fb_error, error_present := fbJSON["error"]; error_present {
+					return "", 0, err
+				} 
+				long_token = fbJSON["access_token"]
+				expires_s := fbJSON["expires"]
+				expires, err = strconv.ParseInt(expires_s, 10, 64)
+				if err != nil {
+					return long_token, 0, err
+				}
+				return long_token, expires, nil
+			}
+		}
+	}
+}
+
 func (t *KitchenUserServlet) Get(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
-	session_valid, session, err := t.session_manager.GetSession(session_id)
+	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Internal Server Error", 500)
@@ -143,7 +183,13 @@ func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 
 // Fetches a user's data and creates a session for them.
 // Returns a pointer to the userdata and an error.
-func (t *KitchenUserServlet) process_login(fb_id string) (*GuestData, error) {
+func (t *KitchenUserServlet) process_login(fb_id string, fb_long_token string, expires int) (*GuestData, error) {
+	// update FB token
+	err := UpdateGuestFbToken(t.db, fb_id, fb_long_token)
+	if err != nil {
+		log.Println("Couldn't update GuestFbToken")
+		return nil, err
+	}
 	guestData, err := GetGuestByFbId(t.db, fb_id)
 	if err != nil {
 		return nil, err
@@ -156,7 +202,7 @@ func (t *KitchenUserServlet) process_login(fb_id string) (*GuestData, error) {
 		guestData.Session_token = guest_session
 		return guestData, nil
 	} else {
-		guestData.Session_token, err = t.session_manager.CreateSessionForGuest(int64(guestData.Id))
+		guestData.Session_token, err = t.session_manager.CreateSessionForGuest(int64(guestData.Id), int64(expires))
 		if err != nil {
 			return nil, err
 		}
@@ -165,16 +211,17 @@ func (t *KitchenUserServlet) process_login(fb_id string) (*GuestData, error) {
 }
 
 // Create a new user + session based off of the data returned from facebook and return a GuestData object
-func (t *KitchenUserServlet) create_guest(email string, name string, fb_id string) (*GuestData, error) {
+func (t *KitchenUserServlet) create_guest(email string, name string, fb_id string, fb_long_token, expires int) (*GuestData, error) {
+	// update FB token
 	_, err := t.db.Exec(`INSERT INTO Guest
-		(Email, Name, Facebook_id, Stripe_cust_id) VALUES (?, ?, ?, ?)`,
-		email, name, fb_id, 0)
+		(Email, Name, Facebook_id, Facebook_long_token, Stripe_cust_id) VALUES (?, ?, ?, ?, ?)`,
+		email, name, fb_id, fb_long_token, 0)
 	guestData, err := GetGuestByFbId(t.db, fb_id)
 	if err != nil {
 		log.Println("Create guest", err)
 		return nil, err
 	}
-	guestData.Session_token, err = t.session_manager.CreateSessionForGuest(int64(guestData.Id))
+	guestData.Session_token, err = t.session_manager.CreateSessionForGuest(int64(guestData.Id), int64(expires))
 	if err != nil {
 		log.Println("Create guest", err)
 		return nil, err
