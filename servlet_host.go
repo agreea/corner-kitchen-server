@@ -38,23 +38,19 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	if err != nil || valid == false {
 		return APIError("Invalid session", 500)
 	}
-	// guest := session.Guest
-	// host, err := GetHostByGuestId(t.db, guest.Id)
+	guest := session.Guest
+	host, err := GetHostByGuestId(t.db, guest.Id)
 	stripeResponse, err := t.stripe_auth(auth)
 	if err != nil {
 		log.Println(err)
 		return nil
 	}
-
-	// if err != nil {
-	// 	return APIError("Could not connect to Stripe", 500)
-	// }
-	// host.Id = 3
 	if stripe_error, error_present := stripeResponse["error"]; error_present {
 		log.Println("=======There's an error!!!======")
 		return APIError(stripe_error.(string)+stripeResponse["error_description"].(string), 400)
 	}
-	// host.Id = 3
+	host.Id = 3
+	log.Println(stripeResponse["stripe_customer_id"].(string))
 	return APISuccess(nil)
 	// get the authorization code done
 	// get the session done
