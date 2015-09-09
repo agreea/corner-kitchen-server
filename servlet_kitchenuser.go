@@ -117,7 +117,7 @@ func (t *KitchenUserServlet) get_fb_data_for_token(fb_token string) (fbresponse 
 // get the longterm access token
 // store it with the user
 // 
-func (t *KitchenUserServlet) get_fb_long_token(fb_token string) (long_token string, expires int64, err error) {
+func (t *KitchenUserServlet) get_fb_long_token(fb_token string) (long_token string, expires int, err error) {
 	resp, err := http.Get("https://graph.facebook.com/oauth/access_token?" +
 							"grant_type=fb_exchange_token&client_id=828767043907424" +
 							"&client_secret=***REMOVED***&fb_exchange_token=" + fb_token)
@@ -202,7 +202,7 @@ func (t *KitchenUserServlet) process_login(fb_id string, fb_long_token string, e
 		guestData.Session_token = guest_session
 		return guestData, nil
 	} else {
-		guestData.Session_token, err = t.session_manager.CreateSessionForGuest(int64(guestData.Id), int64(expires))
+		guestData.Session_token, err = t.session_manager.CreateSessionForGuest(int64(guestData.Id), expires)
 		if err != nil {
 			return nil, err
 		}
@@ -211,7 +211,7 @@ func (t *KitchenUserServlet) process_login(fb_id string, fb_long_token string, e
 }
 
 // Create a new user + session based off of the data returned from facebook and return a GuestData object
-func (t *KitchenUserServlet) create_guest(email string, name string, fb_id string, fb_long_token, expires int) (*GuestData, error) {
+func (t *KitchenUserServlet) create_guest(email string, name string, fb_id string, fb_long_token string, expires int) (*GuestData, error) {
 	// update FB token
 	_, err := t.db.Exec(`INSERT INTO Guest
 		(Email, Name, Facebook_id, Facebook_long_token, Stripe_cust_id) VALUES (?, ?, ?, ?, ?)`,
@@ -221,7 +221,7 @@ func (t *KitchenUserServlet) create_guest(email string, name string, fb_id strin
 		log.Println("Create guest", err)
 		return nil, err
 	}
-	guestData.Session_token, err = t.session_manager.CreateSessionForGuest(int64(guestData.Id), int64(expires))
+	guestData.Session_token, err = t.session_manager.CreateSessionForGuest(int64(guestData.Id), expires)
 	if err != nil {
 		log.Println("Create guest", err)
 		return nil, err

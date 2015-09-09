@@ -66,7 +66,7 @@ func (t *SessionManager) CreateSessionForUser(uid int64) (string, error) {
 	return session_uuid, nil
 }
 
-func (t *SessionManager) CreateSessionForGuest(uid int64, token_expires int64) (string, error) {
+func (t *SessionManager) CreateSessionForGuest(uid int64, token_expires int) (string, error) {
 	session_uuid := uuid.New()
 	guest_session, err := t.GetGuestSessionById(uid)
 	if err != nil {
