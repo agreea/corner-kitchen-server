@@ -170,7 +170,6 @@ func (t *KitchenUserServlet) get_fb_long_token(fb_token string) (long_token stri
 			// 	log.Println("Successfully got token: " + long_token)
 			// 	return long_token, int(expires64), nil
 			// }
-		}
 	}
 }
 
