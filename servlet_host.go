@@ -46,7 +46,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 		return APIError("Could not connect to Stripe", 500)
 	} 
 	if stripe_error, error_present := stripeResponse["error"]; error_present {
-		return APIError(stripe_error, 400)
+		return APIError(stripe_error.(string), 400)
 	}
 	host.Id = 3
 	return APISuccess(stripeResponse)
