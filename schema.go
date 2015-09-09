@@ -219,7 +219,7 @@ func GetFacebookPic(fb_id string) string {
 func GetHostByGuestId(db *sql.DB, id int64) (*HostData, error) {
 	row := db.QueryRow(`SELECT Id, Guest_id, Address, Phone, 
 		Stripe_connect 
-		FROM Host WHERE GuestId = ?`, id)
+		FROM Host WHERE Guest_id = ?`, id)
 	return readHostLine(row)
 }
 

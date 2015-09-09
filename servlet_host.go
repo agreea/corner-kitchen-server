@@ -55,6 +55,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	}
 	log.Println(stripeResponse["stripe_user_id"].(string))
 	log.Println(stripeResponse)
+	host.Id = 3
 	return APISuccess(nil)
 	// get the authorization code done
 	// get the session done
