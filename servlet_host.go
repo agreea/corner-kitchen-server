@@ -65,10 +65,6 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	   // store stripe_row in the host table
 	   // return APIResult(Guest)?
 }
-curl https://connect.stripe.com/oauth/token \
-   -d client_secret=***REMOVED*** \
-   -d code=ac_6wtc5xQLoDaqwlxljJMIGJV1AV3H08oW \
-   -d grant_type=authorization_code
 
 func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
 	resp, err := http.PostForm("https://connect.stripe.com/oauth/token", 
