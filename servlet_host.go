@@ -46,6 +46,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 		return APIError("Could not connect to Stripe", 500)
 	} 
 	if stripe_error, error_present := stripeResponse["error"]; error_present {
+		log.Println("=======There's an error!!!======")
 		return APIError(stripe_error.(string) + stripeResponse["error_description"].(string), 400)
 	}
 	host.Id = 3
@@ -66,7 +67,9 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	   // store stripe_row in the host table
 	   // return APIResult(Guest)?
 }
-
+func (t *HostServlet) AnotherMethod(r *http.Request) *ApiResult {
+	return APISuccess(nil)
+}
 func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
 	log.Println("=======Calling stripe_auth========")
 	resp, err := http.PostForm("https://connect.stripe.com/oauth/token", 
