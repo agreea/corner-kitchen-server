@@ -64,6 +64,7 @@ func (t *MealRequestServlet) SendRequest(r *http.Request) *ApiResult {
 }
 
 func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
+	log.Println("=====Getting Request======")
 	request_id_s := r.Form.Get("requestId")
 	request_id, err := strconv.ParseInt(request_id_s, 10, 64)
 	if err != nil {
@@ -90,6 +91,7 @@ func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
 	request_read.Meal_title = meal.Title
 	return APISuccess(request_read)
 }
+
 func (t *MealRequestServlet) Respond(r *http.Request) *ApiResult {
 	request_id_s := r.Form.Get("requestId")
 	request_id, err := strconv.ParseInt(request_id_s, 10, 64)
