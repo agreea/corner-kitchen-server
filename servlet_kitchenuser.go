@@ -147,8 +147,8 @@ func (t *KitchenUserServlet) get_fb_long_token(fb_token string) (long_token stri
 					log.Println(fb_error)
 					return "", 0, err
 				} 
-				long_token = fbHash["access_token"].(string)
-				expires_s := fbHash["expires"].(string)
+				long_token = fbHash["access_token"]
+				expires_s := fbHash["expires"]
 				expires64, err := strconv.ParseInt(expires_s, 10, 64)
 				if err != nil {
 					log.Println(err)
