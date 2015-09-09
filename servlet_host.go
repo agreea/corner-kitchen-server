@@ -35,17 +35,17 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	log.Println("=======Stripe Connect called======")
 	auth := r.Form.Get("auth")
 	session_id := r.Form.Get("session")
-	valid, session, err := t.session_manager.GetGuestSession(session_id)
+	valid, _, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil || valid == false {
 		return APIError("Invalid session", 500)
 	}
-	guest := session.Guest
-	host, err := GetHostByGuestId(t.db, guest.Id)
-	_, err = t.stripe_auth(auth)
-	if err != nil {
-		return APIError("Could not connect to Stripe", 500)
-	} 
-	host.Id = 3
+	// guest := session.Guest
+	// host, err := GetHostByGuestId(t.db, guest.Id)
+	// _, err = t.stripe_auth(auth)
+	// if err != nil {
+	// 	return APIError("Could not connect to Stripe", 500)
+	// } 
+	// host.Id = 3
 	// if stripe_error, error_present := stripeResponse["error"]; error_present {
 	// 	log.Println("=======There's an error!!!======")
 	// 	return APIError(stripe_error.(string) + stripeResponse["error_description"].(string), 400)
@@ -72,6 +72,7 @@ func (t *HostServlet) AnotherMethod(r *http.Request) *ApiResult {
 	log.Println("=======Calling AnotherMethod========")
 	return APISuccess(nil)
 }
+
 func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
 	log.Println("=======Calling stripe_auth========")
 	resp, err := http.PostForm("https://connect.stripe.com/oauth/token", 
