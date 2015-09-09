@@ -80,6 +80,8 @@ func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
 					"code": {auth},
 					"grant_type": {"authorization_code"},
 					})
+	log.Println("=======Called!!!!!!!!!!!!!!!!!!!!!!!!!!!!!========")
+
 	if err != nil {
 		return nil, err
 	}
@@ -89,11 +91,13 @@ func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	} else {
+		log.Println("=======Uuuuuuuuunnnnnnnnnnmmmmmmmarshalling========")
 		err := json.Unmarshal(contents, &stripeJSON)
 		if err != nil{
 			log.Println("Uh oh")
 			return nil, err
 		} else {
+		log.Println("=======Annnnnnnd we aboutta return can you believe it???========")
 
 			return stripeJSON, nil
 		}
