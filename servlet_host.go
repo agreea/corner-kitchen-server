@@ -49,7 +49,8 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 		log.Println("=======There's an error!!!======")
 		return APIError(stripe_error.(string)+stripeResponse["error_description"].(string), 400)
 	}
-	log.Println(stripeResponse["stripe_customer_id"].(string))
+	log.Println(stripeResponse["stripe_user_id"].(string))
+	log.Println(stripeResponse)
 	return APISuccess(nil)
 	// get the authorization code done
 	// get the session done
