@@ -34,7 +34,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	log.Println("=======Stripe Connect called======")
 	auth := r.Form.Get("auth")
 	session_id := r.Form.Get("session")
-	valid, _, err := t.session_manager.GetGuestSession(session_id)
+	valid, session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil || valid == false {
 		return APIError("Invalid session", 500)
 	}
