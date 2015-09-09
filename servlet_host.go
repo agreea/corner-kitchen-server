@@ -2,11 +2,11 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	_ "github.com/go-sql-driver/mysql"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"encoding/json"
-	"io/ioutil"
 	"net/url"
 )
 
@@ -16,7 +16,6 @@ type HostServlet struct {
 	twilio_queue    chan *SMS
 	session_manager *SessionManager
 }
-
 
 func NewHostServlet(server_config *Config, session_manager *SessionManager, twilio_queue chan *SMS) *HostServlet {
 	t := new(HostServlet)
@@ -42,13 +41,18 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	// guest := session.Guest
 	// host, err := GetHostByGuestId(t.db, guest.Id)
 	stripeResponse, err := t.stripe_auth(auth)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+
 	// if err != nil {
 	// 	return APIError("Could not connect to Stripe", 500)
-	// } 
+	// }
 	// host.Id = 3
 	if stripe_error, error_present := stripeResponse["error"]; error_present {
 		log.Println("=======There's an error!!!======")
-		return APIError(stripe_error.(string) + stripeResponse["error_description"].(string), 400)
+		return APIError(stripe_error.(string)+stripeResponse["error_description"].(string), 400)
 	}
 	// host.Id = 3
 	return APISuccess(nil)
@@ -57,16 +61,16 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	// get the guest by the session done
 	// get the host by the guest_id done
 	// make a post
-	/* 
-	curl https://connect.stripe.com/oauth/token \
-	   -d client_secret=***REMOVED*** \
-	   -d code=AUTHORIZATION_CODE \
-	   -d grant_type=authorization_code
+	/*
+		curl https://connect.stripe.com/oauth/token \
+		   -d client_secret=***REMOVED*** \
+		   -d code=AUTHORIZATION_CODE \
+		   -d grant_type=authorization_code
 	*/
 	// get the response back
-	   // get the stripe_user_id, refresh_token, and access_token and store them in your table
-	   // store stripe_row in the host table
-	   // return APIResult(Guest)?
+	// get the stripe_user_id, refresh_token, and access_token and store them in your table
+	// store stripe_row in the host table
+	// return APIResult(Guest)?
 }
 func (t *HostServlet) AnotherMethod(r *http.Request) *ApiResult {
 	log.Println("=======Calling AnotherMethod========")
@@ -74,39 +78,36 @@ func (t *HostServlet) AnotherMethod(r *http.Request) *ApiResult {
 }
 
 func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
-	log.Println("=======Calling stripe_auth========")
-	resp, err := http.PostForm("https://connect.stripe.com/oauth/token", 
-		url.Values{"client_secret": {"***REMOVED***"}, 
-					"code": {auth},
-					"grant_type": {"authorization_code"},
-					})
-	log.Println("=======Called!!!!!!!!!!!!!!!!!!!!!!!!!!!!!========")
-
+	resp, err := http.PostForm("https://connect.stripe.com/oauth/token",
+		url.Values{"client_secret": {"***REMOVED***"},
+			"code":       {auth},
+			"grant_type": {"authorization_code"},
+		})
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 	contents, err := ioutil.ReadAll(resp.Body)
-	var stripeJSON map[string]interface{}
 	if err != nil {
+		log.Println(err)
 		return nil, err
-	} else {
-		log.Println("=======Uuuuuuuuunnnnnnnnnnmmmmmmmarshalling========")
-		err := json.Unmarshal(contents, &stripeJSON)
-		if err != nil{
-			log.Println("Uh oh")
-			return nil, err
-		} else {
-		log.Println("=======Annnnnnnd we aboutta return can you believe it???========")
-
-			return stripeJSON, nil
-		}
 	}
+
+	stripeJSON := make(map[string]interface{})
+	err = json.Unmarshal(contents, &stripeJSON)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+
+	return stripeJSON, nil
 }
+
 // func (t *HostServlet) Pay(r *http.Request) *ApiResult {
-	// get the guest's Stripe id
-	// get the meal data
-	// get the host's Stripe id
-	// charge the guest for the meal, taking off 22.9% + 30 cents
- 	// get the success response? send success response back
+// get the guest's Stripe id
+// get the meal data
+// get the host's Stripe id
+// charge the guest for the meal, taking off 22.9% + 30 cents
+// get the success response? send success response back
 // }
