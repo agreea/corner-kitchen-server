@@ -33,24 +33,24 @@ func NewHostServlet(server_config *Config, session_manager *SessionManager, twil
 
 func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	log.Println("=======Stripe Connect called======")
-	auth := r.Form.Get("auth")
-	session_id := r.Form.Get("session")
-	valid, session, err := t.session_manager.GetGuestSession(session_id)
-	if err != nil || valid == false {
-		return APIError("Invalid session", 500)
-	}
-	guest := session.Guest
-	host, err := GetHostByGuestId(t.db, guest.Id)
-	stripeResponse, err := t.stripe_auth(auth)
-	if err != nil {
-		return APIError("Could not connect to Stripe", 500)
-	} 
-	if stripe_error, error_present := stripeResponse["error"]; error_present {
-		log.Println("=======There's an error!!!======")
-		return APIError(stripe_error.(string) + stripeResponse["error_description"].(string), 400)
-	}
-	host.Id = 3
-	return APISuccess(stripeResponse["stripe_user_id"].(string))
+	// auth := r.Form.Get("auth")
+	// session_id := r.Form.Get("session")
+	// valid, session, err := t.session_manager.GetGuestSession(session_id)
+	// if err != nil || valid == false {
+	// 	return APIError("Invalid session", 500)
+	// }
+	// guest := session.Guest
+	// host, err := GetHostByGuestId(t.db, guest.Id)
+	// stripeResponse, err := t.stripe_auth(auth)
+	// if err != nil {
+	// 	return APIError("Could not connect to Stripe", 500)
+	// } 
+	// if stripe_error, error_present := stripeResponse["error"]; error_present {
+	// 	log.Println("=======There's an error!!!======")
+	// 	return APIError(stripe_error.(string) + stripeResponse["error_description"].(string), 400)
+	// }
+	// host.Id = 3
+	return APISuccess(nil)
 	// get the authorization code done
 	// get the session done
 	// get the guest by the session done
