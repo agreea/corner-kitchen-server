@@ -30,7 +30,6 @@ func NewHostServlet(server_config *Config, session_manager *SessionManager, twil
 	t.twilio_queue = twilio_queue
 	return t
 }
-// curl --data "method=StripeConnect&session=8a16d9ee-0d21-4476-9fa5-8f2f9006f687&auth=ac_6wrNnRWsKmIMfE5BltfWSLEqqABDnw4i"  https://yaychakula.com/api/host
 
 func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	auth := r.Form.Get("auth")
@@ -71,7 +70,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
 	resp, err := http.PostForm("https://connect.stripe.com/oauth/token", 
 		url.Values{"client_secret": {"***REMOVED***"}, 
-					"code": {auth},
+					"code": {"ac_6wrgzz67ylU87WplS9u8L7X8JE2uhYYc"},
 					"grant_type": {"authorization_code"},
 					})
 	if err != nil {
