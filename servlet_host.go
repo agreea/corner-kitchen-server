@@ -68,6 +68,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	   // return APIResult(Guest)?
 }
 func (t *HostServlet) AnotherMethod(r *http.Request) *ApiResult {
+	log.Println("=======Calling AnotherMethod========")
 	return APISuccess(nil)
 }
 func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
