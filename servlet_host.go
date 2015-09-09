@@ -45,9 +45,9 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	if err != nil {
 		return APIError("Could not connect to Stripe", 500)
 	} 
-	// if stripe_error, error_present := stripeResponse["error"]; error_present {
-	// 	return APIError(stripe_error.(string) + stripeResponse["error_description"].(string), 400)
-	// }
+	if stripe_error, error_present := stripeResponse["error"]; error_present {
+		return APIError(stripe_error.(string) + stripeResponse["error_description"].(string), 400)
+	}
 	host.Id = 3
 	return APISuccess(stripeResponse["stripe_user_id"].(string))
 	// get the authorization code done
