@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"time"
 	"strconv"
+	"net/url"
 )
 
 type KitchenUserServlet struct {
@@ -134,19 +135,20 @@ func (t *KitchenUserServlet) get_fb_long_token(fb_token string) (long_token stri
 		if err != nil {
 			return "",0, err
 		} else {
-			fbJSON := make(map[string]interface{})
-			err := json.Unmarshal(contents, &fbJSON)
+			content_str := string(contents)
+			fbHash, err := url.ParseQuery(content_str)
 			if err != nil {
 				log.Println(err)
 				return "",0, err
 			} else {
+
 				// if there's an error in the request:
-				// if fb_error, error_present := fbJSON["error"]; error_present {
-				// 	log.Println(fb_error)
-				// 	return "", 0, err
-				// } 
-				long_token = fbJSON["access_token"].(string)
-				expires_s := fbJSON["expires"].(string)
+				if fb_error, error_present := fbHash["error"]; error_present {
+					log.Println(fb_error)
+					return "", 0, err
+				} 
+				long_token = fbHash["access_token"].(string)
+				expires_s := fbHash["expires"].(string)
 				expires64, err := strconv.ParseInt(expires_s, 10, 64)
 				if err != nil {
 					log.Println(err)
