@@ -70,7 +70,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
 	resp, err := http.PostForm("https://connect.stripe.com/oauth/token", 
 		url.Values{"client_secret": {"***REMOVED***"}, 
-					"code": {"ac_6wrgzz67ylU87WplS9u8L7X8JE2uhYYc"},
+					"code": {"ac_6wriae4Y0vV1qtdhrpwTFtjGLT9bGwII"},
 					"grant_type": {"authorization_code"},
 					})
 	if err != nil {
