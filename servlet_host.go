@@ -30,6 +30,7 @@ func NewHostServlet(server_config *Config, session_manager *SessionManager, twil
 	t.twilio_queue = twilio_queue
 	return t
 }
+curl --data "method=StripeConnect&session=8a16d9ee-0d21-4476-9fa5-8f2f9006f687&auth=ac_6wtb1FNP8T7SJsdMR6MRFEKgi7ou1vSe"  https://yaychakula.com/api/host
 
 func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	auth := r.Form.Get("auth")
@@ -45,7 +46,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 		return APIError("Could not connect to Stripe", 500)
 	} 
 	if stripe_error, error_present := stripeResponse["error"]; error_present {
-		return APIError(stripe_error.(string), 400)
+		return APIError(stripe_error.(string) + stripeResponse["error_description"].(string), 400)
 	}
 	host.Id = 3
 	return APISuccess(stripeResponse)
@@ -65,7 +66,10 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	   // store stripe_row in the host table
 	   // return APIResult(Guest)?
 }
-
+curl https://connect.stripe.com/oauth/token \
+   -d client_secret=***REMOVED*** \
+   -d code=ac_6wtc5xQLoDaqwlxljJMIGJV1AV3H08oW \
+   -d grant_type=authorization_code
 
 func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
 	resp, err := http.PostForm("https://connect.stripe.com/oauth/token", 
