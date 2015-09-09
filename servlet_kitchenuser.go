@@ -13,6 +13,7 @@ import (
 	"time"
 	"strconv"
 	"net/url"
+	"strings"
 )
 
 type KitchenUserServlet struct {
@@ -134,29 +135,41 @@ func (t *KitchenUserServlet) get_fb_long_token(fb_token string) (long_token stri
 		contents, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			return "",0, err
-		} else {
-			content_str := string(contents)
-			fbHash, err := url.ParseQuery(content_str)
-			if err != nil {
-				log.Println(err)
-				return "",0, err
-			} else {
+		}
+		content_str := string(contents)
 
-				// if there's an error in the request:
-				if fb_error, error_present := fbHash["error"]; error_present {
-					log.Println(fb_error)
-					return "", 0, err
-				} 
-				long_token = fbHash["access_token"]
-				expires_s := fbHash["expires"]
-				expires64, err := strconv.ParseInt(expires_s, 10, 64)
-				if err != nil {
-					log.Println(err)
-					return long_token, 0, err
-				}
-				log.Println("Successfully got token: " + long_token)
-				return long_token, int(expires64), nil
-			}
+		fbResponseSlice := strings.Split(content_str, "&")
+		if len(fbResponseSlice) == 1 {
+			return "", 0, err
+		}
+		tokenSlice := strings.Split(fbResponseSlice[0], "=")
+		expiresSlice := strings.Split(fbResponseSlice[1], "=")
+		long_token := tokenSlice[1]
+		expires_s := expiresSlice[1]
+		expires64, err := strconv.ParseInt(expires_s, 10, 64)
+		if err != nil {
+			log.Println(err)
+			return long_token, 0, err
+		}
+		return long_token, int(expires64), nil
+			// if the array is size 1 you have an error
+			// else, split the first item by "="
+			//			then split the second item by "="
+			// try to make the second item in the second item an int
+			// the second item in the first item should be your token
+			// if err != nil {
+			// 	log.Println(err)
+			// 	return "",0, err
+			// } else {
+			// 	// if there's an error in the request:
+			// 	if fb_error, error_present := fbHash["error"]; error_present {
+			// 		log.Println(fb_error)
+			// 		return "", 0, err
+			// 	} 
+			// 	long_token = fbHash["access_token"]
+			// 	log.Println("Successfully got token: " + long_token)
+			// 	return long_token, int(expires64), nil
+			// }
 		}
 	}
 }
