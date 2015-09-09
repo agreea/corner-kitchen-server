@@ -48,7 +48,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	// 	return APIError(stripe_error.(string) + stripeResponse["error_description"].(string), 400)
 	// }
 	host.Id = 3
-	return APISuccess(stripeResponse)
+	return APISuccess(stripeResponse["stripe_user_id"].(string))
 	// get the authorization code done
 	// get the session done
 	// get the guest by the session done
@@ -67,6 +67,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 }
 
 func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
+	log.Println("=======Calling stripe_auth========")
 	resp, err := http.PostForm("https://connect.stripe.com/oauth/token", 
 		url.Values{"client_secret": {"***REMOVED***"}, 
 					"code": {auth},
