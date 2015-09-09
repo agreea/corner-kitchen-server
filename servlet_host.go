@@ -39,7 +39,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 		return APIError("Invalid session", 500)
 	}
 	guest := session.Guest
-	host, err := GetHostByGuestId(t.db, guest.Id)
+	_, err := GetHostByGuestId(t.db, guest.Id)
 	stripeResponse, err := t.stripe_auth(auth)
 	if err != nil {
 		log.Println(err)
@@ -49,7 +49,6 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 		log.Println("=======There's an error!!!======")
 		return APIError(stripe_error.(string)+stripeResponse["error_description"].(string), 400)
 	}
-	host.Id = 3
 	log.Println(stripeResponse["stripe_customer_id"].(string))
 	return APISuccess(nil)
 	// get the authorization code done
