@@ -71,7 +71,7 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 	name := resp.Name
 	fb_id_exists, err := t.fb_id_exists(fb_id)
 	if err != nil {
-		return APIError("Could not login", 500)
+		return APIError("Could not find user", 500)
 	}
 	long_token, expires, err := t.get_fb_long_token(fbToken)
 	if err != nil || expires == 0 {
@@ -150,6 +150,7 @@ func (t *KitchenUserServlet) get_fb_long_token(fb_token string) (long_token stri
 			log.Println(err)
 			return long_token, 0, err
 		}
+		log.Println("Fb Token:" + long_token)
 		return long_token, int(expires64), nil
 			// if the array is size 1 you have an error
 			// else, split the first item by "="
