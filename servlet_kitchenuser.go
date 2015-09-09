@@ -100,15 +100,19 @@ func (t *KitchenUserServlet) get_fb_data_for_token(fb_token string) (fbresponse 
 	if err != nil {
 		return nil, err
 	} else {
+		log.Println("FB Token: Received response")
 		defer resp.Body.Close()
 		contents, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
+			log.Println(err)
 			return nil, err
 		} else {
 			err := json.Unmarshal(contents, &fbresponse)
 			if err != nil {
+				log.Println(err)
 				return nil, err
 			} else {
+				log.Println(fbresponse)
 				return fbresponse, nil
 			}
 		}
