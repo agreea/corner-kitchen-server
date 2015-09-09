@@ -41,7 +41,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	}
 	guest := session.Guest
 	host, err := GetHostByGuestId(t.db, guest.Id)
-	stripeResponse, err := t.stripe_auth(auth)
+	_, err := t.stripe_auth(auth)
 	if err != nil {
 		return APIError("Could not connect to Stripe", 500)
 	} 
