@@ -71,7 +71,7 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 	if err != nil {
 		return APIError("Could not login", 500)
 	}
-	long_token, expires, err := t.get_fb_data_for_token(fbToken)
+	long_token, expires, err := t.get_fb_long_token(fbToken)
 	if err != nil || expires == 0 {
 		return APIError("Could not connect to Facebook", 500)
 	}
@@ -138,8 +138,8 @@ func (t *KitchenUserServlet) get_fb_long_token(fb_token string) (long_token stri
 				if fb_error, error_present := fbJSON["error"]; error_present {
 					return "", 0, err
 				} 
-				long_token = fbJSON["access_token"]
-				expires_s := fbJSON["expires"]
+				long_token = fbJSON["access_token"].(string)
+				expires_s := fbJSON["expires"].(string)
 				expires, err = strconv.ParseInt(expires_s, 10, 64)
 				if err != nil {
 					return long_token, 0, err
@@ -160,7 +160,7 @@ func (t *KitchenUserServlet) Get(r *http.Request) *ApiResult {
 	if !session_valid {
 		return APIError("Session has expired. Please log in again", 200)
 	}
-	return APISuccess(session.User)
+	return APISuccess(session.Guest)
 }
 
 func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {

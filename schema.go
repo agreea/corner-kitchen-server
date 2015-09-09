@@ -286,7 +286,7 @@ func UpdateMealRequest(db *sql.DB, request_id int64, status int64) error {
 	return err
 }
 
-func UpdateGuestFbToken(db *sql.DB, fb_id int64, fb_token string) error {
+func UpdateGuestFbToken(db *sql.DB, fb_id string, fb_token string) error {
 	_, err := db.Exec(`
 		UPDATE Guest
 		SET Facebook_long_token = ?
