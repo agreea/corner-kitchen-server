@@ -136,7 +136,7 @@ func (t *KitchenUserServlet) get_fb_long_token(fb_token string) (long_token stri
 				return "",0, err
 			} else {
 				// if there's an error in the request:
-				if fb_error, error_present := fbJSON["error"]; error_present {
+				if _, error_present := fbJSON["error"]; error_present {
 					return "", 0, err
 				} 
 				long_token = fbJSON["access_token"].(string)
