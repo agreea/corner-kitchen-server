@@ -35,11 +35,15 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	auth := r.Form.Get("auth")
 	session_id := r.Form.Get("session")
 	valid, session, err := t.session_manager.GetGuestSession(session_id)
-	if err != nil || valid == false {
+	if err != nil || valid == false || session.Guest == nil {
 		return APIError("Invalid session", 500)
 	}
 	guest := session.Guest
-	_, err = GetHostByGuestId(t.db, guest.Id)
+	
+	host, err = GetHostByGuestId(t.db, guest.Id)
+	if err != nil {
+		return APIError("Could not locate host", 500)
+	}
 	stripeResponse, err := t.stripe_auth(auth)
 	if err != nil {
 		log.Println(err)
@@ -56,14 +60,14 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	// get the session done
 	// get the guest by the session done
 	// get the host by the guest_id done
-	// make a post
+	// make a post done
 	/*
 		curl https://connect.stripe.com/oauth/token \
 		   -d client_secret=***REMOVED*** \
 		   -d code=AUTHORIZATION_CODE \
 		   -d grant_type=authorization_code
 	*/
-	// get the response back
+	// get the response back done
 	// get the stripe_user_id, refresh_token, and access_token and store them in your table
 	// store stripe_row in the host table
 	// return APIResult(Guest)?

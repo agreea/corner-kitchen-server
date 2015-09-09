@@ -141,14 +141,14 @@ type Session struct {
 // The Dinner Structs
 
 type GuestData struct {
-	Id             int64
-	Email          string
-	Name           string
-	Facebook_id    string
-	Stripe_cust_id string
-
+	Id             		int64
+	Email          		string
+	Name           		string
+	Facebook_id    		string
+	Stripe_cust_id 		string
+	Facebook_long_token	string
 	// Go fields
-	Session_token string
+	Session_token 		string
 }
 
 type FacebookResp struct {
@@ -225,7 +225,7 @@ func GetHostByGuestId(db *sql.DB, id int64) (*HostData, error) {
 
 func GetHostById(db *sql.DB, id int64) (*HostData, error) {
 	row := db.QueryRow(`SELECT Id, Guest_id, Address, Phone, 
-		Stripe_connect 
+		Stripe_user_id 
 		FROM Host WHERE Id = ?`, id)
 	return readHostLine(row)
 }
@@ -275,6 +275,7 @@ func GetMealRequestById(db *sql.DB, request_id int64) (*MealRequest, error) {
 	}
 	return meal_req, nil
 }
+
 func UpdateMealRequest(db *sql.DB, request_id int64, status int64) error {
 	_, err := db.Exec(`
 		UPDATE MealRequest
@@ -284,6 +285,17 @@ func UpdateMealRequest(db *sql.DB, request_id int64, status int64) error {
 	)
 	return err
 }
+
+func UpdateGuestFbToken(db *sql.DB, fb_id int64, fb_token string) error {
+	_, err := db.Exec(`
+		UPDATE Guest
+		SET Facebook_long_token = ?
+		WHERE Facebook_id =?`,
+		fb_token, fb_id,
+	)
+	return err
+}
+
 func readUserLine(row *sql.Row) (*UserData, error) {
 	user_data := new(UserData)
 	if err := row.Scan(
