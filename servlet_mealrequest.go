@@ -163,7 +163,7 @@ func (t *MealRequestServlet) record_request(guest *GuestData, host *HostData, me
 	// Text the host "<session.Guest.Name> wants to join <meal.Title>. Please respond here: https://yaychakula.com/req/<reqId> "
 	msg := new(SMS)
 	msg.To = host.Phone
-	msg.Message = fmt.Sprintf("Yo! %s wants to join %s. Please respond: https://yaychakula.com/req/%d", 
+	msg.Message = fmt.Sprintf("Yo! %s wants to join %s. Please respond: https://yaychakula.com/request.html?Id=%d", 
 								guest.Name, meal.Title, 
 								saved_request.Id)
 	t.twilio_queue <- msg
