@@ -141,10 +141,10 @@ func (t *KitchenUserServlet) get_fb_long_token(fb_token string) (long_token stri
 				return "",0, err
 			} else {
 				// if there's an error in the request:
-				if fb_error, error_present := fbJSON["error"]; error_present {
-					log.Println(fb_error)
-					return "", 0, err
-				} 
+				// if fb_error, error_present := fbJSON["error"]; error_present {
+				// 	log.Println(fb_error)
+				// 	return "", 0, err
+				// } 
 				long_token = fbJSON["access_token"].(string)
 				expires_s := fbJSON["expires"].(string)
 				expires64, err := strconv.ParseInt(expires_s, 10, 64)
