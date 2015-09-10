@@ -69,6 +69,11 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 	}
 	fb_id := resp.Id
 	name := resp.Name
+	email := resp.Email
+	subscribe_s := r.Form.Get("subscribe")
+	if subscribe_s == "true"  {
+		MailChimpRegister(email, false)
+	}
 	fb_id_exists, err := t.fb_id_exists(fb_id)
 	if err != nil {
 		return APIError("Could not find user", 500)
@@ -86,7 +91,7 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 		return APISuccess(guestData)
 	} else {
 		// also include long token and expires
-		guestData, err := t.create_guest(resp.Email, name, fb_id, long_token, expires)
+		guestData, err := t.create_guest(email, name, fb_id, long_token, expires)
 		if err != nil {
 			return APIError("Failed to create user", 500)
 		}
@@ -210,11 +215,12 @@ func (t *KitchenUserServlet) process_login(fb_id string, fb_long_token string, e
 	// update FB token
 	err := UpdateGuestFbToken(t.db, fb_id, fb_long_token)
 	if err != nil {
-		log.Println("Couldn't update GuestFbToken")
+		log.Println(err)
 		return nil, err
 	}
 	guestData, err := GetGuestByFbId(t.db, fb_id)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 	guest_session, err := t.session_manager.GetGuestSessionById(int64(guestData.Id))
