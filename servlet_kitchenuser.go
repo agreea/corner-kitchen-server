@@ -71,6 +71,7 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 	name := resp.Name
 	email := resp.Email
 	subscribe_s := r.Form.Get("subscribe")
+	log.Println(subscribe_s)
 	if subscribe_s == "true"  {
 		log.Println(email)
 		MailChimpRegister(email, false, t.db)
