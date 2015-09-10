@@ -70,10 +70,10 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 	fb_id := resp.Id
 	name := resp.Name
 	email := resp.Email
-	subscribe_s := r.Form.Get("subscribe")
-	if subscribe_s == "true"  {
-		MailChimpRegister(email, false, t.db)
-	}
+	// subscribe_s := r.Form.Get("subscribe")
+	// if subscribe_s == "true"  {
+	// 	MailChimpRegister(email, false, t.db)
+	// }
 	fb_id_exists, err := t.fb_id_exists(fb_id)
 	if err != nil {
 		return APIError("Could not find user", 500)
