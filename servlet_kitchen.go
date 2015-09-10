@@ -61,7 +61,7 @@ func MailChimpRegister(email string, wants_to_host bool, db *sql.DB) error {
 		log.Println(err)
 		return err
 	}
-
+	log.Println(json)
 	client := &http.Client{}
 	req, err := http.NewRequest(
 		"POST",
