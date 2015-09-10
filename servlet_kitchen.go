@@ -44,14 +44,14 @@ func (t *KitchenServlet) Register(r *http.Request) *ApiResult {
 	} else {
 		wants_to_host = false
 	}
-	err := MailChimpRegister(email, wants_to_host)
+	err := MailChimpRegister(email, wants_to_host, t.db)
 	if err != nil {
 		return APIError("Failed to register", 500)
 	}
 	return APISuccess("OK")
 }
 
-func MailChimpRegister(email string, wants_to_host bool) error {
+func MailChimpRegister(email string, wants_to_host bool, db *sql.DB) error {
 	mcr := MailChimpRegistration{
 		email,
 		"subscribed",
@@ -91,7 +91,7 @@ func MailChimpRegister(email string, wants_to_host bool) error {
 	} else {
 		wants_to_host_val = 0
 	}
-	_, err = t.db.Exec(
+	_, err = db.Exec(
 		`INSERT INTO MealHost (Email, Will_host) VALUES (?, ?)`,
 		email,
 		wants_to_host_val,
