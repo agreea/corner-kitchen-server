@@ -56,6 +56,7 @@ func MailChimpRegister(email string, wants_to_host bool, db *sql.DB) error {
 		email,
 		"subscribed",
 	}
+	log.Println(mcr)
 	json, err := json.Marshal(mcr)
 	if err != nil {
 		log.Println(err)
