@@ -38,16 +38,30 @@ type MailChimpRegistration struct {
 func (t *KitchenServlet) Register(r *http.Request) *ApiResult {
 	email := r.Form.Get("email")
 	wants_to_host_s := r.Form.Get("host")
+	var wants_to_host bool
+	if wants_to_host_s == "true" {
+		wants_to_host = true
+	} else {
+		wants_to_host = false
+	}
+	err := MailChimpRegister(email, wants_to_host, t.db)
+	if err != nil {
+		return APIError("Failed to register", 500)
+	}
+	return APISuccess("OK")
+}
+
+func MailChimpRegister(email string, wants_to_host bool, db *sql.DB) error {
 	mcr := MailChimpRegistration{
 		email,
 		"subscribed",
 	}
+	log.Println(mcr)
 	json, err := json.Marshal(mcr)
 	if err != nil {
 		log.Println(err)
-		return nil
+		return err
 	}
-
 	client := &http.Client{}
 	req, err := http.NewRequest(
 		"POST",
@@ -56,36 +70,35 @@ func (t *KitchenServlet) Register(r *http.Request) *ApiResult {
 	)
 	if err != nil {
 		log.Println(err)
-		return nil
+		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.SetBasicAuth("agree", "b416eeb8b04228134e959d333675a950-us10")
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
-		return nil
+		return err
 	}
 
 	if resp.StatusCode != 200 {
 		log.Println(resp)
-		return nil
+		return err
 	}
 
-	var wants_to_host int64
-	if strings.ToLower(wants_to_host_s) == "true" {
-		wants_to_host = 1
+	var wants_to_host_val int64
+	if wants_to_host {
+		wants_to_host_val = 1
 	} else {
-		wants_to_host = 0
+		wants_to_host_val = 0
 	}
-	_, err = t.db.Exec(
+	_, err = db.Exec(
 		`INSERT INTO MealHost (Email, Will_host) VALUES (?, ?)`,
 		email,
-		wants_to_host,
+		wants_to_host_val,
 	)
 	if err != nil {
 		log.Println(err)
-		return nil
+		return err
 	}
-
-	return APISuccess("OK")
+	return nil
 }
