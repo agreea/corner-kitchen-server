@@ -791,7 +791,7 @@ func SaveStripeToken(db *sql.DB, stripe_token string, last4 int64, guest_data *G
 		return err
 	}
 	_, err = db.Exec(`
-		INSTERT INTO StripeToken
+		INSERT INTO StripeToken
 		(Stripe_token, Last4, Guest_id)
 		VALUES
 		(?, ?, ?)
