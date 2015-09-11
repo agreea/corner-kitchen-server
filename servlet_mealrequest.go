@@ -156,10 +156,12 @@ func (t *MealRequestServlet) record_request(guest *GuestData, host *HostData, me
 	meal_req.Meal_id = meal.Id
 	err := SaveMealRequest(t.db, meal_req)
 	if err != nil {
+		log.Println(err)
 		return APIError("Couldn't record meal request. Please try again", 500)
 	}
 	saved_request, err := GetMealRequestByGuestIdAndMealId(t.db, guest.Id, meal.Id)
 	if err != nil {
+		log.Println(err)
 		return APIError("Couldn't process meal request. Please try again", 500)
 	}
 	// Text the host "<session.Guest.Name> wants to join <meal.Title>. Please respond here: https://yaychakula.com/req/<reqId> "
