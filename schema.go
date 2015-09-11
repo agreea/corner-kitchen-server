@@ -170,9 +170,10 @@ type Meal struct {
 }
 
 type StripeToken struct {
-	Id        int64
-	Guest_id  int64
-	Stripe_id int64
+	Id        	int64
+	Guest_id  	int64
+	Stripe_id 	string
+	last4		int64
 }
 
 type HostData struct {
@@ -775,7 +776,7 @@ func SaveMealRequest(db *sql.DB, meal_req *MealRequest) error {
 	return err
 }
 
-func SaveStripeToken(db *sql.DB, stripe_token string, guest_data *GuestData) error {
+func SaveStripeToken(db *sql.DB, stripe_token string, last4 int64, guest_data *GuestData) error {
 	stripe.Key = "***REMOVED***"
 
 	customerParams := &stripe.CustomerParams{
@@ -784,12 +785,13 @@ func SaveStripeToken(db *sql.DB, stripe_token string, guest_data *GuestData) err
 	}
 	customerParams.SetSource(stripe_token) // obtained with Stripe.js
 	c, err := customer.New(customerParams)
+	log.Println(c)
 	if err != nil {
 		return err
 	}
 	_, err = db.Exec(`
-		UPDATE Guest
-		SET Stripe_cust_id = ?
+		INSTERT INTO StripeToken
+		(Stripe_token, Guest_id)
 		WHERE Id = ?`,
 		c.ID, guest_data.Id,
 	)
