@@ -786,15 +786,17 @@ func SaveStripeToken(db *sql.DB, stripe_token string, last4 int64, guest_data *G
 	}
 	customerParams.SetSource(stripe_token) // obtained with Stripe.js
 	c, err := customer.New(customerParams)
-	log.Println(c)
 	if err != nil {
 		return err
 	}
 	_, err = db.Exec(`
 		INSTERT INTO StripeToken
-		(Stripe_token, Guest_id)
-		WHERE Id = ?`,
-		c.ID, guest_data.Id,
+		(Stripe_token, Last4, Guest_id)
+		(?, ?, ?)
+		`,
+		c.ID, 
+		last4, 
+		guest_data.Id,
 	)
 	return err
 }
