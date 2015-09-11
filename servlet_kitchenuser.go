@@ -41,12 +41,18 @@ func NewKitchenUserServlet(server_config *Config, session_manager *SessionManage
 func (t *KitchenUserServlet) AddStripe(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	stripe_token := r.Form.Get("stripeToken")
-	exists, kitchenSession, err := t.session_manager.GetGuestSession(session_id)
-	if !exists {
+	last4_s := r.Form.Get("last4")
+	session_exists, kitchenSession, err := t.session_manager.GetGuestSession(session_id)
+	if !session_exists {
 		return APIError("Invalid Session", 400)
 	}
+	last4, err := strconv.ParseInt(meal_id_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Invalid last 4 digits", 400)
+	}
 	guestData := kitchenSession.Guest
-	err = SaveStripeToken(t.db, stripe_token, guestData)
+	err = SaveStripeToken(t.db, stripe_token, last4, guestData)
 	if err != nil {
 		return APIError("Failed to Save Stripe Data", 500)
 	}
