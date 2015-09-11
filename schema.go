@@ -5,6 +5,7 @@ import (
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/customer"
 	"time"
+	"log"
 )
 
 type SMS struct {
@@ -786,6 +787,7 @@ func SaveStripeToken(db *sql.DB, stripe_token string, last4 int64, guest_data *G
 	customerParams.SetSource(stripe_token) // obtained with Stripe.js
 	c, err := customer.New(customerParams)
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 	_, err = db.Exec(`
@@ -797,6 +799,9 @@ func SaveStripeToken(db *sql.DB, stripe_token string, last4 int64, guest_data *G
 		last4, 
 		guest_data.Id,
 	)
+	if err != nil {
+		log.Println(err)
+	}
 	return err
 }
 
