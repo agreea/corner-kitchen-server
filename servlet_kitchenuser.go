@@ -46,7 +46,7 @@ func (t *KitchenUserServlet) AddStripe(r *http.Request) *ApiResult {
 	if !session_exists {
 		return APIError("Invalid Session", 400)
 	}
-	last4, err := strconv.ParseInt(meal_id_s, 10, 64)
+	last4, err := strconv.ParseInt(last4_s, 10, 64)
 	if err != nil {
 		log.Println(err)
 		return APIError("Invalid last 4 digits", 400)
