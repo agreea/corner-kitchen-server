@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"net/http"
@@ -105,7 +104,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	return APISuccess(meal_data)
 }
 
-func (t *MealServlet) get_request_by_meal_and_guest_id(guest_id int64, meal_id int64) (meal_request *MealRequest, err error) {
+func (t *MealServlet) get_request_by_guest_and_meal_id(guest_id int64, meal_id int64) (meal_request *MealRequest, err error) {
 	meal_req, err := GetMealRequestByGuestIdAndMealId(t.db, guest_id, meal_id)
 	if err != nil {
 		return nil, err
