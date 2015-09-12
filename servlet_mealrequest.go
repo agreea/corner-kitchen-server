@@ -58,9 +58,11 @@ func (t *MealRequestServlet) SendRequest(r *http.Request) *ApiResult {
 	}
 	_, err = GetMealRequestByGuestIdAndMealId(t.db, guest.Id, meal.Id)
 	if err != nil { // error here (99%) means the request doesn't exist
-		return t.record_request(guest, host, meal)
+		// get last4 digits
+		// convert digits to int
+		return t.record_request(guest, host, meal) // add last 4 as an arg in the request
 	}
-	return APIError("Meal request already exists", 400)
+	return APIError("You've already requested to join this meal", 400)
 }
 
 func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
@@ -96,7 +98,7 @@ func (t *MealRequestServlet) Respond(r *http.Request) *ApiResult {
 	request_id_s := r.Form.Get("requestId")
 	request_id, err := strconv.ParseInt(request_id_s, 10, 64)
 	if err != nil {
-		return APIError("Malformed meal ID", 400)
+		return APIError("Malformed request ID", 400)
 	}
 	request, err := GetMealRequestById(t.db, request_id)
 	if err != nil {
@@ -121,6 +123,7 @@ func (t *MealRequestServlet) Respond(r *http.Request) *ApiResult {
 	}
 	return APISuccess(updated_request)
 }
+
 func (t *MealRequestServlet) get_guest_host_meal(meal_id int64, session_id string) (*GuestData, *HostData, *Meal, error) {
 	// Get the guest info.
 	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
