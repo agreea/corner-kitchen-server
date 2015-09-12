@@ -108,12 +108,12 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 }
 
 // Called when a known user authenticates on a new device
-func (t *KitchenUserServlet) GetStripeLast4s(r *http.Request) *ApiResult {
+// func (t *KitchenUserServlet) GetStripeLast4s(r *http.Request) *ApiResult {
 	// get session id
 	// get guest from session id
 	// query StripeToken table for all rows where Guest_id = ?, Guest.Id
 	// return JSON of all StripeLast4s
-}
+// }
 // Returns json data
 // Todo: json encoding response body contents
 func (t *KitchenUserServlet) get_fb_data_for_token(fb_token string) (fbresponse *FacebookResp, err error) {
