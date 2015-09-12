@@ -86,12 +86,14 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	session_id := r.Form.Get("session")
 	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
+		meal_data.Status = "NONE"
 		log.Println(err)
-		return APIError("Could not process session", 400)
+		return APIError("Could not process session", 500)
 	}
 	if !session_valid {
+		meal_data.Status = "NONE"
 		log.Println(session_valid)
-		return APIError("Could not process session", 400)
+		return APISuccess(meal_data)
 	}
 	// get the request, if there is one
 	meal_req, err := t.get_request_by_guest_and_meal_id(session.Guest.Id, meal_id)
