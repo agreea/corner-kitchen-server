@@ -57,23 +57,23 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		return APIError("Malformed meal ID", 400)
 	}
 	// get the meal
-	meal, err := GetMealById(meal_id)
+	meal, err := GetMealById(t.db, meal_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Malformed meal ID", 400)
 	}
 	// use host to get guest
-	host, err := GetHostById(meal.Host_id)
+	host, err := GetHostById(t.db, meal.Host_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Malformed meal ID", 400)
 	}
-	host_as_guest, err := GetGuestById(host.Guest_id)
+	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Malformed meal ID", 400)
 	}
-	meal_data = new(MealData)
+	meal_data := new(MealData)
 	meal_data.Title = meal.Title
 	meal_data.Price = meal.Price
 	meal_data.Host_name = host_as_guest.Name
@@ -106,7 +106,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 }
 
 func (t *MealServlet) get_request_by_meal_and_guest_id(guest_id int64, meal_id int64) (meal_request *MealRequest, err error) {
-	meal_req, err := GetMealRequestByGuestIdAndMealId(guest_id, meal_id)
+	meal_req, err := GetMealRequestByGuestIdAndMealId(t.db, guest_id, meal_id)
 	if err != nil {
 		return nil, err
 	}
