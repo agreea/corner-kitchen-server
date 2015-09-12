@@ -148,7 +148,6 @@ type GuestData struct {
 	Last_name			string
 	Facebook_id    		string
 	Facebook_long_token	string
-	Stripe_cust_id 		string
 	// Go fields
 	Session_token 		string
 }
@@ -205,14 +204,14 @@ func GetUserById(db *sql.DB, id int64) (*UserData, error) {
 
 func GetGuestByFbId(db *sql.DB, fb_id string) (*GuestData, error) {
 	row := db.QueryRow(`SELECT Id, Email, First_name, Last_name,
-		Facebook_id, Facebook_long_token, Stripe_cust_id 
+		Facebook_id, Facebook_long_token
 		FROM Guest WHERE Facebook_id = ?`, fb_id)
 	return readGuestLine(row)
 }
 
 func GetGuestById(db *sql.DB, id int64) (*GuestData, error) {
 	row := db.QueryRow(`SELECT Id, Email, First_name, Last_name,
-		Facebook_id, Facebook_long_token, Stripe_cust_id 
+		Facebook_id, Facebook_long_token
 		FROM Guest WHERE Id = ?`, id)
 	return readGuestLine(row)
 }
@@ -354,7 +353,6 @@ func readGuestLine(row *sql.Row) (*GuestData, error) {
 		&guest_data.Last_name,
 		&guest_data.Facebook_id,
 		&guest_data.Facebook_long_token,
-		&guest_data.Stripe_cust_id,
 	); err != nil {
 		return nil, err
 	}

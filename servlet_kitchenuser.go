@@ -52,6 +52,7 @@ func (t *KitchenUserServlet) AddStripe(r *http.Request) *ApiResult {
 		return APIError("Invalid last 4 digits", 400)
 	}
 	guestData := kitchenSession.Guest
+	
 	err = SaveStripeToken(t.db, stripe_token, last4, guestData)
 	if err != nil {
 		return APIError("Failed to Save Stripe Data", 500)
