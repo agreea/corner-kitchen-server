@@ -164,10 +164,11 @@ type KitchenSession struct {
 }
 
 type Meal struct {
-	Id      int64
-	Host_id int64
-	Price   float64
-	Title   string
+	Id      		int64
+	Host_id 		int64
+	Price   		float64
+	Title   		string
+	Description		string
 }
 
 type StripeToken struct {
@@ -215,7 +216,7 @@ func GetGuestById(db *sql.DB, id int64) (*GuestData, error) {
 }
 
 func GetFacebookPic(fb_id string) string {
-	return "https://graph.facebook.com/" + fb_id + "/picture?width=400"
+	return "https://graph.facebook.com/" + fb_id + "/picture?width=200"
 }
 
 func GetHostByGuestId(db *sql.DB, id int64) (*HostData, error) {
@@ -249,7 +250,7 @@ func GetUserByPhone(db *sql.DB, phone string) (*UserData, error) {
 }
 
 func GetMealById(db *sql.DB, id int64) (*Meal, error) {
-	row := db.QueryRow(`SELECT Id, Host_id, Price, Title
+	row := db.QueryRow(`SELECT Id, Host_id, Price, Title, Description
         FROM Meal 
         WHERE Id = ?`, id)
 	return readMealLine(row)
@@ -278,6 +279,31 @@ func GetMealRequestById(db *sql.DB, request_id int64) (*MealRequest, error) {
 	return meal_req, nil
 }
 
+// func GetAttendeesForMeal(db *sql.DB, meal_id int64) ([]*GuestData, err) {
+// 	// get all the guest ids attending the meal
+// 	rows, err := db.Query(`
+// 		SELECT Guest_id
+// 		FROM MealRequest
+// 		WHERE Meal_id = ?`, meal_id,
+// 	)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	defer rows.Close()
+// 	guests := make([]*GuestData, 0)
+// 	// get the guest for each guest id and add them to the slice of guests
+// 	for rows.Next() {
+// 		guest_id := new(int64)
+// 		if err := rows.Scan(
+// 			&guest_id,
+// 		); err != nil {
+// 			return nil, err
+// 		}
+// 		guest_data, err := GetGuestById(db, guest_id)
+// 		guests.add(guest_data)
+// 	}
+// 	return guests, nil
+// }
 func UpdateMealRequest(db *sql.DB, request_id int64, status int64) error {
 	_, err := db.Exec(`
 		UPDATE MealRequest
@@ -353,6 +379,7 @@ func readMealLine(row *sql.Row) (*Meal, error) {
 		&meal.Host_id,
 		&meal.Price,
 		&meal.Title,
+		&meal.Description,
 	); err != nil {
 		return nil, err
 	}

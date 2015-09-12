@@ -62,21 +62,22 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	meal, err := GetMealById(t.db, meal_id)
 	if err != nil {
 		log.Println(err)
-		return APIError("Malformed meal ID", 400)
+		return APIError("Invalid meal ID", 400)
 	}
 	// use host to get guest
 	host, err := GetHostById(t.db, meal.Host_id)
 	if err != nil {
 		log.Println(err)
-		return APIError("Malformed meal ID", 400)
+		return APIError("There was an error. Please try again", 500)
 	}
 	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
 	if err != nil {
 		log.Println(err)
-		return APIError("Malformed meal ID", 400)
+		return APIError("Server error", 500)
 	}
 	meal_data := new(MealData)
 	meal_data.Title = meal.Title
+	meal_data.Description = meal.Description
 	meal_data.Price = meal.Price
 	meal_data.Host_name = host_as_guest.Name
 	meal_data.Host_pic = GetFacebookPic(host_as_guest.Facebook_id)
