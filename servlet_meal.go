@@ -93,7 +93,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		return APIError("Could not process session", 400)
 	}
 	// get the request, if there is one
-	meal_req, err := t.get_request_by_guest_and_meal_id(meal_id, session.Guest.Id)
+	meal_req, err := t.get_request_by_guest_and_meal_id(session.Guest.Id, meal_id)
 	if err != nil {
 		log.Println(err)
 		meal_data.Status = "NONE"
