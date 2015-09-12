@@ -79,7 +79,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	meal_data.Title = meal.Title
 	meal_data.Description = meal.Description
 	meal_data.Price = meal.Price
-	meal_data.Host_name = host_as_guest.Name
+	meal_data.Host_name = host_as_guest.First_name
 	meal_data.Host_pic = GetFacebookPic(host_as_guest.Facebook_id)
 	// TODO: calculate open spots
 	// get the guest's session
