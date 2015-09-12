@@ -811,7 +811,7 @@ func SaveStripeToken(db *sql.DB, stripe_token string, last4 int64, guest_data *G
 	stripe.Key = "***REMOVED***"
 
 	customerParams := &stripe.CustomerParams{
-		Desc:  guest_data.Name,
+		Desc:  guest_data.First_name + " " + guest_data.Last_name,
 		Email: guest_data.Email,
 	}
 	customerParams.SetSource(stripe_token) // obtained with Stripe.js

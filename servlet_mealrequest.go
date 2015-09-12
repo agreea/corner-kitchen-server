@@ -83,7 +83,7 @@ func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
 		return APIError("Could not locate guest", 500)
 	}
 	request_read := new(MealRequestRead)
-	request_read.Guest_name = guest.Name
+	request_read.Guest_name = guest.First_name
 	request_read.Guest_pic = GetFacebookPic(guest.Facebook_id)
 	request_read.Status = request.Status
 	meal, err := GetMealById(t.db, request.Meal_id)
@@ -171,7 +171,7 @@ func (t *MealRequestServlet) record_request(guest *GuestData, host *HostData, me
 	msg := new(SMS)
 	msg.To = host.Phone
 	msg.Message = fmt.Sprintf("Yo! %s wants to join %s. Please respond: https://yaychakula.com/request.html?Id=%d",
-		guest.Name, meal.Title,
+		guest.First_name, meal.Title,
 		saved_request.Id)
 	t.twilio_queue <- msg
 	return APISuccess(meal_req)
