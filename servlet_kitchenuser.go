@@ -74,7 +74,8 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 		return APIError("Error connecting to Facebook", 500)
 	}
 	fb_id := resp.Id
-	name := resp.Name
+	first_name := resp.First_name
+	last_name := resp.Last_name
 	email := resp.Email
 	subscribe_s := r.Form.Get("subscribe")
 	log.Println(subscribe_s)
@@ -99,7 +100,7 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 		return APISuccess(guestData)
 	} else {
 		// also include long token and expires
-		guestData, err := t.create_guest(email, name, fb_id, long_token, expires)
+		guestData, err := t.create_guest(email, first_name, last_name, fb_id, long_token, expires)
 		if err != nil {
 			return APIError("Failed to create user", 500)
 		}
@@ -117,7 +118,7 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 // Returns json data
 // Todo: json encoding response body contents
 func (t *KitchenUserServlet) get_fb_data_for_token(fb_token string) (fbresponse *FacebookResp, err error) {
-	resp, err := http.Get("https://graph.facebook.com/me?fields=id,name,email&access_token=" + fb_token)
+	resp, err := http.Get("https://graph.facebook.com/me?fields=id,first_name,last_name,email&access_token=" + fb_token)
 	if err != nil {
 		return nil, err
 	} else {
@@ -255,11 +256,11 @@ func (t *KitchenUserServlet) process_login(fb_id string, fb_long_token string, e
 }
 
 // Create a new user + session based off of the data returned from facebook and return a GuestData object
-func (t *KitchenUserServlet) create_guest(email string, name string, fb_id string, fb_long_token string, expires int) (*GuestData, error) {
+func (t *KitchenUserServlet) create_guest(email string, first_name string, last_name string, fb_id string, fb_long_token string, expires int) (*GuestData, error) {
 	// update FB token
 	_, err := t.db.Exec(`INSERT INTO Guest
-		(Email, Name, Facebook_id, Facebook_long_token, Stripe_cust_id) VALUES (?, ?, ?, ?, ?)`,
-		email, name, fb_id, fb_long_token, 0)
+		(Email, First_name, Last_name, Facebook_id, Facebook_long_token, Stripe_cust_id) VALUES (?, ?, ?, ?, ?, ?)`,
+		email, first_name, last_name, fb_id, fb_long_token, 0)
 	guestData, err := GetGuestByFbId(t.db, fb_id)
 	if err != nil {
 		log.Println("Create guest", err)
