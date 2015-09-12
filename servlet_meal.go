@@ -26,8 +26,8 @@ type MealData struct {
 	Pics 			[]string		
 }
 
-func NewMealServlet(server_config *Config, session_manager *SessionManager) *MealRequestServlet {
-	t := new(MealRequestServlet)
+func NewMealServlet(server_config *Config, session_manager *SessionManager) *MealServlet {
+	t := new(MealServlet)
 	t.server_config = server_config
 	db, err := sql.Open("mysql", server_config.GetSqlURI())
 	if err != nil {
@@ -47,6 +47,9 @@ func NewMealServlet(server_config *Config, session_manager *SessionManager) *Mea
 // get the meal status for this guest ()
 // get the pictures for this meal ()
 //
+/*
+curl --data "method=getMeal&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mealId=1" https://yaychakula.com/api/meal
+*/
 func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	// parse the meal id
 	meal_id_s := r.Form.Get("mealId")
