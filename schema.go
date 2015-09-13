@@ -329,9 +329,20 @@ func GetLast4sForGuest(db *sql.DB, guest_id int64) ([]*int64, error) {
 		); err != nil {
 			return nil, err
 		}
-		last4s = append(last4s, last4)
+		if !contains(last4s, last4) {
+			last4s = append(last4s, last4)
+		}
 	}
 	return last4s, nil
+}
+
+func contains(s []*int64, e *int64) bool {
+    for _, a := range s {
+        if a == e {
+            return true
+        }
+    }
+    return false
 }
 
 func UpdateMealRequest(db *sql.DB, request_id int64, status int64) error {
