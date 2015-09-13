@@ -221,11 +221,11 @@ func GetFacebookPic(fb_id string) string {
 	return "https://graph.facebook.com/" + fb_id + "/picture?width=200"
 }
 
-func GetHostByGuestId(db *sql.DB, id int64) (*HostData, error) {
+func GetHostByGuestId(db *sql.DB, guest_id int64) (*HostData, error) {
 	log.Println(id)
 	row := db.QueryRow(`SELECT Id, Guest_id, Address, Phone, 
 		Stripe_connect 
-		FROM Host WHERE Guest_id = ?`, id)
+		FROM Host WHERE Guest_id = ?`, guest_id)
 	return readHostLine(row)
 }
 
