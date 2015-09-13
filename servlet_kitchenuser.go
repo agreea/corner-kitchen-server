@@ -60,7 +60,7 @@ func (t *KitchenUserServlet) AddStripe(r *http.Request) *ApiResult {
 	return APISuccess(stripe_token)
 }
 
-func (t *KitchenUserSerlvet) GetLast4s(r *http.Request) *ApiResult {
+func (t *KitchenUserServlet) GetLast4s(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	session_exists, kitchenSession, err := t.session_manager.GetGuestSession(session_id)
 	last4s, err := GetLast4sForGuest(t.db, kitchenSession.Guest.Id)
