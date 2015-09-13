@@ -286,7 +286,7 @@ func GetAttendeesForMeal(db *sql.DB, meal_id int64) ([]*GuestData, error) {
 	rows, err := db.Query(`
 		SELECT Guest_id
 		FROM MealRequest
-		WHERE Meal_id = ?`, meal_id,
+		WHERE Meal_id = ? AND Status = 1`, meal_id,
 	)
 	if err != nil {
 		return nil, err
