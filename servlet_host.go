@@ -30,7 +30,7 @@ func NewHostServlet(server_config *Config, session_manager *SessionManager, twil
 	return t
 }
 /*
-curl --data "method=StripeConnect&session=c12c1704-d2b0-4af5-83eb-a562afcfe277&auth=ac_6yggH0g5YKdn3zdCYbkdYMsuconKIZ9l"  https://yaychakula.com/api/host
+curl --data "method=StripeConnect&session=c12c1704-d2b0-4af5-83eb-a562afcfe277&auth=ac_6ygjL1WayRqKTdUhVoNbpnvQjXZBjSjl"  https://yaychakula.com/api/host
 
 */
 func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
@@ -57,7 +57,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 		log.Println(stripe_error)
 		return APIError(stripe_error.(string)+stripeResponse["error_description"].(string), 400)
 	}
-	if stripeResponse["livemode"].(string) == "false" {
+	if stripeResponse["livemode"].(string) == false {
 		return APIError("Stripe misconfiguration.", 500)
 	}
 	err = UpdateStripeConnect(t.db, stripeResponse, host.Id)
