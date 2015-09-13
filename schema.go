@@ -252,7 +252,7 @@ func GetUserByPhone(db *sql.DB, phone string) (*UserData, error) {
 }
 
 func GetMealById(db *sql.DB, id int64) (*Meal, error) {
-	row := db.QueryRow(`SELECT Id, Host_id, Price, Title, Description
+	row := db.QueryRow(`SELECT Id, Host_id, Price, Title, Description, Capacity
         FROM Meal 
         WHERE Id = ?`, id)
 	return readMealLine(row)
@@ -410,6 +410,7 @@ func readMealLine(row *sql.Row) (*Meal, error) {
 		&meal.Price,
 		&meal.Title,
 		&meal.Description,
+		&meal.Capacity,
 	); err != nil {
 		return nil, err
 	}
