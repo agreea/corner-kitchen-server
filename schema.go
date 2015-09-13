@@ -311,7 +311,7 @@ func GetAttendeesForMeal(db *sql.DB, meal_id int64) ([]*GuestData, error) {
 	return guests, nil
 }
 
-func GetLast4sForGuest(db *sql.DB, guest_id int64) ([]*int64, error) {
+func GetLast4sForGuest(db *sql.DB, guest_id int64) ([]int64, error) {
 	rows, err := db.Query(`
 		SELECT Last4
 		FROM StripeToken
@@ -321,9 +321,9 @@ func GetLast4sForGuest(db *sql.DB, guest_id int64) ([]*int64, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	last4s := make([]*int64, 0)
+	last4s := make([]int64, 0)
 	for rows.Next() {
-		last4 := new(int64)
+		var last4 int64
 		if err := rows.Scan(
 			&last4,
 		); err != nil {
@@ -336,7 +336,7 @@ func GetLast4sForGuest(db *sql.DB, guest_id int64) ([]*int64, error) {
 	return last4s, nil
 }
 
-func contains(s []*int64, e *int64) bool {
+func contains(s []int64, e int64) bool {
     for _, a := range s {
         if a == e {
             return true
