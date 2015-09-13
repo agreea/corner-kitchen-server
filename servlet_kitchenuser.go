@@ -83,16 +83,16 @@ func (t *KitchenUserServlet) GetLast4s(r *http.Request) *ApiResult {
 	return APISuccess(last4s)
 }
 
-// func (t *KitchenUserServlet) AddPhone(r *http.Request) *ApiResult {
-// 	session_id := r.Form.Get("session")
-// 	phone := r.Form.Get("phone")
-// 	session_exists, kitchenSession, err := t.session_manager.GetGuestSession(session_id)
-// 	// add phone to guest
-// 	if err != nil {
-// 		return APIError("Could not locate user", 400)
-// 	}
-// 	return APISuccess("OK")
-// }
+func (t *KitchenUserServlet) AddPhone(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	phone := r.Form.Get("phone")
+	session_exists, kitchenSession, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		return APIError("Could not locate user", 400)
+	}
+	err = AddPhoneToGuest(t.db, phone, kitchenSession.Guest.Id)
+	return APISuccess("OK")
+}
 
 // Create a login session for a user.
 // Session tokens are stored in a local cache, as well as back to the DB to
@@ -143,13 +143,6 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 	}
 }
 
-// Called when a known user authenticates on a new device
-// func (t *KitchenUserServlet) GetStripeLast4s(r *http.Request) *ApiResult {
-	// get session id
-	// get guest from session id
-	// query StripeToken table for all rows where Guest_id = ?, Guest.Id
-	// return JSON of all StripeLast4s
-// }
 // Returns json data
 // Todo: json encoding response body contents
 func (t *KitchenUserServlet) get_fb_data_for_token(fb_token string) (fbresponse *FacebookResp, err error) {
