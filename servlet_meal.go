@@ -86,7 +86,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		log.Println(err)
 		return APIError("Server error", 500)
 	}
-	meal_data.Open_spots = int(meal.Capacity) - len(guest_ids)
+	meal_data.Open_spots = meal.Capacity - int64(len(guest_ids))
 	// TODO: calculate open spots
 	// get the guest's session
 	session_id := r.Form.Get("session")
