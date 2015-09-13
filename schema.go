@@ -301,10 +301,35 @@ func GetMealRequestById(db *sql.DB, request_id int64) (*MealRequest, error) {
 // 			return nil, err
 // 		}
 // 		guest_data, err := GetGuestById(db, guest_id)
-// 		guests.add(guest_data)
+// 		if err != nil ...
+		// append(guests, guest_data)
 // 	}
 // 	return guests, nil
 // }
+
+func GetLast4ForGuest(db *sql.DB, guest_id int64) ([]*int64) {
+	rows, err := db.Query(`
+		SELECT Last4
+		FROM StripeToken
+		WHERE Guest_id = ?`, guest_id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	last4s := make([]*int64, 0)
+	for rows.Next() {
+		last4 := new(int64)
+		if err := rows.Scan(
+			&last4,
+		); err != nil {
+			return nil, err
+		}
+		last4s = append(last4s, last4)
+	}
+	return last4s, nil
+}
+
 func UpdateMealRequest(db *sql.DB, request_id int64, status int64) error {
 	_, err := db.Exec(`
 		UPDATE MealRequest
@@ -812,12 +837,14 @@ func SaveStripeToken(db *sql.DB, stripe_token string, last4 int64, guest_data *G
 		Desc:  guest_data.First_name + " " + guest_data.Last_name,
 		Email: guest_data.Email,
 	}
+	log.Println(stripe_token)
 	customerParams.SetSource(stripe_token) // obtained with Stripe.js
 	c, err := customer.New(customerParams)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
+	log.Println(c)
 	_, err = db.Exec(`
 		INSERT INTO StripeToken
 		(Stripe_token, Last4, Guest_id)
