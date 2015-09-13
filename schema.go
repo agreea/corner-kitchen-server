@@ -294,7 +294,7 @@ func GetAttendeesForMeal(db *sql.DB, meal_id int64) ([]*GuestData, err) {
 	guests := make([]*GuestData, 0)
 	// get the guest for each guest id and add them to the slice of guests
 	for rows.Next() {
-		guest_id := new(int64)
+		var guest_id int64
 		if err := rows.Scan(
 			&guest_id,
 		); err != nil {
