@@ -50,7 +50,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 		return nil
 	}
 	if stripe_error, error_present := stripeResponse["error"]; error_present {
-		log.Println("=======There's an error!!!======")
+		log.Println(stripe_error)
 		return APIError(stripe_error.(string)+stripeResponse["error_description"].(string), 400)
 	}
 	log.Println(stripeResponse["stripe_user_id"].(string))
