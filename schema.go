@@ -301,8 +301,11 @@ func GetAttendeesForMeal(db *sql.DB, meal_id int64) ([]*GuestData, err) {
 			return nil, err
 		}
 		guest_data, err := GetGuestById(db, guest_id)
-		if err != nil ...
-		guests = append(guests, guest_data)
+		if err == nil {
+			guests = append(guests, guest_data)
+		} else {
+			log.Println(err)
+		}
 	}
 	return guests, nil
 }
