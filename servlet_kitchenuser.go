@@ -70,16 +70,16 @@ func (t *KitchenUserServlet) AddStripe(r *http.Request) *ApiResult {
 // 	return APISuccess(last4s)
 // }
 
-func (t *KitchenUserSerlvet) AddPhone(r *http.Request) *ApiResult {
-	session_id := r.Form.Get("session")
-	phone := r.Form.Get("phone")
-	session_exists, kitchenSession, err := t.session_manager.GetGuestSession(session_id)
-	// add phone to guest
-	if err != nil {
-		return APIError("Could not locate user", 400)
-	}
-	return APISuccess("OK")
-}
+// func (t *KitchenUserServlet) AddPhone(r *http.Request) *ApiResult {
+// 	session_id := r.Form.Get("session")
+// 	phone := r.Form.Get("phone")
+// 	session_exists, kitchenSession, err := t.session_manager.GetGuestSession(session_id)
+// 	// add phone to guest
+// 	if err != nil {
+// 		return APIError("Could not locate user", 400)
+// 	}
+// 	return APISuccess("OK")
+// }
 
 // Create a login session for a user.
 // Session tokens are stored in a local cache, as well as back to the DB to
