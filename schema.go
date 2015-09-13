@@ -311,7 +311,7 @@ func GetAttendeesForMeal(db *sql.DB, meal_id int64) ([]*GuestData, error) {
 	return guests, nil
 }
 
-func GetLast4ForGuest(db *sql.DB, guest_id int64) ([]*int64, error) {
+func GetLast4sForGuest(db *sql.DB, guest_id int64) ([]*int64, error) {
 	rows, err := db.Query(`
 		SELECT Last4
 		FROM StripeToken

@@ -60,15 +60,15 @@ func (t *KitchenUserServlet) AddStripe(r *http.Request) *ApiResult {
 	return APISuccess(stripe_token)
 }
 
-// func (t *KitchenUserSerlvet) GetLast4s(r *http.Request) *ApiResult {
-// 	session_id := r.Form.Get("session")
-// 	session_exists, kitchenSession, err := t.session_manager.GetGuestSession(session_id)
-// 	last4s, err := GetLast4sForGuest(kitchenSession.Guest.Id)
-// 	if err != nil {
-// 		return APIError("Could locate credit cards associated with this account", 400)
-// 	}
-// 	return APISuccess(last4s)
-// }
+func (t *KitchenUserSerlvet) GetLast4s(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	session_exists, kitchenSession, err := t.session_manager.GetGuestSession(session_id)
+	last4s, err := GetLast4sForGuest(t.db, kitchenSession.Guest.Id)
+	if err != nil {
+		return APIError("Could locate credit cards associated with this account", 400)
+	}
+	return APISuccess(last4s)
+}
 
 // func (t *KitchenUserServlet) AddPhone(r *http.Request) *ApiResult {
 // 	session_id := r.Form.Get("session")
