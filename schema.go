@@ -907,7 +907,7 @@ func UpdateStripeConnect(db *sql.DB, stripe_response, host_id int64) error {
 		stripe_user_id, 
 		access_token, 
 		refresh_token, 
-		host_id
+		host_id,
 	)
 
 	return err
