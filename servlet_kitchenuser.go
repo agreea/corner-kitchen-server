@@ -90,6 +90,9 @@ func (t *KitchenUserServlet) AddPhone(r *http.Request) *ApiResult {
 	if err != nil {
 		return APIError("Could not locate user", 400)
 	}
+	if !session_exists {
+		return APIError("Invalid session", 400)
+	}
 	err = UpdatePhoneForGuest(t.db, phone, kitchenSession.Guest.Id)
 	return APISuccess("OK")
 }
