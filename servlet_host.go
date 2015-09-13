@@ -29,7 +29,10 @@ func NewHostServlet(server_config *Config, session_manager *SessionManager, twil
 	t.twilio_queue = twilio_queue
 	return t
 }
+/*
+curl --data "method=StripeConnect&session=c12c1704-d2b0-4af5-83eb-a562afcfe277&auth=ac_6ygEbtIveerDj9Zazyx4WSVOIv5uzOHm"  https://yaychakula.com/api/host
 
+*/
 func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	log.Println("=======Stripe Connect called======")
 	auth := r.Form.Get("auth")

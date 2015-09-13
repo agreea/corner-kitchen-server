@@ -222,6 +222,7 @@ func GetFacebookPic(fb_id string) string {
 }
 
 func GetHostByGuestId(db *sql.DB, id int64) (*HostData, error) {
+	log.Println(id)
 	row := db.QueryRow(`SELECT Id, Guest_id, Address, Phone, 
 		Stripe_connect 
 		FROM Host WHERE Guest_id = ?`, id)
@@ -329,7 +330,7 @@ func GetLast4sForGuest(db *sql.DB, guest_id int64) ([]int64, error) {
 		); err != nil {
 			return nil, err
 		}
-		if !contains(last4s, last4) {
+		if !contains(last4s, last4) { // protect against duplicates
 			last4s = append(last4s, last4)
 		}
 	}
@@ -365,6 +366,16 @@ func UpdateGuestFbToken(db *sql.DB, fb_id string, fb_token string) error {
 	return err
 }
 
+func UpdatePhoneForGuest(db *sql.DB, phone string, guest_id int64) error {
+	_, err := db.Exec(`
+		UPDATE Guest
+		SET Phone = ?
+		WHERE Id =?`,
+		phone, guest_id,
+	)
+	return err
+
+}
 func readUserLine(row *sql.Row) (*UserData, error) {
 	user_data := new(UserData)
 	if err := row.Scan(
