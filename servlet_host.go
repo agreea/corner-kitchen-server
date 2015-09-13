@@ -30,7 +30,9 @@ func NewHostServlet(server_config *Config, session_manager *SessionManager, twil
 	return t
 }
 /*
-curl --data "method=StripeConnect&session=c12c1704-d2b0-4af5-83eb-a562afcfe277&auth=ac_6ygjL1WayRqKTdUhVoNbpnvQjXZBjSjl"  https://yaychakula.com/api/host
+https://connect.stripe.com/oauth/authorize?response_type=code&client_id=ca_6n8She3UUNpFgbv1sYtB28b6Db7sTLY6&scope=read_write
+
+curl --data "method=StripeConnect&session=c12c1704-d2b0-4af5-83eb-a562afcfe277&auth=ac_6ygrWN57g1zmJqMTGjZCNEMjPzhLycWd"  https://yaychakula.com/api/host
 
 */
 func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
