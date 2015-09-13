@@ -280,32 +280,32 @@ func GetMealRequestById(db *sql.DB, request_id int64) (*MealRequest, error) {
 	return meal_req, nil
 }
 
-// func GetAttendeesForMeal(db *sql.DB, meal_id int64) ([]*GuestData, err) {
-// 	// get all the guest ids attending the meal
-// 	rows, err := db.Query(`
-// 		SELECT Guest_id
-// 		FROM MealRequest
-// 		WHERE Meal_id = ?`, meal_id,
-// 	)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	defer rows.Close()
-// 	guests := make([]*GuestData, 0)
-// 	// get the guest for each guest id and add them to the slice of guests
-// 	for rows.Next() {
-// 		guest_id := new(int64)
-// 		if err := rows.Scan(
-// 			&guest_id,
-// 		); err != nil {
-// 			return nil, err
-// 		}
-// 		guest_data, err := GetGuestById(db, guest_id)
-// 		if err != nil ...
-		// append(guests, guest_data)
-// 	}
-// 	return guests, nil
-// }
+func GetAttendeesForMeal(db *sql.DB, meal_id int64) ([]*GuestData, err) {
+	// get all the guest ids attending the meal
+	rows, err := db.Query(`
+		SELECT Guest_id
+		FROM MealRequest
+		WHERE Meal_id = ?`, meal_id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	guests := make([]*GuestData, 0)
+	// get the guest for each guest id and add them to the slice of guests
+	for rows.Next() {
+		guest_id := new(int64)
+		if err := rows.Scan(
+			&guest_id,
+		); err != nil {
+			return nil, err
+		}
+		guest_data, err := GetGuestById(db, guest_id)
+		if err != nil ...
+		guests = append(guests, guest_data)
+	}
+	return guests, nil
+}
 
 func GetLast4ForGuest(db *sql.DB, guest_id int64) ([]*int64, error) {
 	rows, err := db.Query(`
