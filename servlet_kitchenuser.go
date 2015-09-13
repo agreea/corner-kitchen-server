@@ -63,6 +63,13 @@ func (t *KitchenUserServlet) AddStripe(r *http.Request) *ApiResult {
 func (t *KitchenUserServlet) GetLast4s(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	session_exists, kitchenSession, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not process session", 400)
+	}
+	if !session_exists {
+		return APIError("Session invalid", 400)
+	}
 	last4s, err := GetLast4sForGuest(t.db, kitchenSession.Guest.Id)
 	if err != nil {
 		return APIError("Could locate credit cards associated with this account", 400)
