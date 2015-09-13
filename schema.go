@@ -170,6 +170,7 @@ type Meal struct {
 	Price   		float64
 	Title   		string
 	Description		string
+	Capacity		int64
 }
 
 type StripeToken struct {
