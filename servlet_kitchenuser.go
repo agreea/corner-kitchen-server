@@ -38,6 +38,9 @@ func NewKitchenUserServlet(server_config *Config, session_manager *SessionManage
 }
 
 // TODO: Implement
+/*
+curl --data "method=AddStripe&session=f1caa66a-3351-48db-bcb3-d76bdc644634&stripeToken=blablabla&last4=1234" https://yaychakula.com/api/kitchenuser
+*/
 func (t *KitchenUserServlet) AddStripe(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	stripe_token := r.Form.Get("stripeToken")
@@ -60,6 +63,9 @@ func (t *KitchenUserServlet) AddStripe(r *http.Request) *ApiResult {
 	return APISuccess(stripe_token)
 }
 
+/*
+curl --data "method=GetLast4s&session=f1caa66a-3351-48db-bcb3-d76bdc644634" https://yaychakula.com/api/kitchenuser
+*/
 func (t *KitchenUserServlet) GetLast4s(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	session_exists, kitchenSession, err := t.session_manager.GetGuestSession(session_id)
