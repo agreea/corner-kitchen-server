@@ -30,7 +30,7 @@ func NewHostServlet(server_config *Config, session_manager *SessionManager, twil
 	return t
 }
 /*
-curl --data "method=StripeConnect&session=c12c1704-d2b0-4af5-83eb-a562afcfe277&auth=ac_6ygN4LTcaEu8MwJVzAbKOrixSj0dgChk"  https://yaychakula.com/api/host
+curl --data "method=StripeConnect&session=c12c1704-d2b0-4af5-83eb-a562afcfe277&auth=ac_6ygRqmxL9Y2zSypoWrT36DE8FgmJs7te"  https://yaychakula.com/api/host
 
 */
 func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
@@ -57,9 +57,16 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 		log.Println(stripe_error)
 		return APIError(stripe_error.(string)+stripeResponse["error_description"].(string), 400)
 	}
+	if stripeResponse["livemode"].(string) == "false" {
+		return APIError("Stripe misconfiguration.", 500)
+	}
+	err = UpdateStripeConnect(stripeResponse, host.Id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not update Stripe Data. Please try again.", 500)
+	}
 	log.Println(stripeResponse["stripe_user_id"].(string))
 	log.Println(stripeResponse)
-	host.Id = 3
 	return APISuccess(nil)
 	// get the authorization code done
 	// get the session done

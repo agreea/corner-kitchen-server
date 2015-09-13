@@ -892,6 +892,27 @@ func SaveStripeToken(db *sql.DB, stripe_token string, last4 int64, guest_data *G
 	return err
 }
 
+// Should only be called with a successful stripe response
+func UpdateStripeConnect(db *sql.DB, stripe_response, host_id int64) error {
+	stripe_user_id := stripeResponse["stripe_user_id"].(string)
+	access_token := stripeResponse["access_token"].(string)
+	refresh_token := stripeRespone["refresh_token"].(string)
+	_, err := db.Exec(`
+		UPDATE Host
+		SET Stripe_user_id = ?,
+			Stripe_access_token = ?,
+			Stripe_refresh_token = ?
+		WHERE Id = ?
+		`,
+		stripe_user_id, 
+		access_token, 
+		refresh_token, 
+		host_id
+	)
+
+	return err
+}
+
 func GetPaymentToken(db *sql.DB, token_uuid string) (*PaymentToken, error) {
 	row := db.QueryRow(`SELECT Id, User_id, Name, Stripe_key, Token, Created
         FROM PaymentToken WHERE Token = ?`, token_uuid)
