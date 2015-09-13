@@ -281,7 +281,7 @@ func GetMealRequestById(db *sql.DB, request_id int64) (*MealRequest, error) {
 	return meal_req, nil
 }
 
-func GetAttendeesForMeal(db *sql.DB, meal_id int64) ([]*GuestData, err) {
+func GetAttendeesForMeal(db *sql.DB, meal_id int64) ([]*GuestData, error) {
 	// get all the guest ids attending the meal
 	rows, err := db.Query(`
 		SELECT Guest_id
