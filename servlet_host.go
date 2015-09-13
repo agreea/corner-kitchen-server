@@ -57,7 +57,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 		log.Println(stripe_error)
 		return APIError(stripe_error.(string)+stripeResponse["error_description"].(string), 400)
 	}
-	if stripeResponse["livemode"].(string) == false {
+	if stripeResponse["livemode"].(bool) == false {
 		return APIError("Stripe misconfiguration.", 500)
 	}
 	err = UpdateStripeConnect(t.db, stripeResponse, host.Id)
