@@ -52,12 +52,33 @@ func (t *KitchenUserServlet) AddStripe(r *http.Request) *ApiResult {
 		return APIError("Invalid last 4 digits", 400)
 	}
 	guestData := kitchenSession.Guest
-	
+
 	err = SaveStripeToken(t.db, stripe_token, last4, guestData)
 	if err != nil {
 		return APIError("Failed to Save Stripe Data", 500)
 	}
 	return APISuccess(stripe_token)
+}
+
+func (t *KitchenUserSerlvet) GetLast4s(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	session_exists, kitchenSession, err := t.session_manager.GetGuestSession(session_id)
+	last4s, err := getLast4sForGuest(kitchenSession.Guest.Id)
+	if err != nil {
+		return APIError("Could locate credit cards associated with this account", 400)
+	}
+	return APISuccess(last4s)
+}
+
+func (t *KitchenUserSerlvet) AddPhone(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	phone := r.Form.Get("phone")
+	session_exists, kitchenSession, err := t.session_manager.GetGuestSession(session_id)
+	// add phone to guest
+	if err != nil {
+		return APIError("Could not locate user", 400)
+	}
+	return APISuccess("OK")
 }
 
 // Create a login session for a user.

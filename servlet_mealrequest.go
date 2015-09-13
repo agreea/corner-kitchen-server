@@ -118,6 +118,9 @@ func (t *MealRequestServlet) Respond(r *http.Request) *ApiResult {
 		return APIError("Failed to record response.", 400)
 	}
 	updated_request, err := GetMealRequestById(t.db, request_id)
+	// 	// TODO:
+	// get guest by id updated_request.Guest_id
+	// if guest.Phone != "" or 0 or w/e, text them the result.
 	if err != nil {
 		return APIError("Failed to record response.", 400)
 	}
