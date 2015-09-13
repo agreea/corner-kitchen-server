@@ -32,7 +32,7 @@ func NewHostServlet(server_config *Config, session_manager *SessionManager, twil
 /*
 https://connect.stripe.com/oauth/authorize?response_type=code&client_id=ca_6n8She3UUNpFgbv1sYtB28b6Db7sTLY6&scope=read_write
 
-curl --data "method=StripeConnect&session=c12c1704-d2b0-4af5-83eb-a562afcfe277&auth=ac_6ygrWN57g1zmJqMTGjZCNEMjPzhLycWd"  https://yaychakula.com/api/host
+curl --data "method=StripeConnect&session=c12c1704-d2b0-4af5-83eb-a562afcfe277&auth=ac_6ygutgB28bLRLaUtAZIxrM98vAagEDLB"  https://yaychakula.com/api/host
 
 */
 func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
@@ -70,22 +70,8 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	log.Println(stripeResponse["stripe_user_id"].(string))
 	log.Println(stripeResponse)
 	return APISuccess(nil)
-	// get the authorization code done
-	// get the session done
-	// get the guest by the session done
-	// get the host by the guest_id done
-	// make a post done
-	/*
-		curl https://connect.stripe.com/oauth/token \
-		   -d client_secret=***REMOVED*** \
-		   -d code=AUTHORIZATION_CODE \
-		   -d grant_type=authorization_code
-	*/
-	// get the response back done
-	// get the stripe_user_id, refresh_token, and access_token and store them in your table
-	// store stripe_row in the host table
-	// return APIResult(Guest)?
 }
+
 func (t *HostServlet) AnotherMethod(r *http.Request) *ApiResult {
 	log.Println("=======Calling AnotherMethod========")
 	return APISuccess(nil)
@@ -94,7 +80,7 @@ func (t *HostServlet) AnotherMethod(r *http.Request) *ApiResult {
 func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
 	resp, err := http.PostForm("https://connect.stripe.com/oauth/token",
 		url.Values{"client_secret": {"***REMOVED***"},
-			"code":       {auth},
+			"code": {auth},
 			"grant_type": {"authorization_code"},
 		})
 	if err != nil {
