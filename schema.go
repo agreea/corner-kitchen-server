@@ -893,7 +893,7 @@ func SaveStripeToken(db *sql.DB, stripe_token string, last4 int64, guest_data *G
 }
 
 // Should only be called with a successful stripe response
-func UpdateStripeConnect(db *sql.DB, stripe_response, host_id int64) error {
+func UpdateStripeConnect(db *sql.DB, stripe_response map[string]interface {}, host_id int64) error {
 	stripe_user_id := stripeResponse["stripe_user_id"].(string)
 	access_token := stripeResponse["access_token"].(string)
 	refresh_token := stripeRespone["refresh_token"].(string)
