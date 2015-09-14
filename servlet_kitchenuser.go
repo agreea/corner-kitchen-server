@@ -290,7 +290,7 @@ func (t *KitchenUserServlet) process_login(fb_id string, fb_long_token string, e
 func (t *KitchenUserServlet) create_guest(email string, first_name string, last_name string, fb_id string, fb_long_token string, expires int) (*GuestData, error) {
 	// update FB token
 	_, err := t.db.Exec(`INSERT INTO Guest
-		(Email, First_name, Last_name, Facebook_id, Facebook_long_token, Stripe_cust_id) VALUES (?, ?, ?, ?, ?, ?)`,
+		(Email, First_name, Last_name, Facebook_id, Facebook_long_token) VALUES (?, ?, ?, ?, ?, ?)`,
 		email, first_name, last_name, fb_id, fb_long_token, 0)
 	guestData, err := GetGuestByFbId(t.db, fb_id)
 	if err != nil {
