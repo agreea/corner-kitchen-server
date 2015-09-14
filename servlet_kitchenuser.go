@@ -292,6 +292,9 @@ func (t *KitchenUserServlet) create_guest(email string, first_name string, last_
 	_, err := t.db.Exec(`INSERT INTO Guest
 		(Email, First_name, Last_name, Facebook_id, Facebook_long_token) VALUES (?, ?, ?, ?, ?, ?)`,
 		email, first_name, last_name, fb_id, fb_long_token, 0)
+	if err != nil {
+		log.Println("Create guest", err)
+	}
 	guestData, err := GetGuestByFbId(t.db, fb_id)
 	if err != nil {
 		log.Println("Create guest", err)
