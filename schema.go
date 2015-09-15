@@ -197,6 +197,11 @@ type MealRequest struct {
 	Status   int64
 }
 
+type Pic struct {
+	Name 		string
+	Caption 	string
+}
+
 func GetUserById(db *sql.DB, id int64) (*UserData, error) {
 	row := db.QueryRow(`SELECT Id, Email, First_name, Last_name,
 		Password_salt, Password_hash,
@@ -312,6 +317,51 @@ func GetAttendeesForMeal(db *sql.DB, meal_id int64) ([]*GuestData, error) {
 		}
 	}
 	return guests, nil
+}
+
+func GetPicsForMeal(db *sql.DB, meal_id int64) ([]*Pic, error) {
+	meal_pics, err := getMealPics(db, meal_id)
+	if err != nil {
+		log.Println(err)
+		return nil, err		
+	}
+	meal, err := GetMealById(db, meal_id)
+	if err != nil {
+		log.Println(err)
+		return nil, err		
+	}
+	host_pics, err := getHostPics(db, meal.Host_id)
+	if err != nil {
+		log.Println(err)
+		return nil, err		
+	}
+	return append(meal_pics, host_pics), nil
+}
+
+func getMealPics(db *sql.DB, meal_id int64) ([]*Pic, error) {
+	rows, err := db.Query(`
+		SELECT Name, Caption
+		FROM MealPic
+		WHERE Meal_id = ?`, meal_id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return readPicLines(rows)
+}
+
+func getHostPics(db *sql.DB, host_id int64) ([]*Pic, error) {
+	rows, err := db.Query(`
+		SELECT Name, Caption
+		FROM HostPic
+		WHERE Host_id = ?`, host_id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return readPicLines(rows)
 }
 
 func GetLast4sForGuest(db *sql.DB, guest_id int64) ([]int64, error) {
@@ -454,6 +504,22 @@ func readMealRequestLine(row *sql.Row) (*MealRequest, error) {
 		return nil, err
 	}
 	return meal_req, nil
+}
+
+func readPicLines(row *sql.Row) ([]*Pic, error) {
+	pics := make([]*Pic, 0)
+	for rows.Next() {
+		pic := new(Pic)
+		if err := rows.Scan(
+			&pic.Name,
+			&pic.Caption,
+		); err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		pics = append(pics, pic)
+	}
+	return pics, nil
 }
 
 func GetTruckById(db *sql.DB, id int64) (*Truck, error) {
