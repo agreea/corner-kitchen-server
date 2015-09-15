@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 )
 
 type MealServlet struct {
@@ -23,6 +24,7 @@ type MealData struct {
 	Open_spots 		int64
 	Price			float64
 	Status 			string
+	Starts			time.Time
 	Pics 			[]*Pic		
 }
 
