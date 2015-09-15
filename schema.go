@@ -335,7 +335,7 @@ func GetPicsForMeal(db *sql.DB, meal_id int64) ([]*Pic, error) {
 		log.Println(err)
 		return nil, err		
 	}
-	return append(meal_pics, host_pics), nil
+	return append(meal_pics, host_pics...), nil
 }
 
 func getMealPics(db *sql.DB, meal_id int64) ([]*Pic, error) {
@@ -428,7 +428,7 @@ func UpdatePhoneForGuest(db *sql.DB, phone string, guest_id int64) error {
 	return err
 
 }
-func readUserLine(row *sql.Row) (*UserData, error) {
+func readUserLine(row *sql.Rows) (*UserData, error) {
 	user_data := new(UserData)
 	if err := row.Scan(
 		&user_data.Id,
@@ -506,7 +506,7 @@ func readMealRequestLine(row *sql.Row) (*MealRequest, error) {
 	return meal_req, nil
 }
 
-func readPicLines(row *sql.Row) ([]*Pic, error) {
+func readPicLines(rows *sql.Rows) ([]*Pic, error) {
 	pics := make([]*Pic, 0)
 	for rows.Next() {
 		pic := new(Pic)
