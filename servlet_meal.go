@@ -25,6 +25,7 @@ type MealData struct {
 	Price			float64
 	Status 			string
 	Starts			time.Time
+	Rsvp_by			time.Time
 	Pics 			[]*Pic		
 }
 
@@ -84,6 +85,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	meal_data.Host_name = host_as_guest.First_name
 	meal_data.Host_pic = GetFacebookPic(host_as_guest.Facebook_id)
 	meal_data.Starts = meal.Starts
+	meal_data.Rsvp_by = meal.Rsvp_by
 	guest_ids, err := GetAttendeesForMeal(t.db, meal.Id)
 	if err != nil {
 		log.Println(err)

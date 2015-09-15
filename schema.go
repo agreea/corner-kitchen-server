@@ -172,6 +172,7 @@ type Meal struct {
 	Description		string
 	Capacity		int64
 	Starts			time.Time
+	Rsvp_by			time.Time
 }
 
 type StripeToken struct {
@@ -261,7 +262,7 @@ func GetUserByPhone(db *sql.DB, phone string) (*UserData, error) {
 }
 
 func GetMealById(db *sql.DB, id int64) (*Meal, error) {
-	row := db.QueryRow(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts
+	row := db.QueryRow(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
         FROM Meal 
         WHERE Id = ?`, id)
 	return readMealLine(row)
@@ -489,6 +490,7 @@ func readMealLine(row *sql.Row) (*Meal, error) {
 		&meal.Description,
 		&meal.Capacity,
 		&meal.Starts,
+		&meal.Rsvp_by, 
 	); err != nil {
 		return nil, err
 	}
