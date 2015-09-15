@@ -23,7 +23,7 @@ type MealData struct {
 	Open_spots 		int64
 	Price			float64
 	Status 			string
-	Pics 			[]string		
+	Pics 			[]*Pic		
 }
 
 func NewMealServlet(server_config *Config, session_manager *SessionManager) *MealServlet {
@@ -86,8 +86,12 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		log.Println(err)
 		return APIError("Server error", 500)
 	}
+	pics, err := GetPicsForMeal(t.db, meal.Id)
+	if err != nil {
+		log.Println(err)
+	}
+	meal_data.Pics = pics
 	meal_data.Open_spots = meal.Capacity - int64(len(guest_ids))
-	// TODO: calculate open spots
 	// get the guest's session
 	session_id := r.Form.Get("session")
 	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
@@ -101,7 +105,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		log.Println(session_valid)
 		return APISuccess(meal_data)
 	}
-	// get the request, if there is one
+	// get the request, if there is one. Show this in the status
 	meal_req, err := t.get_request_by_guest_and_meal_id(session.Guest.Id, meal_id)
 	if err != nil {
 		log.Println(err)
