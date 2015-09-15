@@ -428,7 +428,7 @@ func UpdatePhoneForGuest(db *sql.DB, phone string, guest_id int64) error {
 	return err
 
 }
-func readUserLine(row *sql.Rows) (*UserData, error) {
+func readUserLine(row *sql.Row) (*UserData, error) {
 	user_data := new(UserData)
 	if err := row.Scan(
 		&user_data.Id,
