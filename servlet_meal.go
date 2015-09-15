@@ -83,6 +83,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	meal_data.Price = meal.Price
 	meal_data.Host_name = host_as_guest.First_name
 	meal_data.Host_pic = GetFacebookPic(host_as_guest.Facebook_id)
+	meal_data.Starts = meal.Starts
 	guest_ids, err := GetAttendeesForMeal(t.db, meal.Id)
 	if err != nil {
 		log.Println(err)
