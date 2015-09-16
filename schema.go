@@ -401,6 +401,27 @@ func contains(s []int64, e int64) bool {
     return false
 }
 
+func UpdateGuest(db *sql.DB, first_name string, last_name string, email string, phone string, guest_id int64) error{
+	_, err := db.Exec(`
+		UPDATE Guest
+		SET First_name = ?, Last_name = ?, Email = ?, Phone = ?
+		WHERE Id =?`,
+		first_name, last_name, email, phone, guest_id,
+	)
+	return err
+}
+
+func UpdateHost(db *sql.DB, address string, host_id int64) error{
+	_, err := db.Exec(`
+		UPDATE Host
+		SET Address = ?
+		WHERE Id =?`,
+		address, host_id,
+	)
+	return err
+}
+
+
 func UpdateMealRequest(db *sql.DB, request_id int64, status int64) error {
 	_, err := db.Exec(`
 		UPDATE MealRequest
