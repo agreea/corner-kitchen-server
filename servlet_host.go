@@ -77,7 +77,7 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 		return APIError("Invalid session", 500)
 	}
 	host_as_guest := session.Guest
-	host, err := GetHostByGuestId(host_as_guest.Id)
+	host, err := GetHostByGuestId(t.db, host_as_guest.Id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Could not locate host", 500)
@@ -92,7 +92,7 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 		return APIError("Failed to update host data", 500)
 	}
 	address := r.Form.Get("address")
-	err = UpdateHost(t.db, address, address, host.Id)
+	err = UpdateHost(t.db, address, host.Id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Failed to update host data", 500)
