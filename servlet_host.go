@@ -92,6 +92,7 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 		log.Println("Expired session")
 		return APIError("Expired session", 500)
 	}
+	// Update the guest data according to the form
 	first_name := r.Form.Get("firstName")
 	last_name := r.Form.Get("lastName")
 	email := r.Form.Get("email")
@@ -101,6 +102,7 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Failed to update host data", 500)
 	}
+	// create a host if there isn't one and then update their data
 	if host == nil {
 		// create host
 	}
