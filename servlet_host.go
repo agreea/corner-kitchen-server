@@ -17,6 +17,15 @@ type HostServlet struct {
 	session_manager *SessionManager
 }
 
+type HostResponse struct {
+	First_name 		string
+	Last_name 		string
+	Email 			string
+	Phone 			string
+	Address 		string
+	Stripe_connect	bool
+}
+
 func NewHostServlet(server_config *Config, session_manager *SessionManager, twilio_queue chan *SMS) *HostServlet {
 	t := new(HostServlet)
 	t.server_config = server_config
@@ -127,6 +136,56 @@ func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
 	return stripeJSON, nil
 }
 
+func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	guest, host, err := t.get_guest_and_host(session_id)
+	type HostResponse struct {
+	First_name 		string
+	Last_name 		string
+	Email 			string
+	Phone 			string
+	Address 		string
+	Stripe_connect	bool
+}
+	host_resp := new(HostResponse)
+	if err != nil {
+		log.Println(err)
+		return APIError("Invalid session", 500)
+	}
+	if guest == nil { // you had an actual session but it was old
+		log.Println("Expired session")
+		return APIError("Expired session", 500)
+	}
+	host_resp.First_name = guest.First_name
+	host_resp.Last_name = guest.Last_name
+	host_resp.Email = guest.Email
+	host_resp.Phone = guest.Phone
+	if host == nil { 
+		// host hasn't been created yet.
+		// Give em what we got on the guest and then create a host object when they updateHost
+		host_resp.Stripe_connect = false
+		return APISuccess(host_resp)
+	}
+	host_resp.Address = host.Address
+	host_resp.Stripe_connect = !(host.Stripe_user_id == "")
+	return APISuccess(host_resp)
+}
+
+func (t *HostServlet) get_guest_and_host(session string) (*GuestData, *HostData, error){
+	valid, session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		return nil, nil err
+	}
+	if !valid {
+		return nil, nil, nil
+	}
+	host_as_guest := session.Guest
+	host, err := GetHostByGuestId(t.db, host_as_guest.Id)
+	if err != nil {
+		return host_as_guest, nil, err
+	}
+	return host_as_guest, host, nil
+}
 // func (t *HostServlet) Pay(r *http.Request) *ApiResult {
 // get the guest's Stripe id
 // get the meal data
