@@ -459,7 +459,7 @@ func readGuestLine(row *sql.Row) (*GuestData, error) {
 		&guest_data.Last_name,
 		&guest_data.Facebook_id,
 		&guest_data.Facebook_long_token,
-		&guest_data.Phone
+		&guest_data.Phone,
 	); err != nil {
 		return nil, err
 	}
