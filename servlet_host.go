@@ -139,14 +139,6 @@ func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
 func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	guest, host, err := t.get_guest_and_host(session_id)
-	type HostResponse struct {
-	First_name 		string
-	Last_name 		string
-	Email 			string
-	Phone 			string
-	Address 		string
-	Stripe_connect	bool
-}
 	host_resp := new(HostResponse)
 	if err != nil {
 		log.Println(err)
