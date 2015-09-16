@@ -23,6 +23,7 @@ type HostResponse struct {
 	Email 			string
 	Phone 			string
 	Address 		string
+	Prof_pic		string
 	Stripe_connect	bool
 }
 
@@ -158,6 +159,7 @@ func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 	host_resp.Last_name = guest.Last_name
 	host_resp.Email = guest.Email
 	host_resp.Phone = guest.Phone
+	host_resp.Prof_pic = GetFacebookPic(guest.Facebook_id)
 	if host == nil { 
 		// host hasn't been created yet.
 		// Give em what we got on the guest and then create a host object when they updateHost
