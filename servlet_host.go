@@ -70,8 +70,33 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	return APISuccess(nil)
 }
 
-func (t *HostServlet) AnotherMethod(r *http.Request) *ApiResult {
-	log.Println("=======Calling AnotherMethod========")
+func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	valid, session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil || valid == false || session.Guest == nil {
+		return APIError("Invalid session", 500)
+	}
+	host_as_guest := session.Guest
+	host, err := GetHostByGuestId(host_as_guest.Id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not locate host", 500)
+	}
+	first_name := r.Form.Get("firstName")
+	last_name := r.Form.Get("lastName")
+	email := r.Form.Get("email")
+	phone := r.Form.Get("phone")
+	err = UpdateGuest(t.db, first_name, last_name, email, phone, session.Guest.Id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to update host data", 500)
+	}
+	address := r.Form.Get("address")
+	err = UpdateHost(t.db, address, address, host.Id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to update host data", 500)
+	}
 	return APISuccess(nil)
 }
 
