@@ -171,10 +171,10 @@ func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 	return APISuccess(host_resp)
 }
 
-func (t *HostServlet) get_guest_and_host(session string) (*GuestData, *HostData, error){
+func (t *HostServlet) get_guest_and_host(session string) (*GuestData, *HostData, error) {
 	valid, session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
-		return nil, nil err
+		return nil, nil, err
 	}
 	if !valid {
 		return nil, nil, nil
