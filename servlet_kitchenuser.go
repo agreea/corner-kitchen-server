@@ -132,6 +132,7 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 	if fb_id_exists {
 		// update fb credentials for fb_id
 		guestData, err := t.process_login(fb_id, long_token, expires)
+		guestData.Facebook_long_token = "You wish :)";
 		if err != nil {
 			return APIError("Could not login", 500)
 		}
@@ -142,6 +143,7 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 		if err != nil {
 			return APIError("Failed to create user", 500)
 		}
+		guestData.Facebook_long_token = "You wish :)";
 		return APISuccess(guestData)
 	}
 }
