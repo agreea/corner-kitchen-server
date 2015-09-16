@@ -46,16 +46,18 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	log.Println("=======Stripe Connect called======")
 	auth := r.Form.Get("auth")
 	session_id := r.Form.Get("session")
-	valid, session, err := t.session_manager.GetGuestSession(session_id)
-	if err != nil || valid == false || session.Guest == nil {
-		return APIError("Invalid session", 500)
-	}
-	guest := session.Guest
-	
-	host, err := GetHostByGuestId(t.db, guest.Id)
+	guest, host, err := t.get_guest_and_host(session_id)
 	if err != nil {
 		log.Println(err)
-		return APIError("Could not locate host", 500)
+		return APIError("Invalid session", 500)
+	}
+	if guest == nil { // you had an actual session but it was old
+		log.Println("Expired session")
+		return APIError("Expired session", 500)
+	}
+	if host == nil {
+		log.Println("Couldn't find host")
+		return APIError("Could not locate host", 400)
 	}
 	stripeResponse, err := t.stripe_auth(auth)
 	if err != nil {
@@ -81,15 +83,14 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 
 func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
-	valid, session, err := t.session_manager.GetGuestSession(session_id)
-	if err != nil || valid == false || session.Guest == nil {
-		return APIError("Invalid session", 500)
-	}
-	host_as_guest := session.Guest
-	host, err := GetHostByGuestId(t.db, host_as_guest.Id)
+	guest, host, err := t.get_guest_and_host(session_id)
 	if err != nil {
 		log.Println(err)
-		return APIError("Could not locate host", 500)
+		return APIError("Invalid session", 500)
+	}
+	if guest == nil { // you had an actual session but it was old
+		log.Println("Expired session")
+		return APIError("Expired session", 500)
 	}
 	first_name := r.Form.Get("firstName")
 	last_name := r.Form.Get("lastName")
@@ -99,6 +100,9 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 	if err != nil {
 		log.Println(err)
 		return APIError("Failed to update host data", 500)
+	}
+	if host == nil {
+		// create host
 	}
 	address := r.Form.Get("address")
 	err = UpdateHost(t.db, address, host.Id)
@@ -139,7 +143,6 @@ func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
 func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	guest, host, err := t.get_guest_and_host(session_id)
-	host_resp := new(HostResponse)
 	if err != nil {
 		log.Println(err)
 		return APIError("Invalid session", 500)
@@ -148,6 +151,7 @@ func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 		log.Println("Expired session")
 		return APIError("Expired session", 500)
 	}
+	host_resp := new(HostResponse)
 	host_resp.First_name = guest.First_name
 	host_resp.Last_name = guest.Last_name
 	host_resp.Email = guest.Email
