@@ -401,6 +401,15 @@ func contains(s []int64, e int64) bool {
     return false
 }
 
+func CreateHost(db *sql.DB, guest_id int64) error {
+	_, err := db.Exec(`INSERT INTO Host
+			(Guest_id)
+			VALUES
+			(?)`,
+			guest_id,)
+	return err
+}
+
 func UpdateGuest(db *sql.DB, first_name string, last_name string, email string, phone string, guest_id int64) error{
 	_, err := db.Exec(`
 		UPDATE Guest
