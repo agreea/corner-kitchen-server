@@ -170,13 +170,15 @@ func (t *MealRequestServlet) text_guest(guest *GuestData, host *HostData, meal *
 	}
 	msg := new(SMS)
 	msg.To = guest.Phone
+	// Mon Jan 2 15:04:05 -0700 MST 2006
+	format := "15:04, Mon Jan 2"
 	// Good news - {HOST} welcomed you to {DINNER}! It's at {ADDRESS} at {TIME}. See you there! :) 
 	loc, _ := time.LoadLocation("America/New_York")
 	if status == 1 {
 		msg.Message = fmt.Sprintf("Good news - %s welcomed you to %s! It's at %s at %s. See you there! :)",
 			host_as_guest.First_name, 
 			meal.Title,
-			BuildTime(meal.Starts.In(loc)),
+			meal.Starts.In(loc).Format(format)),
 			host.Address)
 	} else if status == -1 {
 	// Bummer... {HOST} could not welcome you to {DINNER}. I'm sorry :/
