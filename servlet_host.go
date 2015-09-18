@@ -121,7 +121,7 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 		if err != nil {
 			return APIError("Failed to create host", 500)
 		}
-		host, err := GetHostByGuestId(t.db, guest.Id)
+		_, err := GetHostByGuestId(t.db, guest.Id)
 		if err != nil {
 			return APIError("Failed to locate host", 500)
 		}
