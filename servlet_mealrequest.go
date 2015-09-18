@@ -188,7 +188,7 @@ func (t *MealRequestServlet) text_guest(guest *GuestData, host *HostData, meal *
 		} else {
 			format = ":04 AM, Mon Jan 2"
 		}
-		var hour_in12 int64
+		var hour_in12 int
 		if hour > 12 { // 1 (PM)
 			hour_in12 = hour - 12
 		} else if hour > 0 { // 11 (AM)
