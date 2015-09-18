@@ -188,17 +188,16 @@ func (t *MealRequestServlet) text_guest(guest *GuestData, host *HostData, meal *
 		} else {
 			format = ":04 AM, Mon Jan 2"
 		}
-		
-		// var hour_in12 int64
-		// if hour > 12 {
-		// 	hour_in12 = hour - 12
-		// } else if hour > 0 {
-		// 	hour_in12 = hour
-		// } else {
-		// 	hour_in12 = 12
-		// }
+		var hour_in12 int64
+		if hour > 12 { // 1 (PM)
+			hour_in12 = hour - 12
+		} else if hour > 0 { // 11 (AM)
+			hour_in12 = hour
+		} else {
+			hour_in12 = 12 // midnight
+		}
 		// final time: {hour_in12}:04 {AM/PM}, Mon Jan 2
-		readable_time := hour_s + meal.Starts.In(loc).Format(format)
+		readable_time := strconv.Itoa(hour_in12) + meal.Starts.In(loc).Format(format)
 		msg.Message = fmt.Sprintf("Good news - %s welcomed you to %s! It's at %s at %s. See you there! :)",
 			host_as_guest.First_name, 
 			meal.Title,
