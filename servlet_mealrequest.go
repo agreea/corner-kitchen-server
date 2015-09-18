@@ -271,3 +271,26 @@ func (t *MealRequestServlet) record_request(guest *GuestData, host *HostData, me
 	t.twilio_queue <- msg
 	return APISuccess(meal_req)
 }
+
+func BuildTime(ts Time) string {
+	var hour string
+	var minute string
+	if ts.Hour() > 12 {
+		hour = string(ts.Hour() - 12)
+	} else {
+		hour = string(ts.Hour())
+	}
+	minute = string(ts.Minute())
+
+	time_string = hour + ":" + minute
+	if ts.Hour() > 11 {
+		time_string += "PM"
+	} else {
+		time_string += "AM"
+	}
+	time_string += ", " + ts.Weekday().String()
+	_ month, date := ts.Date()
+	time_string += " " + month.String()
+	time_string += " " + string(date)
+	return time_string
+}
