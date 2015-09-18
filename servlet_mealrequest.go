@@ -272,9 +272,10 @@ func (t *MealRequestServlet) record_request(guest *GuestData, host *HostData, me
 	return APISuccess(meal_req)
 }
 
-func BuildTime(ts Time) string {
+func BuildTime(ts time.Time) string {
 	var hour string
 	var minute string
+	var time_string string
 	if ts.Hour() > 12 {
 		hour = string(ts.Hour() - 12)
 	} else {
