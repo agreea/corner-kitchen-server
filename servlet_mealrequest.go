@@ -100,6 +100,7 @@ func (t *MealRequestServlet) Respond(r *http.Request) *ApiResult {
 	if err != nil {
 		return APIError("Malformed request ID", 400)
 	}
+	// get request and make sure it hasn't been responded to already
 	request, err := GetMealRequestById(t.db, request_id)
 	if err != nil {
 		return APIError("Could not locate request", 400)
@@ -107,7 +108,7 @@ func (t *MealRequestServlet) Respond(r *http.Request) *ApiResult {
 	if request.Status != 0 {
 		return APIError("You already responded to this request.", 400)
 	}
-
+	// process, check, and record the response
 	response_s := r.Form.Get("response")
 	response, err := strconv.ParseInt(response_s, 10, 64)
 	if response != 1 && response != -1 {
@@ -118,13 +119,100 @@ func (t *MealRequestServlet) Respond(r *http.Request) *ApiResult {
 		return APIError("Failed to record response.", 400)
 	}
 	updated_request, err := GetMealRequestById(t.db, request_id)
-	// 	// TODO:
-	// get guest by id updated_request.Guest_id
-	// if guest.Phone != "" or 0 or w/e, text them the result.
 	if err != nil {
+		log.Println(err)
 		return APIError("Failed to record response.", 400)
 	}
+	err = notify_guest(updated_request)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to notify guest", 500)
+	}
 	return APISuccess(updated_request)
+}
+
+func (t *MealRequestServlet) notify_guest(updated_request *MealRequest) (error) {
+	guest, err := GetGuestById(updated_request.Guest_id)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	meal, err := GetMealById(updated_request.Meal_id)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	host, err := GetMealById(updated_request)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	if guest.Phone != "" {
+		err := t.text_guest(guest, host, meal, request.Status)
+		if err != nil {
+			log.Println(err)
+		}
+		return err
+	} else {
+		err := t.text_pat(guest, host, meal, request.Status)
+		if err != nil {
+			log.Println(err)
+		}
+		return err
+	}
+}
+func (t *MealRequestServlet) text_guest(guest *GuestData, host *HostData, meal *Meal, status int64) (error) {
+	host_as_guest, err := GetGuestById(host.Guest_id)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	msg := new(SMS)
+	msg.To = guest.Phone
+	t.twilio_queue <- msg
+	// Good news - {HOST} welcomed you to {DINNER}! It's at {ADDRESS} at {TIME}. See you there! :) 
+	if status == 1 {
+		msg.Message = fmt.Sprintf("Good news - %s welcomed you to %s! It's at %s at %s. See you there! :)",
+			host_as_guest.First_name, 
+			meal.Title,
+			meal.Starts,
+			host.Address)
+	} else if status == -1 {
+	// Bummer... {HOST} could not welcome you to {DINNER}. I'm sorry :/
+		msg.Message = fmt.Sprintf("Bummer... %s could not welcome you to %s! I'm sorry :/",
+			host_as_guest.First_name, 
+			meal.Title,
+			meal.Starts,
+			host.Address)
+	} 
+}
+
+func (t *MealRequestServlet) text_pat(guest *GuestData, host *HostData, meal *Meal, status int64) bool {
+	host_as_guest, err := GetGuestById(host.Guest_id)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	msg := new(SMS)
+	msg.To = "6314187176"
+	t.twilio_queue <- msg
+	// Yay more money! {HOST} welcomed {GUEST} to {DINNER}. It's at {ADDRESS} and {TIME}. Let them know at {GUEST EMAIL}  
+	if status == 1 {
+		msg.Message = fmt.Sprintf("Yay $$$! %s welcomed %s to %s. It's at %s at %s. Let them know at %s",
+			host_as_guest.First_name,
+			guest.First_name, 
+			meal.Title,
+			meal.Starts,
+			host.Address,
+			guest.Email)
+	} else if status == -1 {
+	// You've gotta break another heart... {HOST} declined {GUEST} to {DINNER}. Let them know at {GUEST EMAIL}
+		msg.Message = fmt.Sprintf("You've gotta break another heart... %s declined %s to %s. Let them know at %s",
+			host_as_guest.First_name, 
+			guest.First_name,
+			meal.Title,
+			guest.Email)
+	}
 }
 
 func (t *MealRequestServlet) get_guest_host_meal(meal_id int64, session_id string) (*GuestData, *HostData, *Meal, error) {
