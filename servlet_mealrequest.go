@@ -137,12 +137,12 @@ func (t *MealRequestServlet) notify_guest(updated_request *MealRequest) (error) 
 		log.Println(err)
 		return err
 	}
-	meal, err := GetMealById(updated_request.Meal_id)
+	meal, err := GetMealById(t.db, updated_request.Meal_id)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
-	host, err := GetHostById(updated_request.Host_id)
+	host, err := GetHostById(t.db, meal.Host_id)
 	if err != nil {
 		log.Println(err)
 		return err
