@@ -123,7 +123,7 @@ func (t *MealRequestServlet) Respond(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Failed to record response.", 400)
 	}
-	err = notify_guest(updated_request)
+	err = t.notify_guest(updated_request)
 	if err != nil {
 		log.Println(err)
 		return APIError("Failed to notify guest", 500)
@@ -132,7 +132,7 @@ func (t *MealRequestServlet) Respond(r *http.Request) *ApiResult {
 }
 
 func (t *MealRequestServlet) notify_guest(updated_request *MealRequest) (error) {
-	guest, err := GetGuestById(updated_request.Guest_id)
+	guest, err := GetGuestById(t.db, updated_request.Guest_id)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -142,7 +142,7 @@ func (t *MealRequestServlet) notify_guest(updated_request *MealRequest) (error) 
 		log.Println(err)
 		return err
 	}
-	host, err := GetMealById(updated_request)
+	host, err := GetHostById(updated_request.Host_id)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -162,14 +162,13 @@ func (t *MealRequestServlet) notify_guest(updated_request *MealRequest) (error) 
 	}
 }
 func (t *MealRequestServlet) text_guest(guest *GuestData, host *HostData, meal *Meal, status int64) (error) {
-	host_as_guest, err := GetGuestById(host.Guest_id)
+	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 	msg := new(SMS)
 	msg.To = guest.Phone
-	t.twilio_queue <- msg
 	// Good news - {HOST} welcomed you to {DINNER}! It's at {ADDRESS} at {TIME}. See you there! :) 
 	if status == 1 {
 		msg.Message = fmt.Sprintf("Good news - %s welcomed you to %s! It's at %s at %s. See you there! :)",
@@ -185,17 +184,18 @@ func (t *MealRequestServlet) text_guest(guest *GuestData, host *HostData, meal *
 			meal.Starts,
 			host.Address)
 	} 
+	t.twilio_queue <- msg
+	return nil
 }
 
-func (t *MealRequestServlet) text_pat(guest *GuestData, host *HostData, meal *Meal, status int64) bool {
-	host_as_guest, err := GetGuestById(host.Guest_id)
+func (t *MealRequestServlet) text_pat(guest *GuestData, host *HostData, meal *Meal, status int64) error {
+	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 	msg := new(SMS)
-	msg.To = "6314187176"
-	t.twilio_queue <- msg
+	msg.To = "4438313923"
 	// Yay more money! {HOST} welcomed {GUEST} to {DINNER}. It's at {ADDRESS} and {TIME}. Let them know at {GUEST EMAIL}  
 	if status == 1 {
 		msg.Message = fmt.Sprintf("Yay $$$! %s welcomed %s to %s. It's at %s at %s. Let them know at %s",
@@ -213,6 +213,8 @@ func (t *MealRequestServlet) text_pat(guest *GuestData, host *HostData, meal *Me
 			meal.Title,
 			guest.Email)
 	}
+	t.twilio_queue <- msg
+	return nil
 }
 
 func (t *MealRequestServlet) get_guest_host_meal(meal_id int64, session_id string) (*GuestData, *HostData, *Meal, error) {
