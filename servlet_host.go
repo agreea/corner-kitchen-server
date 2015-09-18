@@ -69,7 +69,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	// create a host if there isn't one and then update their data
 	if err != nil {
 		log.Println(err)
-		return APIError(err, 400)
+		return APIError("Could not locate host. Make sure host exists", 400)
 	}
 	stripeResponse, err := t.stripe_auth(auth)
 	if err != nil {
