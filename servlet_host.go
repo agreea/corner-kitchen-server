@@ -59,7 +59,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	valid, session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
-		return APIError(err, 400)
+		return APIError("Could not locate guest", 400)
 	}
 	if !valid {
 		return APIError("Invalid session", 400)
