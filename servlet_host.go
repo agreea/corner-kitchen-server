@@ -81,7 +81,7 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 		return APIError(stripe_error.(string)+stripeResponse["error_description"].(string), 400)
 	}
 	if stripeResponse["livemode"].(bool) == false {
-		lot.Println("Stripe wasn't in live mode")
+		log.Println("Stripe wasn't in live mode")
 		return APIError("Stripe misconfiguration.", 500)
 	}
 	err = UpdateStripeConnect(t.db, stripeResponse, host.Id)
@@ -98,7 +98,7 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 	valid, session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
-		return APIError(err, 400)
+		return APIError("Couldn't locate guest", 400)
 	}
 	if !valid {
 		return APIError("Invalid session", 400)
@@ -166,7 +166,7 @@ func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 	valid, session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
-		return APIError(err, 400)
+		return APIError("Couldn't locate guest", 400)
 	}
 	if !valid {
 		return APIError("Invalid session", 400)
@@ -178,13 +178,13 @@ func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 	host_resp.Email = guest.Email
 	host_resp.Phone = guest.Phone
 	host_resp.Prof_pic = GetFacebookPic(guest.Facebook_id)
-	host, err := GetHostByGuestId(t.db, host_as_guest.Id)
+	host, err := GetHostByGuestId(t.db, guest.Id)
 	if err != nil { // there wasn't a host with this guest id
 		log.Println(err)
 		err = CreateHost(t.db, guest.Id)
 		if err != nil {
 			log.Println(err)
-			return APIError(err, 500)
+			return APIError("Failed to create Host", 500)
 		}
 		host_resp.Stripe_connect = false
 		return APISuccess(host_resp)
