@@ -176,15 +176,13 @@ func (t *MealRequestServlet) text_guest(guest *GuestData, host *HostData, meal *
 		msg.Message = fmt.Sprintf("Good news - %s welcomed you to %s! It's at %s at %s. See you there! :)",
 			host_as_guest.First_name, 
 			meal.Title,
-			meal.Starts.In(loc),
+			BuildTime(meal.Starts.In(loc)),
 			host.Address)
 	} else if status == -1 {
 	// Bummer... {HOST} could not welcome you to {DINNER}. I'm sorry :/
 		msg.Message = fmt.Sprintf("Bummer... %s could not welcome you to %s! I'm sorry :/",
 			host_as_guest.First_name, 
-			meal.Title,
-			meal.Starts,
-			host.Address)
+			meal.Title)
 	} 
 	t.twilio_queue <- msg
 	return nil
