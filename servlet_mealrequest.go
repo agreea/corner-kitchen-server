@@ -148,13 +148,13 @@ func (t *MealRequestServlet) notify_guest(updated_request *MealRequest) (error) 
 		return err
 	}
 	if guest.Phone != "" {
-		err := t.text_guest(guest, host, meal, request.Status)
+		err := t.text_guest(guest, host, meal, updated_request.Status)
 		if err != nil {
 			log.Println(err)
 		}
 		return err
 	} else {
-		err := t.text_pat(guest, host, meal, request.Status)
+		err := t.text_pat(guest, host, meal, updated_request.Status)
 		if err != nil {
 			log.Println(err)
 		}
