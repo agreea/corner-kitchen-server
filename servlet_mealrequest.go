@@ -289,7 +289,7 @@ func BuildTime(ts Time) string {
 		time_string += "AM"
 	}
 	time_string += ", " + ts.Weekday().String()
-	_ month, date := ts.Date()
+	_, month, date := ts.Date()
 	time_string += " " + month.String()
 	time_string += " " + string(date)
 	return time_string
