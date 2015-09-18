@@ -278,7 +278,7 @@ func BuildTime(ts time.Time) string {
 	hour, err := strconv.ParseInt(hour_s, 10, 64)
 	if err != nil {
 		log.Println(err)
-		return err
+		return ""
 	}
 	var format string
 	if hour > 11 {
