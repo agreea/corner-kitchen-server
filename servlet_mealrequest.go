@@ -178,7 +178,7 @@ func (t *MealRequestServlet) text_guest(guest *GuestData, host *HostData, meal *
 		msg.Message = fmt.Sprintf("Good news - %s welcomed you to %s! It's at %s at %s. See you there! :)",
 			host_as_guest.First_name, 
 			meal.Title,
-			meal.Starts.In(loc).Format(format)),
+			meal.Starts.In(loc).Format(format),
 			host.Address)
 	} else if status == -1 {
 	// Bummer... {HOST} could not welcome you to {DINNER}. I'm sorry :/
