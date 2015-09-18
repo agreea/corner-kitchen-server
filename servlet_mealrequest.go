@@ -190,9 +190,9 @@ func (t *MealRequestServlet) text_guest(guest *GuestData, host *HostData, meal *
 		}
 		var hour_in12 int
 		if hour > 12 { // 1 (PM)
-			hour_in12 = hour - 12
+			hour_in12 = int(hour - 12)
 		} else if hour > 0 { // 11 (AM)
-			hour_in12 = hour
+			hour_in12 = int(hour)
 		} else {
 			hour_in12 = 12 // midnight
 		}
