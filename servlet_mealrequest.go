@@ -261,9 +261,10 @@ func (t *MealRequestServlet) record_request(guest *GuestData, host *HostData, me
 		log.Println(err)
 		return APIError("Couldn't process meal request. Please try again", 500)
 	}
+	guest_as_host, err := GetGuestById(t.db, host.Guest_id)
 	// Text the host "<session.Guest.Name> wants to join <meal.Title>. Please respond here: https://yaychakula.com/req/<reqId> "
 	msg := new(SMS)
-	msg.To = host.Phone
+	msg.To = guest_as_host.Phone
 	msg.Message = fmt.Sprintf("Yo! %s wants to join %s. Please respond: https://yaychakula.com/request.html?Id=%d",
 		guest.First_name, meal.Title,
 		saved_request.Id)
