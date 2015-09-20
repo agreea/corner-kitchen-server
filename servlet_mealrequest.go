@@ -262,6 +262,10 @@ func (t *MealRequestServlet) record_request(guest *GuestData, host *HostData, me
 		return APIError("Couldn't process meal request. Please try again", 500)
 	}
 	guest_as_host, err := GetGuestById(t.db, host.Guest_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Couldn't locate host.", 500)
+	}
 	// Text the host "<session.Guest.Name> wants to join <meal.Title>. Please respond here: https://yaychakula.com/req/<reqId> "
 	msg := new(SMS)
 	msg.To = guest_as_host.Phone
