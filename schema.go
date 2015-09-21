@@ -322,6 +322,54 @@ func GetAttendeesForMeal(db *sql.DB, meal_id int64) ([]*GuestData, error) {
 	return guests, nil
 }
 
+/*
+
+type Meal struct {
+	Id      		int64
+	Host_id 		int64
+	Price   		float64
+	Title   		string
+	Description		string
+	Capacity		int64
+	Starts			time.Time
+	Rsvp_by			time.Time
+}
+
+*/
+
+func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal, error) {
+	rows, err := db.Query(`
+		SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
+		FROM Meal
+		WHERE Rsvp_by > ?`,
+		time.Now(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	meals := make([]*Meal, 0)
+	// get the guest for each guest id and add them to the slice of guests
+	for rows.Next() {
+		var meal Meal
+		if err := rows.Scan(
+			&meal.Id,
+			&meal.Host_id,
+			&meal.Price,
+			&meal.Title,
+			&meal.Description,
+			&meal.Capacity,
+			&meal.Starts,
+			&meal.Rsvp_by
+		); err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		meals = append(meals, meal)
+	}
+	return meals, nil
+}
+
 func GetPicsForMeal(db *sql.DB, meal_id int64) ([]*Pic, error) {
 	meal_pics, err := getMealPics(db, meal_id)
 	if err != nil {
