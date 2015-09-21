@@ -360,7 +360,7 @@ func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal, error) {
 			&meal.Description,
 			&meal.Capacity,
 			&meal.Starts,
-			&meal.Rsvp_by
+			&meal.Rsvp_by,
 		); err != nil {
 			log.Println(err)
 			return nil, err
