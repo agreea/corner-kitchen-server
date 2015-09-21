@@ -9,12 +9,13 @@ BLUE="\033[01;34m"
 PURPLE="\033[01;35m"
 AQUA="\033[01;36m"
 
-if [ $# -ne 1 ]; then
+if [ $# -ne 2 ]; then
     echo -e "${RED}Must call this script with the deploy path${NORMAL}"
     exit 1
 fi
 
 WORKDIR="$1"
+ENV="$2"
 BINARY="cornerd"
 
 export GOPATH="$WORKDIR"
@@ -37,8 +38,11 @@ colorize pushd "$WORKDIR"
 
 echo -e "${AQUA}>${NORMAL} ${YELLOW}Starting deploy in `pwd`${NORMAL}"
 
+SERVER_OPTS="-c /$WORKDIR/cornerd.gcfg"
+if [ $ENV == "QA" ]; then
+    SERVER_OPTS="-c /$WORKDIR/cornerd.qa.gcfg"
+fi
 
 colorize make
 colorize /sbin/start-stop-daemon -p "$PIDFILE" -K -R INT/10/KILL --oknodo
-SERVER_OPTS="-c /opt/api/prod/cornerd.gcfg"
 colorize /sbin/start-stop-daemon -m -p "$PIDFILE" -b -S -a "$WORKDIR"/$BINARY -- $SERVER_OPTS
