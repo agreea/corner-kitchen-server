@@ -351,7 +351,7 @@ func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal, error) {
 	meals := make([]*Meal, 0)
 	// get the guest for each guest id and add them to the slice of guests
 	for rows.Next() {
-		var meal Meal
+		meal := new(Meal)
 		if err := rows.Scan(
 			&meal.Id,
 			&meal.Host_id,
