@@ -41,6 +41,16 @@ func NewMealServlet(server_config *Config, session_manager *SessionManager) *Mea
 	return t
 }
 
+func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
+	meals, err := GetUpcomingMealsFromDB(t.db)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to retrieve meals", 500)
+	}
+	return APISuccess(meals)
+	// get all the meals where RSVP time > now
+	// return the array
+}
 // get meal
 // get the meal id (done)
 // get the session -> guest -> guest id (done)
