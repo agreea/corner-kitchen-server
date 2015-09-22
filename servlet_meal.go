@@ -73,8 +73,8 @@ func (t *MealServlet) GetMealAttendees(r *http.Request) *ApiResult {
 	attendees := make([]*Attendee, 0)
 	for guest := range guests {
     	attendee := new(Attendee)
-    	attendee.First_name = guest.First_name
-    	attendee.Prof_pic_url = GetFacebookPic(guest.Facebook_id)
+    	attendee.First_name = guests[guest].First_name
+    	attendee.Prof_pic_url = GetFacebookPic(guests[guest].Facebook_id)
     	attendees = append(attendees, attendee)
 	}
 	return APISuccess(attendees)
