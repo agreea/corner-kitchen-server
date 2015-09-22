@@ -14,24 +14,24 @@ type MealServlet struct {
 	server_config   *Config
 	session_manager *SessionManager
 }
+
+type Attendee struct {
+	First_name 		string
+	Prof_pic_url	string
+}
+
 type MealData struct {
 	Title 			string
 	Description		string
-	// Time 			time.Time (?)
-	// Rsvp_by			time.Time (?)
 	Host_name 		string
 	Host_pic		string
 	Open_spots 		int64
 	Price			float64
 	Status 			string
+	Attendees 		[]*Attendee
 	Starts			time.Time
 	Rsvp_by			time.Time
 	Pics 			[]*Pic		
-}
-
-type Attendee struct {
-	First_name 		string
-	Prof_pic_url	string
 }
 
 func NewMealServlet(server_config *Config, session_manager *SessionManager) *MealServlet {
@@ -58,17 +58,12 @@ func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 	// return the array
 }
 
-func (t *MealServlet) GetMealAttendees(r *http.Request) *ApiResult {
-	meal_id_s := r.Form.Get("mealId")
-	meal_id, err := strconv.ParseInt(meal_id_s, 10, 64)
-	if err != nil {
-		log.Println(err)
-		return APIError("Malformed meal ID", 400)
-	}
+// curl --data "method=GetMealAttendees&mealId=3" https://qa.yaychakula.com/api/meal
+func (t *MealServlet) get_meal_attendees(meal_id int64) ([]*Attendee, error) {
 	guests, err := GetAttendeesForMeal(t.db, meal_id)
 	if err != nil {
 		log.Println(err)
-		return APIError("Invalid meal ID", 400)
+		return nil, err
 	}
 	attendees := make([]*Attendee, 0)
 	for guest := range guests {
@@ -77,7 +72,7 @@ func (t *MealServlet) GetMealAttendees(r *http.Request) *ApiResult {
     	attendee.Prof_pic_url = GetFacebookPic(guests[guest].Facebook_id)
     	attendees = append(attendees, attendee)
 	}
-	return APISuccess(attendees)
+	return attendees, nil
 }
 
 // get meal
@@ -133,6 +128,10 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	pics, err := GetPicsForMeal(t.db, meal.Id)
 	if err != nil {
 		log.Println(err)
+	}
+	attendees, err := get_meal_attendees(meal.Id)
+	if err == nil {
+		meal_data.Attendees = attendees
 	}
 	meal_data.Pics = pics
 	meal_data.Open_spots = meal.Capacity - int64(len(guest_ids))
