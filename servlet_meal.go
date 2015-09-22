@@ -129,7 +129,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	if err != nil {
 		log.Println(err)
 	}
-	attendees, err := get_meal_attendees(meal.Id)
+	attendees, err := t.get_meal_attendees(meal.Id)
 	if err == nil {
 		meal_data.Attendees = attendees
 	}
