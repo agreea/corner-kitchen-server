@@ -85,7 +85,7 @@ func (t *MealServlet) get_meal_attendees(meal_id int64) ([]*Attendee, error) {
 // get the pictures for this meal ()
 //
 /*
-curl --data "method=getMeal&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mealId=3" https://yaychakula.com/api/meal
+curl --data "method=getMeal&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mealId=3" https://qa.yaychakula.com/api/meal
 */
 func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	// parse the meal id
