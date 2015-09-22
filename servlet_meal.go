@@ -29,7 +29,7 @@ type MealData struct {
 	Pics 			[]*Pic		
 }
 
-type Attendee strucut {
+type Attendee struct {
 	First_name 		string
 	Prof_pic_url	string
 }
