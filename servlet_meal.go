@@ -29,6 +29,11 @@ type MealData struct {
 	Pics 			[]*Pic		
 }
 
+type Attendee strucut {
+	First_name 		string
+	Prof_pic_url	string
+}
+
 func NewMealServlet(server_config *Config, session_manager *SessionManager) *MealServlet {
 	t := new(MealServlet)
 	t.server_config = server_config
@@ -41,6 +46,7 @@ func NewMealServlet(server_config *Config, session_manager *SessionManager) *Mea
 	return t
 }
 
+// curl --data "method=getUpcomingMeals" https://qa.yaychakula.com/api/meal
 func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 	meals, err := GetUpcomingMealsFromDB(t.db)
 	if err != nil {
@@ -51,6 +57,29 @@ func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 	// get all the meals where RSVP time > now
 	// return the array
 }
+
+func (t *MealServlet) GetMealAttendees(r *http.Request) *ApiResult {
+	meal_id_s := r.Form.Get("mealId")
+	meal_id, err := strconv.ParseInt(meal_id_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed meal ID", 400)
+	}
+	guests, err := GetAttendeesForMeal(t.db, meal_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Invalid meal ID", 400)
+	}
+	attendees := make([]*Attendee, 0)
+	for guest := range guests {
+    	attendee := new(Attendee)
+    	attendee.First_name = guest.First_name
+    	attendee.Prof_pic_url = GetFacebookPic(guest.Facebook_id)
+    	attendees = append(attendees, attendee)
+	}
+	return APISuccess(attendees)
+}
+
 // get meal
 // get the meal id (done)
 // get the session -> guest -> guest id (done)
