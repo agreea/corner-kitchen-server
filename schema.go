@@ -228,7 +228,7 @@ func GetGuestById(db *sql.DB, id int64) (*GuestData, error) {
 }
 
 func GetFacebookPic(fb_id string) string {
-	return "https://graph.facebook.com/" + fb_id + "/picture?width=200"
+	return "https://graph.facebook.com/" + fb_id + "/picture?width=200&height=200"
 }
 
 func GetHostByGuestId(db *sql.DB, guest_id int64) (*HostData, error) {
