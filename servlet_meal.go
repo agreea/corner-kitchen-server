@@ -161,7 +161,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	meal_data.Host_bio = host.Bio
 	meal_data.Starts = meal.Starts
 	meal_data.Rsvp_by = meal.Rsvp_by
-	meal_data.Host_reviews, err := GetReviewsForHost(t.db, host.Id)
+	meal_data.Host_reviews, err = GetReviewsForHost(t.db, host.Id)
 	if err != nil {
 		log.Println(err)
 	}
