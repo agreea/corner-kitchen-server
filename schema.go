@@ -405,6 +405,10 @@ func GetReviewsForHost(db *sql.DB, host_id int64) ([]*Review, error) {
         FROM Meal 
         WHERE Host_id = ?`, host_id,
 	)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
 	defer rows.Close()
 	host_reviews := make([]*Review, 0)
 	for rows.Next() { // construct each meal, get its reviews, and append them to all host reviews
