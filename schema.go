@@ -422,12 +422,15 @@ func GetReviewsForHost(db *sql.DB, host_id int64) ([]*Review, error) {
 			log.Println(err)
 			return nil, err
 		}
-		meal_reviews, err := GetReviewsForMeal(meal.Id)
+		meal_reviews, err := GetReviewsForMeal(db, meal.Id)
+		if err != nil {
+			log.Println(err)
+		}
 		if meal_reviews != nil {
 			host_reviews = append(host_reviews, meal_reviews...)
 		}
 	}
-	return host_reviews
+	return host_reviews, nil
 }
 
 func GetReviewsForMeal(db *sql.DB, meal_id int64) ([]*Review, error) {
