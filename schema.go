@@ -191,6 +191,7 @@ type HostData struct {
 	Stripe_user_id 			string
 	Stripe_access_token		string
 	Stripe_refresh_token	string
+	Bio						string
 }
 
 type MealRequest struct {
@@ -241,7 +242,7 @@ func GetHostByGuestId(db *sql.DB, guest_id int64) (*HostData, error) {
 
 func GetHostById(db *sql.DB, id int64) (*HostData, error) {
 	row := db.QueryRow(`SELECT Id, Guest_id, Address, Phone, 
-		Stripe_user_id, Stripe_access_token, Stripe_refresh_token 
+		Stripe_user_id, Stripe_access_token, Stripe_refresh_token, Bio 
 		FROM Host WHERE Id = ?`, id)
 	return readHostLine(row)
 }
@@ -554,6 +555,7 @@ func readHostLine(row *sql.Row) (*HostData, error) {
 		&host_data.Stripe_user_id,
 		&host_data.Stripe_access_token,
 		&host_data.Stripe_refresh_token,
+		&host_data.Bio,
 	); err != nil {
 		return nil, err
 	}
