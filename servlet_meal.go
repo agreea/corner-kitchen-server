@@ -25,6 +25,7 @@ type MealData struct {
 	Description		string
 	Host_name 		string
 	Host_pic		string
+	Host_bio		string
 	Open_spots 		int64
 	Price			float64
 	Status 			string
