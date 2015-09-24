@@ -403,7 +403,7 @@ func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal, error) {
 func GetReviewsForHost(db *sql.DB, host_id int64) ([]*Review, error) {
 	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
         FROM Meal 
-        WHERE Host_id = ?`, host_id
+        WHERE Host_id = ?`, host_id,
 	)
 	defer rows.Close()
 	host_reviews := make([]*Review, 0)
