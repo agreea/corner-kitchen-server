@@ -32,7 +32,9 @@ type MealData struct {
 	Attendees 		[]*Attendee
 	Starts			time.Time
 	Rsvp_by			time.Time
-	Pics 			[]*Pic		
+	Pics 			[]*Pic
+	Meal_reviews	[]*Review
+	Host_reviews 	[]*Review		
 }
 
 func NewMealServlet(server_config *Config, session_manager *SessionManager) *MealServlet {
@@ -159,6 +161,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	meal_data.Host_bio = host.Bio
 	meal_data.Starts = meal.Starts
 	meal_data.Rsvp_by = meal.Rsvp_by
+	meal_data.Host_reviews = GetReviewsForHost(t.db, host.Id)
 	guest_ids, err := GetAttendeesForMeal(t.db, meal.Id)
 	if err != nil {
 		log.Println(err)

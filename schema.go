@@ -201,6 +201,26 @@ type MealRequest struct {
 	Status   int64
 }
 
+/* 
+	Review object:
+	First_name
+	Profile_pic
+	Rating
+	Comment
+	Date
+	Meal name
+	Meal id
+*/
+
+type Review struct {
+	Id 			int64
+	Guest_id 	int64
+	Rating 		int64
+	Comment 	string
+	Meal_id 	int64
+	Date 		time.Time
+}
+
 type Pic struct {
 	Name 		string
 	Caption 	string
@@ -370,6 +390,77 @@ func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal, error) {
 	}
 	return meals, nil
 }
+
+// type Review struct {
+//  Id 			int64
+// 	Guest_id 	int64
+// 	Rating 		int64
+// 	Comment 	string
+// 	Meal_id 	int64
+// 	Date 		time.Time
+// }
+
+func GetReviewsForHost(db *sql.DB, host_id int64) ([]*Review, error) {
+	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
+        FROM Meal 
+        WHERE Host_id = ?`, host_id
+	)
+	defer rows.Close()
+	host_reviews := make([]*Review, 0)
+	for rows.Next() { // construct each meal, get its reviews, and append them to all host reviews
+		meal := new(Meal)
+		if err := rows.Scan(
+			&meal.Id,
+			&meal.Host_id,
+			&meal.Price,
+			&meal.Title,
+			&meal.Description,
+			&meal.Capacity,
+			&meal.Starts,
+			&meal.Rsvp_by,
+		); err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		meal_reviews, err := GetReviewsForMeal(meal.Id)
+		if meal_reviews != nil {
+			host_reviews = append(host_reviews, meal_reviews...)
+		}
+	}
+	return host_reviews
+}
+
+func GetReviewsForMeal(db *sql.DB, meal_id int64) ([]*Review, error) {
+	rows, err := db.Query(`
+		SELECT Id, Guest_id, Rating, Comment, Meal_id, Date
+		FROM Review
+		WHERE Meal_id = ?`,
+		meal_id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	reviews := make([]*Review, 0)
+	// get the guest for each guest id and add them to the slice of guests
+	for rows.Next() {
+		review := new(Review)
+		if err := rows.Scan(
+			&review.Id,
+			&review.Guest_id,
+			&review.Rating,
+			&review.Comment,
+			&review.Meal_id,
+			&review.Date,
+		); err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		reviews = append(reviews, review)
+	}
+	return reviews, nil
+}
+
 
 func GetPicsForMeal(db *sql.DB, meal_id int64) ([]*Pic, error) {
 	meal_pics, err := getMealPics(db, meal_id)
