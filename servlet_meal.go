@@ -75,15 +75,52 @@ func (t *MealServlet) get_meal_attendees(meal_id int64) ([]*Attendee, error) {
 	return attendees, nil
 }
 
-// get meal
-// get the meal id (done)
-// get the session -> guest -> guest id (done)
-// get the data from the meal table--title, host, ()
-// get the host data--name + profile picture
-// get the total spots available - total guests attending ()
-// get the meal status for this guest ()
-// get the pictures for this meal ()
-//
+/* 
+	Review object:
+	First_name
+	Profile_pic
+	Rating
+	Comment
+	Date
+	Meal name
+	Meal id
+*/
+
+// get guest from session
+// write it in the db
+// voila
+/*
+curl --data "method=leaveReview&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mealId=3&rating=5
+				&comment=Food was delicious. I absolutely love Izzie's Cuban food." https://qa.yaychakula.com/api/review
+*/
+
+/*
+Get averag
+
+*/
+
+/*
+curl --data "method=getReviewsForMeal&mealId=3" https://qa.yaychakula.com/api/review
+*/
+
+// query the meals table to get all meals hosted by host
+// query the review table to get all reviews where meal_id = 1 OR 2 OR ...
+// get all the reviews into an array
+// iterate over all the ratings: 
+// 		get the sum, convert every Guest_id into a First Name and Prof pic
+//		
+// divide  the sume by the size of the array
+// round so that   5 == > 4.7, 4.5 == 4.2 -> 4.7, 4.0 == 3.7 --> 4.2, etc. etc.
+// return rating plus an array of review objects
+
+/*
+curl --data "method=getReviewsForHost&hostId=1" https://qa.yaychakula.com/api/review
+*/
+
+/*
+curl --data "method=getReviewsForGuest&guestId=1" https://qa.yaychakula.com/api/review
+*/
+
 /*
 curl --data "method=getMeal&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mealId=3" https://qa.yaychakula.com/api/meal
 */

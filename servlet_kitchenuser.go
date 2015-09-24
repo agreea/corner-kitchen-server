@@ -311,7 +311,6 @@ func (t *KitchenUserServlet) create_guest(email string, first_name string, last_
 }
 
 // Check if a fbId already exists in the chakula DB.
-// Returns an error if any database operation fails.
 func (t *KitchenUserServlet) fb_id_exists(fb_id string) (bool, error) {
 	rows, err := t.db.Query("SELECT Id FROM Guest WHERE Facebook_id = ?", fb_id)
 	if err != nil {
