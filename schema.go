@@ -201,17 +201,6 @@ type MealRequest struct {
 	Status   int64
 }
 
-/* 
-	Review object:
-	First_name
-	Profile_pic
-	Rating
-	Comment
-	Date
-	Meal name
-	Meal id
-*/
-
 type Review struct {
 	Id 			int64
 	Guest_id 	int64
@@ -301,6 +290,18 @@ func GetMealRequestByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64)
 	}
 	return meal_req, nil
 }
+
+func GetMealReviewByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) (meal_req *MealRequest, err error) {
+	row := db.QueryRow(`SELECT Id, Guest_id, Rating, Comment, Meal_id, Date
+        FROM Review
+        WHERE Guest_id = ? AND Meal_id = ?`, guest_id, meal_id)
+	meal_req, err = readMealReviewLine(row)
+	if err != nil {
+		return nil, err
+	}
+	return meal_req, nil
+}
+
 
 func GetMealRequestById(db *sql.DB, request_id int64) (*MealRequest, error) {
 	row := db.QueryRow(`SELECT Id, Guest_id, Meal_id, Status
@@ -608,6 +609,22 @@ func UpdatePhoneForGuest(db *sql.DB, phone string, guest_id int64) error {
 	return err
 
 }
+
+func readMealReviewLine(row *sql.Row) (*Review, error) {
+	review := new(Review)
+	if err := row.Scan(
+		&review.Id,
+		&review.Guest_id,
+		&review.Rating,
+		&review.Comment,
+		&review.Meal_id,
+		&review.Date,
+	); err != nil {
+		return nil, err
+	}
+	return review, nil
+}
+
 func readUserLine(row *sql.Row) (*UserData, error) {
 	user_data := new(UserData)
 	if err := row.Scan(
@@ -1080,6 +1097,22 @@ func SaveOrderToDB(db *sql.DB, order *Order) (int64, error) {
 	}
 
 	return order.Id, nil
+}
+
+func SaveReview(db *sql.DB, guest_id int64, meal_id int64, rating int64, comment string) error {
+	_, err := db.Exec(
+		`INSERT INTO Review
+		(Guest_id, Meal_id, Rating, Comment)
+		VALUES
+		(?, ?, ?, ?)
+		`,
+		guest_id,
+		meal_id,
+		rating,
+		comment,
+		time.Now(),
+	)
+	return err
 }
 
 func SavePaymentToken(db *sql.DB, token *PaymentToken) error {
