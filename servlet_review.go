@@ -85,8 +85,7 @@ func (t *ReviewServlet) LeaveReview(r *http.Request) *ApiResult {
 // write it in the db
 // voila
 /*
-curl --data "method=leaveReview&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mealId=3&rating=5
-				&comment=Food was delicious. I absolutely love Izzie's Cuban food." https://qa.yaychakula.com/api/review
+curl --data "method=LeaveReview&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mealId=-1&rating=5&comment=Food was delicious. I absolutely love Izzie's Cuban food." https://qa.yaychakula.com/api/review
 */
 
 /*
