@@ -291,7 +291,7 @@ func GetMealRequestByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64)
 	return meal_req, nil
 }
 
-func GetMealReviewByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) (meal_Review *Review, err error) {
+func GetMealReviewByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) (meal_review *Review, err error) {
 	row := db.QueryRow(`SELECT Id, Guest_id, Rating, Comment, Meal_id, Date
         FROM Review
         WHERE Guest_id = ? AND Meal_id = ?`, guest_id, meal_id)
