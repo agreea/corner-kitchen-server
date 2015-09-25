@@ -15,18 +15,9 @@ type ReviewServlet struct {
 	session_manager *SessionManager
 }
 
-type Review_read struct {
-	First_name		string
-	Prof_pic_url 	string
-	Rating 			int64
-	Comment 		string
-	Date 			time.Time
-	Meal_name 		string
-	Meal_id 		int64
-}
 
 func NewReviewServlet(server_config *Config, session_manager *SessionManager) *ReviewServlet {
-	t := new(MealServlet)
+	t := new(ReviewServlet)
 	t.server_config = server_config
 	db, err := sql.Open("mysql", server_config.GetSqlURI())
 	if err != nil {
@@ -73,7 +64,7 @@ func (t *ReviewServlet) LeaveReview(r *http.Request) *ApiResult {
 		return APIError("Malformed rating", 400)
 	}
 	comment := r.Form.Get("comment")
-	err := SaveReview(t.db, session.Guest.Id, meal_id, rating, comment)
+	err = SaveReview(t.db, session.Guest.Id, meal_id, rating, comment)
 	if err != nil {
 		return APIError("Failed to save review. Please try again.", 500)
 	}
