@@ -234,7 +234,8 @@ func (t *MealServlet) get_host_reviews(host_id int64) ([]*Review_read) {
 		log.Println(err)
 		return nil
 	}
-	review_reads := new([]*Review_read)
+	review_reads := make([]*Review_read, 0)
+
 	for _, review := range host_reviews {
 		review_read := new(Review_read)
 		guest, err := GetGuestById(t.db, review.Guest_id)
