@@ -9,25 +9,20 @@ import (
 	"time"
 )
 
-type MealServlet struct {
+type ReviewServlet struct {
 	db              *sql.DB
 	server_config   *Config
 	session_manager *SessionManager
 }
 
-type Attendee struct {
-	First_name 		string
-	Prof_pic_url	string
-}
-
-type Review struct {
+type Review_read struct {
 	First_name		string
 	Prof_pic_url 	string
 	Rating 			int64
 	Comment 		string
 	Date 			time.Time
-	Meal name 		string
-	Meal id 		int64
+	Meal_name 		string
+	Meal_id 		int64
 }
 
 func NewReviewServlet(server_config *Config, session_manager *SessionManager) *ReviewServlet {
