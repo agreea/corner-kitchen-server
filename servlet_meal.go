@@ -34,7 +34,7 @@ type MealData struct {
 	Rsvp_by			time.Time
 	Pics 			[]*Pic
 	Meal_reviews	[]*Review
-	Host_reviews 	[]*Review		
+	Host_reviews 	[]*Review_read		
 }
 
 type Review_read struct {
@@ -228,7 +228,7 @@ type Review_read struct {
 }
 */
 
-func (t *MealServlet) get_host_reviews(host_id int64)([]*Review_read) {
+func (t *MealServlet) get_host_reviews(host_id int64) ([]*Review_read) {
 	host_reviews, err := GetReviewsForHost(t.db, host_id)
 	if err != nil {
 		log.Println(err)
