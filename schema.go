@@ -1102,9 +1102,9 @@ func SaveOrderToDB(db *sql.DB, order *Order) (int64, error) {
 func SaveReview(db *sql.DB, guest_id int64, meal_id int64, rating int64, comment string) error {
 	_, err := db.Exec(
 		`INSERT INTO Review
-		(Guest_id, Meal_id, Rating, Comment)
+		(Guest_id, Meal_id, Rating, Comment, Date)
 		VALUES
-		(?, ?, ?, ?)
+		(?, ?, ?, ?, ?)
 		`,
 		guest_id,
 		meal_id,
