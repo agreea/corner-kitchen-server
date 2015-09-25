@@ -37,6 +37,15 @@ type MealData struct {
 	Host_reviews 	[]*Review		
 }
 
+type Review_read struct {
+	First_name 		string
+	Prof_pic_url 	string
+	Meal_id 		int64
+	Rating 			int64
+	Comment 		string
+	Date 			time.Time
+}
+
 func NewMealServlet(server_config *Config, session_manager *SessionManager) *MealServlet {
 	t := new(MealServlet)
 	t.server_config = server_config
@@ -161,7 +170,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	meal_data.Host_bio = host.Bio
 	meal_data.Starts = meal.Starts
 	meal_data.Rsvp_by = meal.Rsvp_by
-	meal_data.Host_reviews, err = GetReviewsForHost(t.db, host.Id)
+	meal_data.Host_reviews = get_host_reviews(host.Id)
 	if err != nil {
 		log.Println(err)
 	}
@@ -206,6 +215,38 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		meal_data.Status = "DECLINED"
 	}
 	return APISuccess(meal_data)
+}
+
+/*
+type Review_read struct {
+	First_name 		string
+	Prof_pic_url 	string
+	Meal_id 		int64
+	Rating 			int64
+	Comment 		string
+	Date 			time.Time
+}
+*/
+
+func (t *MealServlet) get_host_reviews(host_id int64)([]*Review_read) {
+	host_reviews, err := GetReviewsForHost(t.db, host_id)
+	review_reads := new([]*Review_read)
+	for _, review := range host_reviews {
+		review_read := new(Review_read)
+		guest, err := GetGuestById(review.Guest_id)
+		if err != nil {
+			log.Println(err)
+			return nil
+		}
+		review_read.First_name = guest.First_name
+		review_read.Prof_pic_url = GetFacebookPic(guest.Facebook_id)
+		review_read.Rating = review.Rating
+		review_read.Comment = review.Comment
+		review_read.Date = review.Date
+		review_read.Meal_id = review.Meal_id
+		review_reads = append(review_reads, review_read)
+	}
+	return review_reads
 }
 
 func (t *MealServlet) get_request_by_guest_and_meal_id(guest_id int64, meal_id int64) (meal_request *MealRequest, err error) {
