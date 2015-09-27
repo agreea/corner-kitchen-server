@@ -1111,7 +1111,7 @@ func SaveReview(db *sql.DB, guest_id int64, meal_id int64, rating int64, comment
 		rating,
 		comment,
 		time.Now(),
-		tip_percent
+		tip_percent,
 	)
 	return err
 }
