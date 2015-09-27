@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/customer"
-	"time"
 	"log"
+	"time"
 )
 
 type SMS struct {
@@ -142,22 +142,22 @@ type Session struct {
 // The Dinner Structs
 
 type GuestData struct {
-	Id             		int64
-	Email          		string
+	Id                  int64
+	Email               string
 	First_name          string
-	Last_name			string
-	Facebook_id    		string
-	Facebook_long_token	string
-	Phone 				string
+	Last_name           string
+	Facebook_id         string
+	Facebook_long_token string
+	Phone               string
 	// Go fields
-	Session_token 		string
+	Session_token string
 }
 
 type FacebookResp struct {
-	Id    		string
-	Email 		string
-	First_name  string
-	Last_name	string
+	Id         string
+	Email      string
+	First_name string
+	Last_name  string
 }
 
 type KitchenSession struct {
@@ -166,32 +166,32 @@ type KitchenSession struct {
 }
 
 type Meal struct {
-	Id      		int64
-	Host_id 		int64
-	Price   		float64
-	Title   		string
-	Description		string
-	Capacity		int64
-	Starts			time.Time
-	Rsvp_by			time.Time
+	Id          int64
+	Host_id     int64
+	Price       float64
+	Title       string
+	Description string
+	Capacity    int64
+	Starts      time.Time
+	Rsvp_by     time.Time
 }
 
 type StripeToken struct {
-	Id        	int64
-	Guest_id  	int64
-	Stripe_id 	string
-	last4		int64
+	Id        int64
+	Guest_id  int64
+	Stripe_id string
+	last4     int64
 }
 
 type HostData struct {
-	Id             			int64
-	Guest_id       			int64
-	Address        			string
-	Phone          			string
-	Stripe_user_id 			string
-	Stripe_access_token		string
-	Stripe_refresh_token	string
-	Bio						string
+	Id                   int64
+	Guest_id             int64
+	Address              string
+	Phone                string
+	Stripe_user_id       string
+	Stripe_access_token  string
+	Stripe_refresh_token string
+	Bio                  string
 }
 
 type MealRequest struct {
@@ -202,18 +202,18 @@ type MealRequest struct {
 }
 
 type Review struct {
-	Id 			int64
-	Guest_id 	int64
-	Rating 		int64
-	Comment 	string
-	Meal_id 	int64
-	Date 		time.Time
+	Id          int64
+	Guest_id    int64
+	Rating      int64
+	Comment     string
+	Meal_id     int64
+	Date        time.Time
 	Tip_percent int64
 }
 
 type Pic struct {
-	Name 		string
-	Caption 	string
+	Name    string
+	Caption string
 }
 
 func GetUserById(db *sql.DB, id int64) (*UserData, error) {
@@ -244,15 +244,15 @@ func GetFacebookPic(fb_id string) string {
 
 func GetHostByGuestId(db *sql.DB, guest_id int64) (*HostData, error) {
 	log.Println(guest_id)
-	row := db.QueryRow(`SELECT Id, Guest_id, Address, Phone, 
-		Stripe_user_id, Stripe_access_token, Stripe_refresh_token 
+	row := db.QueryRow(`SELECT Id, Guest_id, Address, Phone,
+		Stripe_user_id, Stripe_access_token, Stripe_refresh_token
 		FROM Host WHERE Guest_id = ?`, guest_id)
 	return readHostLine(row)
 }
 
 func GetHostById(db *sql.DB, id int64) (*HostData, error) {
-	row := db.QueryRow(`SELECT Id, Guest_id, Address, Phone, 
-		Stripe_user_id, Stripe_access_token, Stripe_refresh_token, Bio 
+	row := db.QueryRow(`SELECT Id, Guest_id, Address, Phone,
+		Stripe_user_id, Stripe_access_token, Stripe_refresh_token, Bio
 		FROM Host WHERE Id = ?`, id)
 	return readHostLine(row)
 }
@@ -275,7 +275,7 @@ func GetUserByPhone(db *sql.DB, phone string) (*UserData, error) {
 
 func GetMealById(db *sql.DB, id int64) (*Meal, error) {
 	row := db.QueryRow(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
-        FROM Meal 
+        FROM Meal
         WHERE Id = ?`, id)
 	return readMealLine(row)
 }
@@ -302,7 +302,6 @@ func GetMealReviewByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) 
 	}
 	return meal_review, nil
 }
-
 
 func GetMealRequestById(db *sql.DB, request_id int64) (*MealRequest, error) {
 	row := db.QueryRow(`SELECT Id, Guest_id, Meal_id, Status
@@ -404,7 +403,7 @@ func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal, error) {
 
 func GetReviewsForHost(db *sql.DB, host_id int64) ([]*Review, error) {
 	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
-        FROM Meal 
+        FROM Meal
         WHERE Host_id = ?`, host_id,
 	)
 	if err != nil {
@@ -471,22 +470,21 @@ func GetReviewsForMeal(db *sql.DB, meal_id int64) ([]*Review, error) {
 	return reviews, nil
 }
 
-
 func GetPicsForMeal(db *sql.DB, meal_id int64) ([]*Pic, error) {
 	meal_pics, err := getMealPics(db, meal_id)
 	if err != nil {
 		log.Println(err)
-		return nil, err		
+		return nil, err
 	}
 	meal, err := GetMealById(db, meal_id)
 	if err != nil {
 		log.Println(err)
-		return nil, err		
+		return nil, err
 	}
 	host_pics, err := getHostPics(db, meal.Host_id)
 	if err != nil {
 		log.Println(err)
-		return nil, err		
+		return nil, err
 	}
 	return append(meal_pics, host_pics...), nil
 }
@@ -543,12 +541,12 @@ func GetLast4sForGuest(db *sql.DB, guest_id int64) ([]int64, error) {
 }
 
 func contains(s []int64, e int64) bool {
-    for _, a := range s {
-        if a == e {
-            return true
-        }
-    }
-    return false
+	for _, a := range s {
+		if a == e {
+			return true
+		}
+	}
+	return false
 }
 
 func CreateHost(db *sql.DB, guest_id int64) error {
@@ -556,11 +554,11 @@ func CreateHost(db *sql.DB, guest_id int64) error {
 			(Guest_id)
 			VALUES
 			(?)`,
-			guest_id,)
+		guest_id)
 	return err
 }
 
-func UpdateGuest(db *sql.DB, first_name string, last_name string, email string, phone string, guest_id int64) error{
+func UpdateGuest(db *sql.DB, first_name string, last_name string, email string, phone string, guest_id int64) error {
 	_, err := db.Exec(`
 		UPDATE Guest
 		SET First_name = ?, Last_name = ?, Email = ?, Phone = ?
@@ -570,7 +568,7 @@ func UpdateGuest(db *sql.DB, first_name string, last_name string, email string, 
 	return err
 }
 
-func UpdateHost(db *sql.DB, address string, host_id int64) error{
+func UpdateHost(db *sql.DB, address string, host_id int64) error {
 	_, err := db.Exec(`
 		UPDATE Host
 		SET Address = ?
@@ -579,7 +577,6 @@ func UpdateHost(db *sql.DB, address string, host_id int64) error{
 	)
 	return err
 }
-
 
 func UpdateMealRequest(db *sql.DB, request_id int64, status int64) error {
 	_, err := db.Exec(`
@@ -690,7 +687,7 @@ func readMealLine(row *sql.Row) (*Meal, error) {
 		&meal.Description,
 		&meal.Capacity,
 		&meal.Starts,
-		&meal.Rsvp_by, 
+		&meal.Rsvp_by,
 	); err != nil {
 		return nil, err
 	}
@@ -1169,8 +1166,8 @@ func SaveStripeToken(db *sql.DB, stripe_token string, last4 int64, guest_data *G
 		VALUES
 		(?, ?, ?)
 		`,
-		c.ID, 
-		last4, 
+		c.ID,
+		last4,
 		guest_data.Id,
 	)
 	if err != nil {
@@ -1180,7 +1177,7 @@ func SaveStripeToken(db *sql.DB, stripe_token string, last4 int64, guest_data *G
 }
 
 // Should only be called with a successful stripe response
-func UpdateStripeConnect(db *sql.DB, stripe_response map[string]interface {}, host_id int64) error {
+func UpdateStripeConnect(db *sql.DB, stripe_response map[string]interface{}, host_id int64) error {
 	stripe_user_id := stripe_response["stripe_user_id"].(string)
 	access_token := stripe_response["access_token"].(string)
 	refresh_token := stripe_response["refresh_token"].(string)
@@ -1191,9 +1188,9 @@ func UpdateStripeConnect(db *sql.DB, stripe_response map[string]interface {}, ho
 			Stripe_refresh_token = ?
 		WHERE Id = ?
 		`,
-		stripe_user_id, 
-		access_token, 
-		refresh_token, 
+		stripe_user_id,
+		access_token,
+		refresh_token,
 		host_id,
 	)
 
