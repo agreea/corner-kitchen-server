@@ -208,6 +208,7 @@ type Review struct {
 	Comment 	string
 	Meal_id 	int64
 	Date 		time.Time
+	Tip_percent int64
 }
 
 type Pic struct {
