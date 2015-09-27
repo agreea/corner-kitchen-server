@@ -460,7 +460,7 @@ func GetReviewsForMeal(db *sql.DB, meal_id int64) ([]*Review, error) {
 			&review.Comment,
 			&review.Meal_id,
 			&review.Date,
-			&review.Tip_percent
+			&review.Tip_percent,
 		); err != nil {
 			log.Println(err)
 			return nil, err
