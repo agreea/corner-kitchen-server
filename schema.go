@@ -442,7 +442,7 @@ func GetReviewsForHost(db *sql.DB, host_id int64) ([]*Review, error) {
 func GetReviewsForMeal(db *sql.DB, meal_id int64) ([]*Review, error) {
 	rows, err := db.Query(`
 		SELECT Id, Guest_id, Rating, Comment, Meal_id, Date
-		FROM Review
+		FROM HostReview
 		WHERE Meal_id = ?`,
 		meal_id,
 	)
