@@ -292,8 +292,8 @@ func GetMealRequestByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64)
 }
 
 func GetMealReviewByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) (meal_review *Review, err error) {
-	row := db.QueryRow(`SELECT Id, Guest_id, Rating, Comment, Meal_id, Date
-        FROM Review
+	row := db.QueryRow(`SELECT Id, Guest_id, Rating, Comment, Meal_id, Date, Tip_percent
+        FROM HostReview
         WHERE Guest_id = ? AND Meal_id = ?`, guest_id, meal_id)
 	meal_review, err = readMealReviewLine(row)
 	if err != nil {
@@ -460,6 +460,7 @@ func GetReviewsForMeal(db *sql.DB, meal_id int64) ([]*Review, error) {
 			&review.Comment,
 			&review.Meal_id,
 			&review.Date,
+			&review.Tip_percent
 		); err != nil {
 			log.Println(err)
 			return nil, err
@@ -619,6 +620,7 @@ func readMealReviewLine(row *sql.Row) (*Review, error) {
 		&review.Comment,
 		&review.Meal_id,
 		&review.Date,
+		&review.Tip_percent,
 	); err != nil {
 		return nil, err
 	}
