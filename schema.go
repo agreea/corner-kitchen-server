@@ -1099,18 +1099,19 @@ func SaveOrderToDB(db *sql.DB, order *Order) (int64, error) {
 	return order.Id, nil
 }
 
-func SaveReview(db *sql.DB, guest_id int64, meal_id int64, rating int64, comment string) error {
+func SaveReview(db *sql.DB, guest_id int64, meal_id int64, rating int64, comment string, tip_percent int64) error {
 	_, err := db.Exec(
-		`INSERT INTO Review
-		(Guest_id, Meal_id, Rating, Comment, Date)
+		`INSERT INTO HostReview
+		(Guest_id, Meal_id, Rating, Comment, Date, Tip_percent)
 		VALUES
-		(?, ?, ?, ?, ?)
+		(?, ?, ?, ?, ?, ?)
 		`,
 		guest_id,
 		meal_id,
 		rating,
 		comment,
 		time.Now(),
+		tip_percent
 	)
 	return err
 }
