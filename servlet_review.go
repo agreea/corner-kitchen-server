@@ -62,8 +62,14 @@ func (t *ReviewServlet) LeaveReview(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Malformed rating", 400)
 	}
+	tip_percent_s := r.Form.Get("tipPercent")
+	tip_percent, err := strconv.ParseInt(tip_percent_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed tip percent", 400)
+	}
 	comment := r.Form.Get("comment")
-	err = SaveReview(t.db, session.Guest.Id, meal_id, rating, comment)
+	err = SaveReview(t.db, session.Guest.Id, meal_id, rating, comment, tip_percent)
 	if err != nil {
 		return APIError("Failed to save review. Please try again.", 500)
 	}
