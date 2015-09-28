@@ -50,7 +50,6 @@ curl https://api.stripe.com/v1/charges \
    -d customer=cus_6yTtZHwEUbDA4v \
    -d destination=acct_16l61lJgURr5uCR5 \
    -d application_fee=20
-
 */
 func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	log.Println("=======Stripe Connect called======")
