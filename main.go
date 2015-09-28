@@ -101,7 +101,7 @@ func initTemplateServer() {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	template_handler.HandleTemplate("request", template_request, "template_request.html")
+	template_handler.HandleTemplate("request", template_request, "template_request")
 
 	// Start listening to HTTP requests
 	go http_server.ListenAndServe()
