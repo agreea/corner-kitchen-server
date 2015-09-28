@@ -7,8 +7,8 @@ mysqlServerPort = "3306"
 mysqlDatabase = "corner-kitchen"
 
 [Logging]
-LogFile = "/opt/api/prod/cornerd.log"
-AccessLogFile = "/opt/api/prod/cornerd.access.log"
+LogFile = "/opt/api/stage/cornerd.log"
+AccessLogFile = "/opt/api/stage/cornerd.access.log"
 
 [API]
 BindAddress = "0.0.0.0"
