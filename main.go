@@ -2,7 +2,6 @@ package main
 
 import (
 	"bitbucket.org/ckvist/twilio/twirest"
-	"database/sql"
 	"flag"
 	"log"
 	"net/http"
@@ -39,74 +38,52 @@ func init() {
 	flag.BoolVar(&config_log_stderr, "stderr", config_log_stderr_default, config_log_stderr_usage)
 }
 
-var DB_CONN *sql.DB
-var SESSION_MGR *SessionManager
-var TWILIO_MESSAGEQUEUE chan *SMS
+func init_server() {
 
-func initHelpers() {
-	var err error
-	DB_CONN, err = sql.Open("mysql", server_config.GetSqlURI())
-	if err != nil {
-		log.Fatal("NewSessionManager", "Failed to open database:", err)
-	}
-	SESSION_MGR = NewSessionManager(&server_config)
-	twilio_client := twirest.NewClient(server_config.Twilio.SID, server_config.Twilio.Token)
-	TWILIO_MESSAGEQUEUE = make(chan *SMS, 100)
-	go workTwilioQueue(twilio_client, TWILIO_MESSAGEQUEUE)
-}
-
-func initApiServer() {
-	bind_address := server_config.API.BindAddress + ":" + server_config.API.BindPort
+	bind_address := server_config.Network.BindAddress + ":" + server_config.Network.BindPort
 
 	api_handler := NewApiHandler(&server_config)
+
+	read_timeout, err := time.ParseDuration(server_config.Network.ReadTimeout)
+	if err != nil {
+		read_timeout = 10 * time.Second
+		log.Println("Invalid network timeout", server_config.Network.ReadTimeout)
+	}
+
+	write_timeout, err := time.ParseDuration(server_config.Network.WriteTimeout)
+	if err != nil {
+		write_timeout = 10 * time.Second
+		log.Println("Invalid network timeout", server_config.Network.WriteTimeout)
+	}
 
 	http_server = http.Server{
 		Addr:           bind_address,
 		Handler:        api_handler,
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
+		ReadTimeout:    read_timeout,
+		WriteTimeout:   write_timeout,
 		MaxHeaderBytes: 1 << 20,
 	}
 
+	session_manager := NewSessionManager(&server_config)
+	twilio_client := twirest.NewClient(server_config.Twilio.SID, server_config.Twilio.Token)
+	twilio_messagequeue := make(chan *SMS, 100)
+	go workTwilioQueue(twilio_client, twilio_messagequeue)
 	api_handler.AddServlet("/version", NewVersionServlet())
-	api_handler.AddServlet("/user", NewUserServlet(&server_config, SESSION_MGR, TWILIO_MESSAGEQUEUE))
-	api_handler.AddServlet("/truck", NewTruckServlet(&server_config, SESSION_MGR, TWILIO_MESSAGEQUEUE))
-	api_handler.AddServlet("/kitchen", NewKitchenServlet(&server_config, SESSION_MGR))
-	api_handler.AddServlet("/kitchenuser", NewKitchenUserServlet(&server_config, SESSION_MGR))
-	api_handler.AddServlet("/mealrequest", NewMealRequestServlet(&server_config, SESSION_MGR, TWILIO_MESSAGEQUEUE))
-	api_handler.AddServlet("/host", NewHostServlet(&server_config, SESSION_MGR, TWILIO_MESSAGEQUEUE))
-	api_handler.AddServlet("/meal", NewMealServlet(&server_config, SESSION_MGR))
-	api_handler.AddServlet("/review", NewReviewServlet(&server_config, SESSION_MGR))
+	api_handler.AddServlet("/user", NewUserServlet(&server_config, session_manager, twilio_messagequeue))
+	api_handler.AddServlet("/truck", NewTruckServlet(&server_config, session_manager, twilio_messagequeue))
+	api_handler.AddServlet("/kitchen", NewKitchenServlet(&server_config, session_manager))
+	api_handler.AddServlet("/kitchenuser", NewKitchenUserServlet(&server_config, session_manager))
+	api_handler.AddServlet("/mealrequest", NewMealRequestServlet(&server_config, session_manager, twilio_messagequeue))
+	api_handler.AddServlet("/host", NewHostServlet(&server_config, session_manager, twilio_messagequeue))
+	api_handler.AddServlet("/meal", NewMealServlet(&server_config, session_manager))
+	api_handler.AddServlet("/review", NewReviewServlet(&server_config, session_manager))
 
 	// Start listening to HTTP requests
-	go http_server.ListenAndServe()
-	log.Println("API Listening on " + bind_address)
-}
-
-func initTemplateServer() {
-	bind_address := server_config.WWW.BindAddress + ":" + server_config.WWW.BindPort
-
-	template_handler := NewTemplateHandler(
-		&server_config,
-		DB_CONN,
-		TWILIO_MESSAGEQUEUE,
-		SESSION_MGR,
-	)
-
-	http_server = http.Server{
-		Addr:           bind_address,
-		Handler:        template_handler,
-		ReadTimeout:    10 * time.Second,
-		WriteTimeout:   10 * time.Second,
-		MaxHeaderBytes: 1 << 20,
+	if err := http_server.ListenAndServe(); err != nil {
+		log.Fatalln("Fatal Error: ListenAndServe: ", err.Error())
 	}
 
-	template_handler.HandleTemplate("request", template_request, "template_request")
-
-	// Start listening to HTTP requests
-	go http_server.ListenAndServe()
-
-	log.Println("WWW Listening on " + bind_address)
+	log.Println("Listening on " + bind_address)
 }
 
 func workTwilioQueue(client *twirest.TwilioClient, queue chan *SMS) {
@@ -172,12 +149,7 @@ func main() {
 	}()
 
 	/*
-	 * Start servers
+	 * Start server
 	 */
-	initHelpers()
-	initApiServer()
-	initTemplateServer()
-	for {
-		time.Sleep(time.Hour)
-	}
+	init_server()
 }
