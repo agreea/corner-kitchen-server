@@ -10,16 +10,11 @@ mysqlDatabase = "corner-kitchen"
 LogFile = "/opt/api/prod/cornerd.log"
 AccessLogFile = "/opt/api/prod/cornerd.access.log"
 
-[API]
+[Network]
 BindAddress = "0.0.0.0"
 BindPort = "1081"
-
-[WWW]
-BindAddress = "0.0.0.0"
-BindPort = "1091"
-
-[Templates]
-Root = "/opt/api/stage/"
+ReadTimeout = "10s"
+WriteTimeout = "10s"
 
 [Memcache]
 Host = "localhost:11211"

@@ -23,18 +23,11 @@ type Config struct {
 		AccessLogFile string
 	}
 
-	API struct {
-		BindAddress string
-		BindPort    string
-	}
-
-	WWW struct {
-		BindAddress string
-		BindPort    string
-	}
-
-	Templates struct {
-		Root string
+	Network struct {
+		BindAddress  string
+		BindPort     string
+		ReadTimeout  string
+		WriteTimeout string
 	}
 
 	Arguments struct {
