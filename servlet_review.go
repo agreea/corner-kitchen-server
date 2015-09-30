@@ -29,7 +29,7 @@ func NewReviewServlet(server_config *Config, session_manager *SessionManager) *R
 // TODO: getReviewForm()
 // TODO: check that star rating is set on front end
 // TODO: build a form for new meals.
-// takes meal id returns host, meal title
+// takes meal id returns host, meal title....
 // curl --data "method=getUpcomingMeals" https://qa.yaychakula.com/api/meal
 func (t *ReviewServlet) LeaveReview(r *http.Request) *ApiResult {
 	// get the session's guest
