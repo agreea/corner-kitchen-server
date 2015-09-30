@@ -258,7 +258,7 @@ func (t *MealRequestServlet) record_request(guest *GuestData, host *HostData, me
 	meal_req := new(MealRequest)
 	meal_req.Guest_id = guest.Id
 	meal_req.Meal_id = meal.Id
-	meal_req.Count = count
+	meal_req.Seats = count
 	err := SaveMealRequest(t.db, meal_req)
 	if err != nil {
 		log.Println(err)
