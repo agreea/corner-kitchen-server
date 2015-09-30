@@ -45,11 +45,11 @@ curl --data "method=StripeConnect&session=c12c1704-d2b0-4af5-83eb-a562afcfe277&a
 
 curl https://api.stripe.com/v1/charges \
    -u ***REMOVED***: \
-   -d amount=100 \
+   -d amount=1250 \
    -d currency=usd \
-   -d customer=cus_6yTtZHwEUbDA4v \
-   -d destination=acct_16l61lJgURr5uCR5 \
-   -d application_fee=20
+   -d customer=____ \
+   -d destination=____ \
+   -d application_fee=____
 
 */
 func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
