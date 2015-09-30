@@ -1043,7 +1043,7 @@ func GetOptionValuesForMenuItem(db *sql.DB, option_id int64) ([]*MenuItemOptionI
 }
 
 func SaveOrderToDB(db *sql.DB, order *Order) (int64, error) {
-	// Insert top level order item
+	// Insert top level order item  
 	result, err := db.Exec(
 		"INSERT INTO `Order`"+
 			`(User_id, Truck_id, Date, Pickup_time)
