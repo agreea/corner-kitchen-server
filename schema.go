@@ -1135,6 +1135,7 @@ func SavePaymentToken(db *sql.DB, token *PaymentToken) error {
 	return err
 }
 
+// TODO: seats cannot exceed available spots
 func SaveMealRequest(db *sql.DB, meal_req *MealRequest) error {
 	_, err := db.Exec(
 		`INSERT INTO MealRequest
