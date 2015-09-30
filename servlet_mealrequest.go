@@ -37,7 +37,7 @@ func NewMealRequestServlet(server_config *Config, session_manager *SessionManage
 	return t
 }
 
-// curl --data "method=SendRequest&meal_id=-1&session=c12c1704-d2b0-4af5-83eb-a562afcfe277&count=2"
+// curl --data "method=SendRequest&mealId=-1&session=c12c1704-d2b0-4af5-83eb-a562afcfe277&seats=2" https://qa.yaychakula.com/api/mealrequest
 func (t *MealRequestServlet) SendRequest(r *http.Request) *ApiResult {
 	meal_id_s := r.Form.Get("mealId")
 	meal_id, err := strconv.ParseInt(meal_id_s, 10, 64)
@@ -59,7 +59,7 @@ func (t *MealRequestServlet) SendRequest(r *http.Request) *ApiResult {
 		return APIError("Couldn't process request", 400)
 	}
 
-	count_s := r.Form.Get("count")
+	count_s := r.Form.Get("seats")
 	count, err := strconv.ParseInt(count_s, 10, 64)
 	if err != nil {
 		return APIError("Malformed meal ID", 400)
