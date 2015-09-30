@@ -26,7 +26,10 @@ func NewReviewServlet(server_config *Config, session_manager *SessionManager) *R
 	t.session_manager = session_manager
 	return t
 }
-
+// TODO: getReviewForm()
+// TODO: check that star rating is set on front end
+// TODO: build a form for new meals.
+// takes meal id returns host, meal title
 // curl --data "method=getUpcomingMeals" https://qa.yaychakula.com/api/meal
 func (t *ReviewServlet) LeaveReview(r *http.Request) *ApiResult {
 	// get the session's guest
@@ -75,24 +78,6 @@ func (t *ReviewServlet) LeaveReview(r *http.Request) *ApiResult {
 	}
 	return APISuccess("OK")
 }
-
-/* 
-	Review object:
-	First_name
-	Profile_pic
-	Rating
-	Comment
-	Date
-	Meal name
-	Meal id
-*/
-
-// get guest from session
-// write it in the db
-// voila
-/*
-curl --data "method=LeaveReview&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mealId=-1&rating=5&comment=Food was delicious. I absolutely love Izzie's Cuban food." https://qa.yaychakula.com/api/review
-*/
 
 /*
 Get averag
