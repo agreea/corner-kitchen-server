@@ -1137,12 +1137,13 @@ func SavePaymentToken(db *sql.DB, token *PaymentToken) error {
 func SaveMealRequest(db *sql.DB, meal_req *MealRequest) error {
 	_, err := db.Exec(
 		`INSERT INTO MealRequest
-		(Guest_id, Meal_id, Status)
+		(Guest_id, Meal_id, Count, Status)
 		VALUES
-		(?, ?, ?)
+		(?, ?, ?, ?)
 		`,
 		meal_req.Guest_id,
 		meal_req.Meal_id,
+		meal_req.Count,
 		0,
 	)
 	return err
