@@ -198,6 +198,7 @@ type MealRequest struct {
 	Id       int64
 	Guest_id int64
 	Meal_id  int64
+	Seats 	 int64
 	Status   int64
 }
 
@@ -1143,7 +1144,7 @@ func SaveMealRequest(db *sql.DB, meal_req *MealRequest) error {
 		`,
 		meal_req.Guest_id,
 		meal_req.Meal_id,
-		meal_req.Count,
+		meal_req.Seats,
 		0,
 	)
 	return err
