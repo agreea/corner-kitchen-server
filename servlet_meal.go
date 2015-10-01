@@ -97,16 +97,19 @@ func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Failed to retrieve meals", 500)
 	}
-	meal_datas := new([]*MealData)
+	meal_datas := new([]*MealData, 0)
 	for _, meal := range meals {
 		meal_data := new(MealData)
 		meal_data.Title = meal.Title
 		meal_data.Description = meal.Description
 		meal_data.Price = meal.Price
-		meal_data.Capacity = meal.Capacity
+		meal_data.Open_spots = meal.Capacity
 		meal_data.Starts = meal.Starts
 		meal_data.Rsvp_by = meal.Rsvp_by
-		meal_data.Pics = GetPicsForMeal(t.db, meal.Id)
+		meal_data.Pics, err := GetPicsForMeal(t.db, meal.Id)
+		if err != nil{ 
+			log.Println(err)
+		}
 		meal_datas = append(meal_datas, meal_data)
 	}
 	return APISuccess(meal_datas)
