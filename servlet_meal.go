@@ -21,6 +21,7 @@ type Attendee struct {
 }
 
 type MealData struct {
+	Id 				int64
 	Title 			string
 	Description		string
 	Host_name 		string
@@ -100,6 +101,7 @@ func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 	meal_datas := make([]*MealData, 0)
 	for _, meal := range meals {
 		meal_data := new(MealData)
+		meal_data.Id = meal.Id
 		meal_data.Title = meal.Title
 		meal_data.Description = meal.Description
 		meal_data.Price = meal.Price
@@ -209,6 +211,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		return APIError("Server error", 500)
 	}
 	meal_data := new(MealData)
+	meal_data.Id = meal.Id
 	meal_data.Title = meal.Title
 	meal_data.Description = meal.Description
 	meal_data.Price = meal.Price
