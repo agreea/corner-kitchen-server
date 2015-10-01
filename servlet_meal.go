@@ -184,7 +184,7 @@ curl --data "method=getReviewsForGuest&guestId=1" https://qa.yaychakula.com/api/
 */
 
 /*
-curl --data "method=getMeal&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mealId=3" https://qa.yaychakula.com/api/meal
+curl --data "method=getMeal&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mealId=4" https://qa.yaychakula.com/api/meal
 */
 func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	// parse the meal id
@@ -225,21 +225,22 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	if err != nil {
 		log.Println(err)
 	}
-	guest_ids, err := GetAttendeesForMeal(t.db, meal.Id)
-	if err != nil {
-		log.Println(err)
-		return APIError("Server error", 500)
-	}
 	pics, err := GetPicsForMeal(t.db, meal.Id)
 	if err != nil {
 		log.Println(err)
 	}
 	attendees, err := t.get_meal_attendees(meal.Id)
 	if err == nil {
+		taken_seats := int64(0)
+		for _, attendee := range attendees {
+			taken_seats += attendee.Seats
+		}
 		meal_data.Attendees = attendees
+		meal_data.Open_spots = meal.Capacity - taken_seats
+	} else {
+		meal_data.Open_spots = meal.Capacity
 	}
 	meal_data.Pics = pics
-	meal_data.Open_spots = meal.Capacity - int64(len(guest_ids))
 	// get the guest's session
 	session_id := r.Form.Get("session")
 	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
