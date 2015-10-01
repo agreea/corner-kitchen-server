@@ -58,6 +58,38 @@ func NewMealServlet(server_config *Config, session_manager *SessionManager) *Mea
 	return t
 }
 
+
+/*
+
+type Meal struct {
+	Id      		int64
+	Host_id 		int64
+	Price   		float64
+	Title   		string
+	Description		string
+	Capacity		int64
+	Starts			time.Time
+	Rsvp_by			time.Time
+}
+
+type MealData struct {
+	Title 			string
+	Description		string
+	Host_name 		string
+	Host_pic		string
+	Host_bio		string
+	Open_spots 		int64
+	Price			float64
+	Status 			string
+	Attendees 		[]*Attendee
+	Starts			time.Time
+	Rsvp_by			time.Time
+	Pics 			[]*Pic
+	Meal_reviews	[]*Review
+	Host_reviews 	[]*Review_read		
+}
+
+*/
 // curl --data "method=getUpcomingMeals" https://qa.yaychakula.com/api/meal
 func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 	meals, err := GetUpcomingMealsFromDB(t.db)
@@ -65,7 +97,19 @@ func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Failed to retrieve meals", 500)
 	}
-	return APISuccess(meals)
+	meal_datas := new([]*MealData)
+	for _, meal := range meals {
+		meal_data := new(MealData)
+		meal_data.Title = meal.Title
+		meal_data.Description = meal.Description
+		meal_data.Price = meal.Price
+		meal_data.Capacity = meal.Capacity
+		meal_data.Starts = meal.Starts
+		meal_data.Rsvp_by = meal.Rsvp_by
+		meal_data.Pics = GetPicsForMeal(t.db, meal.Id)
+		meal_datas = append(meal_datas, meal_data)
+	}
+	return APISuccess(meal_datas)
 	// get all the meals where RSVP time > now
 	// return the array
 }
