@@ -15,9 +15,10 @@ type MealServlet struct {
 	session_manager *SessionManager
 }
 
-type Attendee struct {
+type Attendee_read struct {
 	First_name 		string
 	Prof_pic_url	string
+	Seats 			int64
 }
 
 type MealData struct {
@@ -30,7 +31,7 @@ type MealData struct {
 	Open_spots 		int64
 	Price			float64
 	Status 			string
-	Attendees 		[]*Attendee
+	Attendees 		[]*Attendee_read
 	Starts			time.Time
 	Rsvp_by			time.Time
 	Pics 			[]*Pic
@@ -89,7 +90,6 @@ type MealData struct {
 	Meal_reviews	[]*Review
 	Host_reviews 	[]*Review_read		
 }
-
 */
 // curl --data "method=getUpcomingMeals" https://qa.yaychakula.com/api/meal
 func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
@@ -120,20 +120,21 @@ func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 }
 
 // curl --data "method=GetMealAttendees&mealId=3" https://qa.yaychakula.com/api/meal
-func (t *MealServlet) get_meal_attendees(meal_id int64) ([]*Attendee, error) {
-	guests, err := GetAttendeesForMeal(t.db, meal_id)
+func (t *MealServlet) get_meal_attendees(meal_id int64) ([]*Attendee_read, error) {
+	attendees, err := GetAttendeesForMeal(t.db, meal_id)
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
-	attendees := make([]*Attendee, 0)
-	for guest := range guests {
-    	attendee := new(Attendee)
-    	attendee.First_name = guests[guest].First_name
-    	attendee.Prof_pic_url = GetFacebookPic(guests[guest].Facebook_id)
-    	attendees = append(attendees, attendee)
+	attendee_reads := make([]*Attendee_read, 0)
+	for _, attendee := range attendees {
+    	attendee_read := new(Attendee_read)
+    	attendee_read.First_name = attendee.Guest.First_name
+    	attendee_read.Prof_pic_url = GetFacebookPic(attendee.Guest.Facebook_id)
+    	attendee_read.Seats = attendee.Seats
+    	attendee_reads = append(attendee_reads, attendee_read)
 	}
-	return attendees, nil
+	return attendee_reads, nil
 }
 
 /* 

@@ -34,8 +34,13 @@ func NewMealRequestServlet(server_config *Config, session_manager *SessionManage
 	t.db = db
 	t.session_manager = session_manager
 	t.twilio_queue = twilio_queue
+	// start worker
 	return t
 }
+
+
+//
+// 
 
 // curl --data "method=SendRequest&mealId=-1&session=c12c1704-d2b0-4af5-83eb-a562afcfe277&seats=2" https://qa.yaychakula.com/api/mealrequest
 func (t *MealRequestServlet) SendRequest(r *http.Request) *ApiResult {

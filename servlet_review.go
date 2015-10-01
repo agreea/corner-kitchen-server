@@ -6,16 +6,19 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"fmt"
+	// "time"
 )
 
 type ReviewServlet struct {
 	db              *sql.DB
 	server_config   *Config
 	session_manager *SessionManager
+	twilio_queue    chan *SMS
 }
 
 
-func NewReviewServlet(server_config *Config, session_manager *SessionManager) *ReviewServlet {
+func NewReviewServlet(server_config *Config, session_manager *SessionManager, twilio_queue chan *SMS) *ReviewServlet {
 	t := new(ReviewServlet)
 	t.server_config = server_config
 	db, err := sql.Open("mysql", server_config.GetSqlURI())
@@ -24,8 +27,84 @@ func NewReviewServlet(server_config *Config, session_manager *SessionManager) *R
 	}
 	t.db = db
 	t.session_manager = session_manager
+	t.twilio_queue = twilio_queue
 	return t
 }
+
+// func (t *ReviewServlet) review_notifier() {
+// 	// get every meal that's happened recently
+// 	for { 
+// 		meals, err := GetMealsToNotifyForReview(t.db)
+// 		if err != nil {
+// 			log.Println(err)
+// 		}
+// 		// get every attendee for every meal
+// 		for _, meal := range meals { 
+// 			attendees, err := GetAttendeesForMeal(t.db, meal.Id)
+// 			if err!= nil {
+// 				log.Println(err)
+// 				time.Sleep(1 * time.Hour)
+// 				continue
+// 			}
+// 			for _, attendee := range attendees { // remind every attendee to leave a review
+// 				t.notify_attendee_to_review(attendee.Id, meal.Id)
+// 			}
+// 		}
+// 	}
+// }
+
+func (t *ReviewServlet) notify_attendee_to_review(guest_id int64, meal_id int64) {
+	meal, err := GetMealById(t.db, meal_id)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	guest, err := GetGuestById(t.db, guest_id)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	host, err := GetHostById(t.db, meal.Host_id)
+	if err != nil {
+		log.Println(err)
+		return		
+	}
+
+	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
+	if err != nil {
+		log.Println(err)
+		return		
+	}
+
+	if guest.Phone != "" {
+		msg := new(SMS)
+		msg.To = guest.Phone
+		// Heyo! Make sure to you review %s's %s so they can build their reputation. Here's the link:
+		msg.Message = fmt.Sprintf("Heyo! Make sure you review %s's %s so they can build their reputation. Here's the link: https://yaychakula.com/review.html?Id=%d",
+			host_as_guest.First_name, meal.Title,
+			meal.Id)
+		t.twilio_queue <- msg
+	} else {
+
+	}
+	// get the guest
+	// 
+}
+// curl -d 'to=destination@example.com&amp;toname=Destination&amp;subject=Example Subject&amp;text=testingtextbody&amp;from=info@domain.com&amp;api_user=agree&amp;api_key=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' https://api.sendgrid.com/api/mail.send.json
+// Secret key: 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
+
+// worker goes like this:
+
+// get all the meals that started between 2.5 and 3.5 hours ago
+// get all the guests for all those meals
+// contact all the guests with review links for that meal
+// contact goes like this:
+// if you have their phone number, text them
+// else send them an email
+// sleep for 1 hour.
+
 // TODO: getReviewForm()
 // TODO: check that star rating is set on front end
 // TODO: build a form for new meals.

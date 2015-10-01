@@ -194,6 +194,11 @@ type HostData struct {
 	Bio						string
 }
 
+type AttendeeData struct {
+	Guest 		*GuestData
+	Seats 		int64
+}
+
 type MealRequest struct {
 	Id       int64
 	Guest_id int64
@@ -316,10 +321,10 @@ func GetMealRequestById(db *sql.DB, request_id int64) (*MealRequest, error) {
 	return meal_req, nil
 }
 
-func GetAttendeesForMeal(db *sql.DB, meal_id int64) ([]*GuestData, error) {
+func GetAttendeesForMeal(db *sql.DB, meal_id int64) ([]*AttendeeData, error) {
 	// get all the guest ids attending the meal
 	rows, err := db.Query(`
-		SELECT Guest_id
+		SELECT Guest_id, Seats
 		FROM MealRequest
 		WHERE Meal_id = ? AND Status = 1`, meal_id,
 	)
@@ -327,23 +332,28 @@ func GetAttendeesForMeal(db *sql.DB, meal_id int64) ([]*GuestData, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	guests := make([]*GuestData, 0)
+	attendees := make([]*AttendeeData, 0)
 	// get the guest for each guest id and add them to the slice of guests
 	for rows.Next() {
 		var guest_id int64
+		var seats int64
 		if err := rows.Scan(
 			&guest_id,
+			&seats,
 		); err != nil {
 			return nil, err
 		}
 		guest_data, err := GetGuestById(db, guest_id)
 		if err == nil {
-			guests = append(guests, guest_data)
+			attendee := new(AttendeeData)
+			attendee.Guest = guest_data
+			attendee.Seats = seats
+			attendees = append(attendees, attendee)
 		} else {
 			log.Println(err)
 		}
 	}
-	return guests, nil
+	return attendees, nil
 }
 
 /*
