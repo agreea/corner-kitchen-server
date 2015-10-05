@@ -187,7 +187,6 @@ type HostData struct {
 	Id             			int64
 	Guest_id       			int64
 	Address        			string
-	Phone          			string
 	Stripe_user_id 			string
 	Stripe_access_token		string
 	Stripe_refresh_token	string
@@ -250,14 +249,14 @@ func GetFacebookPic(fb_id string) string {
 
 func GetHostByGuestId(db *sql.DB, guest_id int64) (*HostData, error) {
 	log.Println(guest_id)
-	row := db.QueryRow(`SELECT Id, Guest_id, Address, 
+	row := db.QueryRow(`SELECT Id, Guest_id, 
 		Stripe_user_id, Stripe_access_token, Stripe_refresh_token, Bio 
 		FROM Host WHERE Guest_id = ?`, guest_id)
 	return readHostLine(row)
 }
 
 func GetHostById(db *sql.DB, id int64) (*HostData, error) {
-	row := db.QueryRow(`SELECT Id, Guest_id, Address, Phone, 
+	row := db.QueryRow(`SELECT Id, Guest_id, Address, 
 		Stripe_user_id, Stripe_access_token, Stripe_refresh_token, Bio 
 		FROM Host WHERE Id = ?`, id)
 	return readHostLine(row)
@@ -680,7 +679,6 @@ func readHostLine(row *sql.Row) (*HostData, error) {
 		&host_data.Id,
 		&host_data.Guest_id,
 		&host_data.Address,
-		&host_data.Phone,
 		&host_data.Stripe_user_id,
 		&host_data.Stripe_access_token,
 		&host_data.Stripe_refresh_token,
