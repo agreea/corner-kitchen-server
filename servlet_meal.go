@@ -186,6 +186,31 @@ curl --data "method=getReviewsForGuest&guestId=1" https://qa.yaychakula.com/api/
 /*
 curl --data "method=getMeal&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mealId=4" https://qa.yaychakula.com/api/meal
 */
+
+/*
+TITLE
+ASKING_PRICE
+DESCRIPTION
+IMAGES...???????????????????????????????????
+STARTS_TIME
+RSVP_BY_TIME
+SESSION
+ID (how generated? maybe rand(ms as seed))
+
+create if not there
+update if there
+*/
+
+// func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult{
+// 	// 
+// }
+
+// get meal draft
+// session, ID
+// if there is a meal draft with that host id, send it to them
+// else error
+
+
 func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	// parse the meal id
 	meal_id_s := r.Form.Get("mealId")
