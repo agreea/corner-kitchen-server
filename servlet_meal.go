@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"strings"
+	"encoding/json"
 )
 
 type MealServlet struct {
@@ -57,6 +59,7 @@ func NewMealServlet(server_config *Config, session_manager *SessionManager) *Mea
 	}
 	t.db = db
 	t.session_manager = session_manager
+	go t.process_meal_charge_worker()
 	return t
 }
 
@@ -210,6 +213,121 @@ update if there
 // if there is a meal draft with that host id, send it to them
 // else error
 
+func (t *MealServlet) process_meal_charge_worker() {
+	// get all meals that happened 7 - 8 days ago
+	for {
+		t.process_meal_charges()
+		time.Sleep(time.Hour * 24)
+	}
+}
+
+func (t *MealServlet) process_meal_charges(){
+	meals, err := GetMealsToProcess(t.db)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	for _, meal := range meals {
+		meal_reqs, err := GetConfirmedMealRequestsForMeal(t.db, meal.Id)
+		if err != nil {
+			log.Println(err)
+		}
+		t.process_meal_requests(meal_reqs)
+	}
+}
+
+func (t *MealServlet) process_meal_requests(meal_reqs []*MealRequest) {
+	for _, meal_req := range meal_reqs {
+		// create stripe charge
+		t.stripe_charge(meal_req)
+	}
+}
+/*
+curl https://api.stripe.com/v1/charges \
+   -u ***REMOVED***: \
+   -d amount=___ \
+   -d currency=usd \
+   -d customer=___ \
+   -d destination=___ \
+   -d application_fee=___
+*/
+
+type StripeCharge struct {
+	Amount 			int `json:"amount"`
+	Currency   		string `json:"currency"`
+	Customer 		string `json:"customer"`
+	Host_acct		string `json:"destination"`
+	Chakula_fee		int `json:"application_fee"`
+}
+// curl --data "method=issueStripeCharge&id=55" https://qa.yaychakula.com/api/meal
+func (t *MealServlet) IssueStripeCharge(r *http.Request) *ApiResult {
+	meal_req_id_s := r.Form.Get("id")
+	meal_req_id, err := strconv.ParseInt(meal_req_id_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Ya fucked up", 400)
+	}
+
+	meal_req, err := GetMealRequestById(t.db, meal_req_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Fuck", 500)
+	}
+	t.stripe_charge(meal_req)
+	return APISuccess("OKEN")
+}
+
+func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
+	// Get customer object, meal (to get the price), and host (to get stripe destination)
+	customer, err := GetStripeTokenByGuestIdAndLast4(t.db, meal_req.Guest_id, meal_req.Last4)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	meal, err := GetMealById(t.db, meal_req.Meal_id)
+	if err != nil {
+		log.Println(err)
+		return	
+	}
+
+	host, err := GetHostById(t.db, meal.Host_id)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	stripe_charge := StripeCharge {
+						int(int64(meal.Price * 128) * meal_req.Seats),
+						"usd",
+						customer.Stripe_token,
+						host.Stripe_user_id,
+						int(int64(meal.Price * 28) * meal_req.Seats),
+					}
+	json, err := json.Marshal(stripe_charge)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	client := &http.Client{}
+	req, err := http.NewRequest(
+		"POST",
+		"https://api.stripe.com/v1/charges",
+		strings.NewReader(string(json)),
+	)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.SetBasicAuth("***REMOVED***:", "")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	log.Println(resp)
+}
 
 func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	// parse the meal id
@@ -240,7 +358,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	meal_data.Id = meal.Id
 	meal_data.Title = meal.Title
 	meal_data.Description = meal.Description
-	meal_data.Price = meal.Price
+	meal_data.Price = meal.Price * 1.28
 	meal_data.Host_name = host_as_guest.First_name
 	meal_data.Host_pic = GetFacebookPic(host_as_guest.Facebook_id)
 	meal_data.Host_bio = host.Bio
