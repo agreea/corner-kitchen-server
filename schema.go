@@ -318,7 +318,7 @@ func GetMealsToProcess(db *sql.DB) ([]*Meal, error) {
 }
 
 func GetMealRequestByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) (meal_req *MealRequest, err error) {
-	row := db.QueryRow(`SELECT Id, Guest_id, Meal_id, Status, Last4
+	row := db.QueryRow(`SELECT Id, Guest_id, Meal_id, Seats, Status, Last4
         FROM MealRequest
         WHERE Guest_id = ? AND Meal_id = ?`, guest_id, meal_id)
 	meal_req, err = readMealRequestLine(row)
@@ -330,7 +330,7 @@ func GetMealRequestByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64)
 }
 
 func GetConfirmedMealRequestsForMeal(db *sql.DB, meal_id int64) ([]*MealRequest, error) {
-	rows, err := db.Query(`SELECT Id, Guest_id, Meal_id, Status, Last4
+	rows, err := db.Query(`SELECT Id, Guest_id, Meal_id, Seats, Status, Last4
         FROM MealRequest
         WHERE Meal_id = ? AND Status = 1`, meal_id)
 	if err != nil {
@@ -345,6 +345,7 @@ func GetConfirmedMealRequestsForMeal(db *sql.DB, meal_id int64) ([]*MealRequest,
 			&meal_req.Id,
 			&meal_req.Guest_id,
 			&meal_req.Meal_id,
+			&meal_req.Seats,
 			&meal_req.Status,
 			&meal_req.Last4,
 		); err != nil {
@@ -369,7 +370,7 @@ func GetMealReviewByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) 
 
 
 func GetMealRequestById(db *sql.DB, request_id int64) (*MealRequest, error) {
-	row := db.QueryRow(`SELECT Id, Guest_id, Meal_id, Status, Last4
+	row := db.QueryRow(`SELECT Id, Guest_id, Meal_id, Seats, Status, Last4
         FROM MealRequest
         WHERE Id = ?`, request_id)
 	meal_req, err := readMealRequestLine(row)
@@ -794,6 +795,7 @@ func readMealRequestLine(row *sql.Row) (*MealRequest, error) {
 		&meal_req.Id,
 		&meal_req.Guest_id,
 		&meal_req.Meal_id,
+		&meal_req.Seats,
 		&meal_req.Status,
 		&meal_req.Last4,
 	); err != nil {
