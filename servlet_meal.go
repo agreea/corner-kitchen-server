@@ -277,6 +277,16 @@ func (t *MealServlet) IssueStripeCharge(r *http.Request) *ApiResult {
 	return APISuccess("OKEN")
 }
 
+/*
+curl https://api.stripe.com/v1/charges \
+   -u ***REMOVED***: \
+   -d amount=___ \
+   -d currency=usd \
+   -d customer=___ \
+   -d destination=___ \
+   -d application_fee=___
+*/
+
 func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 	// Get customer object, meal (to get the price), and host (to get stripe destination)
 	customer, err := GetStripeTokenByGuestIdAndLast4(t.db, meal_req.Guest_id, meal_req.Last4)
@@ -290,31 +300,13 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 		log.Println(err)
 		return	
 	}
-
+	log.Println(meal)
 	host, err := GetHostById(t.db, meal.Host_id)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	// sc := StripeCharge {
-	// 					int(int64(meal.Price * 128) * meal_req.Seats),
-	// 					"usd",
-	// 					customer.Stripe_token,
-	// 					host.Stripe_user_id,
-	// 					int(int64(meal.Price * 28) * meal_req.Seats),
-	// 				}
-	// json, err := json.Marshal(sc)
 	client := &http.Client{}
-
-/*
-curl https://api.stripe.com/v1/charges \
-   -u ***REMOVED***: \
-   -d amount=___ \
-   -d currency=usd \
-   -d customer=___ \
-   -d destination=___ \
-   -d application_fee=___
-*/
    	stripe_body := url.Values{
 		"amount": {strconv.Itoa(int(meal.Price * 128) * int(meal_req.Seats))},
 		"currency": {"usd"},
