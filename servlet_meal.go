@@ -309,6 +309,7 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 		log.Println(err)
 		return
 	}
+	log.Println(json)
 	client := &http.Client{}
 	req, err := http.NewRequest(
 		"POST",
@@ -319,7 +320,7 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 		log.Println(err)
 		return
 	}
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.SetBasicAuth("***REMOVED***:", "")
 	resp, err := client.Do(req)
 	if err != nil {
