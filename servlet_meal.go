@@ -5,10 +5,10 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 	"strings"
-	"encoding/json"
 )
 
 type MealServlet struct {
@@ -296,26 +296,36 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 		log.Println(err)
 		return
 	}
-
-	stripe_charge := StripeCharge {
-						int(int64(meal.Price * 128) * meal_req.Seats),
-						"usd",
-						customer.Stripe_token,
-						host.Stripe_user_id,
-						int(int64(meal.Price * 28) * meal_req.Seats),
-					}
-	json, err := json.Marshal(stripe_charge)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	log.Println(json)
+	// sc := StripeCharge {
+	// 					int(int64(meal.Price * 128) * meal_req.Seats),
+	// 					"usd",
+	// 					customer.Stripe_token,
+	// 					host.Stripe_user_id,
+	// 					int(int64(meal.Price * 28) * meal_req.Seats),
+	// 				}
+	// json, err := json.Marshal(sc)
 	client := &http.Client{}
+
+/*
+curl https://api.stripe.com/v1/charges \
+   -u ***REMOVED***: \
+   -d amount=___ \
+   -d currency=usd \
+   -d customer=___ \
+   -d destination=___ \
+   -d application_fee=___
+*/
+   	stripe_body := url.Values{
+		"amount": {strconv.Itoa(int(meal.Price * 128) * int(meal_req.Seats))},
+		"currency": {"usd"},
+		"customer": {customer.Stripe_token},
+		"destination": {host.Stripe_user_id},
+		"application_fee": {strconv.Itoa(int(meal.Price * 28) * int(meal_req.Seats))},
+	}
 	req, err := http.NewRequest(
 		"POST",
 		"https://api.stripe.com/v1/charges",
-		strings.NewReader(string(json)),
-	)
+		strings.NewReader(stripe_body.Encode()))
 	if err != nil {
 		log.Println(err)
 		return
