@@ -177,10 +177,10 @@ type Meal struct {
 }
 
 type StripeToken struct {
-	Id        	int64
-	Guest_id  	int64
-	Stripe_id 	string
-	last4		int64
+	Id        		int64
+	Guest_id  		int64
+	Stripe_token 	string
+	Last4			int64
 }
 
 type HostData struct {
@@ -199,11 +199,12 @@ type AttendeeData struct {
 }
 
 type MealRequest struct {
-	Id       int64
-	Guest_id int64
-	Meal_id  int64
-	Seats 	 int64
-	Status   int64
+	Id       	int64
+	Guest_id 	int64
+	Meal_id  	int64
+	Seats 	 	int64
+	Status   	int64
+	Last4 	 	int64
 }
 
 type Review struct {
@@ -285,8 +286,39 @@ func GetMealById(db *sql.DB, id int64) (*Meal, error) {
 	return readMealLine(row)
 }
 
+func GetMealsToProcess(db *sql.DB) ([]*Meal, error) {
+	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
+        FROM Meal 
+        WHERE Starts < ? AND Starts > ?`, 
+        time.Now().Add(-time.Hour * 24 * 7),
+        time.Now().Add(-time.Hour * 24 * 8))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	meals := make([]*Meal, 0)
+	for rows.Next() {
+		meal := new(Meal)
+		if err := rows.Scan(
+			&meal.Id,
+			&meal.Host_id,
+			&meal.Price,
+			&meal.Title,
+			&meal.Description,
+			&meal.Capacity,
+			&meal.Starts,
+			&meal.Rsvp_by,
+		); err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		meals = append(meals, meal)
+	}
+	return meals, nil
+}
+
 func GetMealRequestByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) (meal_req *MealRequest, err error) {
-	row := db.QueryRow(`SELECT Id, Guest_id, Meal_id, Status
+	row := db.QueryRow(`SELECT Id, Guest_id, Meal_id, Status, Last4
         FROM MealRequest
         WHERE Guest_id = ? AND Meal_id = ?`, guest_id, meal_id)
 	meal_req, err = readMealRequestLine(row)
@@ -295,6 +327,33 @@ func GetMealRequestByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64)
 		return nil, err
 	}
 	return meal_req, nil
+}
+
+func GetConfirmedMealRequestsForMeal(db *sql.DB, meal_id int64) ([]*MealRequest, error) {
+	rows, err := db.Query(`SELECT Id, Guest_id, Meal_id, Status, Last4
+        FROM MealRequest
+        WHERE Meal_id = ? AND Status = 1`, meal_id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	meal_reqs := make([]*MealRequest, 0)
+	// get the guest for each guest id and add them to the slice of guests
+	for rows.Next() {
+		meal_req := new(MealRequest)
+		if err := rows.Scan(
+			&meal_req.Id,
+			&meal_req.Guest_id,
+			&meal_req.Meal_id,
+			&meal_req.Status,
+			&meal_req.Last4,
+		); err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		meal_reqs = append(meal_reqs, meal_req)
+	}
+	return meal_reqs, nil
 }
 
 func GetMealReviewByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) (meal_review *Review, err error) {
@@ -310,7 +369,7 @@ func GetMealReviewByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) 
 
 
 func GetMealRequestById(db *sql.DB, request_id int64) (*MealRequest, error) {
-	row := db.QueryRow(`SELECT Id, Guest_id, Meal_id, Status
+	row := db.QueryRow(`SELECT Id, Guest_id, Meal_id, Status, Last4
         FROM MealRequest
         WHERE Id = ?`, request_id)
 	meal_req, err := readMealRequestLine(row)
@@ -527,6 +586,16 @@ func getHostPics(db *sql.DB, host_id int64) ([]*Pic, error) {
 	return readPicLines(rows)
 }
 
+func GetStripeTokenByGuestIdAndLast4(db *sql.DB, guest_id int64, last4 int64) (*StripeToken, error) {
+	row := db.QueryRow(`
+		SELECT Id, Stripe_token, Guest_id, Last4
+		FROM StripeToken
+		WHERE Guest_id = ? AND Last4 = ?`,
+		guest_id,
+		last4)
+	return readStripeTokenLine(row)
+}
+
 func GetLast4sForGuest(db *sql.DB, guest_id int64) ([]int64, error) {
 	rows, err := db.Query(`
 		SELECT Last4
@@ -673,6 +742,19 @@ func readGuestLine(row *sql.Row) (*GuestData, error) {
 	return guest_data, nil
 }
 
+func readStripeTokenLine(row *sql.Row) (*StripeToken, error) {
+	stripe_token := new(StripeToken)
+	if err := row.Scan(
+		&stripe_token.Id,
+		&stripe_token.Stripe_token,
+		&stripe_token.Guest_id,
+		&stripe_token.Last4,
+	); err != nil {
+		return nil, err
+	}
+	return stripe_token, nil
+}
+
 func readHostLine(row *sql.Row) (*HostData, error) {
 	host_data := new(HostData)
 	if err := row.Scan(
@@ -713,6 +795,7 @@ func readMealRequestLine(row *sql.Row) (*MealRequest, error) {
 		&meal_req.Guest_id,
 		&meal_req.Meal_id,
 		&meal_req.Status,
+		&meal_req.Last4,
 	); err != nil {
 		return nil, err
 	}
@@ -1148,7 +1231,7 @@ func SavePaymentToken(db *sql.DB, token *PaymentToken) error {
 func SaveMealRequest(db *sql.DB, meal_req *MealRequest) error {
 	_, err := db.Exec(
 		`INSERT INTO MealRequest
-		(Guest_id, Meal_id, Seats, Status)
+		(Guest_id, Meal_id, Seats, Status, Last4)
 		VALUES
 		(?, ?, ?, ?)
 		`,
@@ -1156,6 +1239,7 @@ func SaveMealRequest(db *sql.DB, meal_req *MealRequest) error {
 		meal_req.Meal_id,
 		meal_req.Seats,
 		0,
+		meal_req.Last4,
 	)
 	return err
 }
