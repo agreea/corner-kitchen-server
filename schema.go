@@ -289,7 +289,7 @@ func GetMealById(db *sql.DB, id int64) (*Meal, error) {
 func GetMealsToProcess(db *sql.DB) ([]*Meal, error) {
 	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
         FROM Meal 
-        WHERE Starts < ? AND Starts > ?`, 
+        WHERE Starts < ? AND Starts > ? AND Proccessed = 0`, 
         time.Now().Add(-time.Hour * 24 * 7),
         time.Now().Add(-time.Hour * 24 * 8))
 	if err != nil {
@@ -355,6 +355,21 @@ func GetConfirmedMealRequestsForMeal(db *sql.DB, meal_id int64) ([]*MealRequest,
 		meal_reqs = append(meal_reqs, meal_req)
 	}
 	return meal_reqs, nil
+}
+
+// avoids double-charging if both qa and prod are running chronjobs
+func SetMealProcessed(db *sql.DB, meal_id int64) error{
+	_, err := db.Exec(`
+		UPDATE Meal
+		SET Processed = 1
+		WHERE Id = ?
+		`,
+		meal_id,
+	)
+	if err != nil {
+		log.Println(err)
+	}
+	return err
 }
 
 func GetMealReviewByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) (meal_review *Review, err error) {
