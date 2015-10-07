@@ -241,6 +241,7 @@ func (t *MealServlet) process_meal_requests(meal_reqs []*MealRequest) {
 		// create stripe charge
 		t.stripe_charge(meal_req)
 	}
+	SetMealProcessed(t.db, meal_reqs[0].Meal_id)
 }
 /*
 curl https://api.stripe.com/v1/charges \
@@ -259,6 +260,7 @@ type StripeCharge struct {
 	Host_acct		string `json:"destination"`
 	Chakula_fee		int `json:"application_fee"`
 }
+
 // curl --data "method=issueStripeCharge&id=55" https://qa.yaychakula.com/api/meal
 func (t *MealServlet) IssueStripeCharge(r *http.Request) *ApiResult {
 	meal_req_id_s := r.Form.Get("id")
@@ -334,6 +336,7 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 		return
 	}
 	log.Println(resp)
+	// TODO: react according to Stripe response!
 }
 
 func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
