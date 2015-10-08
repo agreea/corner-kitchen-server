@@ -209,15 +209,15 @@ update if there
 // }
 
 func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
-	formdata := r.Form.Get("formdata")
-	log.Println(formdata)
+	pics := r.Form.Get("pics")
+	log.Println(pics)
 	// title := r.Form.Get("title")
 	// description := r.Form.Get("description")
 	// // starts := r.Form.Get("starts")
 	// // rsvp_by := r.Form.Get("rsvpBy")
 	// session_id := r.Form.Get("session")
 	// log.Println(title + " " + description + " " + session_id)
-	return APISuccess(formdata)
+	return APISuccess(pics)
 }
 // get meal draft
 // session, ID
