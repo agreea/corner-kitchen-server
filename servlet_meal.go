@@ -208,6 +208,15 @@ update if there
 // 	// 
 // }
 
+func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
+	title := r.Form.Get("title")
+	description := r.Form.Get("description")
+	starts := r.Form.Get("starts")
+	rsvp_by := r.Form.Get("rsvpBy")
+	session_id := r.Form.Get("session")
+	log.Println(title + " " + description + " " + session_id)
+	return APISuccess(r.Form.Get("photos"))
+}
 // get meal draft
 // session, ID
 // if there is a meal draft with that host id, send it to them
@@ -421,7 +430,6 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	}
 	return APISuccess(meal_data)
 }
-
 /*
 type Review_read struct {
 	First_name 		string
