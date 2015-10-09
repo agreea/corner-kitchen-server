@@ -12,6 +12,8 @@ import (
 	"io/ioutil"
 	"encoding/base64"
 	"encoding/json"
+	"os"
+	"syscall"
 )
 
 type MealServlet struct {
@@ -230,6 +232,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 			return APIError("Couldn't decode string", 500)
 		}
 		filename := "/var/www/prod/img/" + title + strconv.Itoa(k) + ".png"
+		syscall.Umask(022)
 		err = ioutil.WriteFile(filename, data, os.FileMode(int(0664)))
 		if err != nil {
         	log.Println(err)
