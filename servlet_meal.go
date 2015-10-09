@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"time"
 	"strings"
+	"os"
+	"io/ioutil"
 )
 
 type MealServlet struct {
@@ -207,20 +209,30 @@ update if there
 // func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult{
 // 	// 
 // }
-
+// curl -d "method=saveMealDraft&pics=<serialized pic strings>&title=<some title>" https://qa.yaychakula.com/api/meal
 func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	pics := r.Form.Get("pics")
 	title := r.Form.Get("title")
-	log.Println(pics)
-	log.Println("how about dis??")
-	log.Println("Title: " + title)
+	for k, pic_s := range pics {
+		data, err := base64.StdEncoding.DecodeString(pic_s)
+		if err != nil {
+			log.Println(err)
+			return APIError("Couldn't decode string", 500)
+		}
+		filename := '/var/www/prod/img/' + title + strconv.Itoa(k)
+		err := ioutil.WriteFile(filename, data, os.FileMode(0664))
+		if err != nil {
+        	log.Println(err)
+        	return APIError("Error writing photo", 500)
+        }
+	}
 	// title := r.Form.Get("title")
 	// description := r.Form.Get("description")
 	// // starts := r.Form.Get("starts")
 	// // rsvp_by := r.Form.Get("rsvpBy")
 	// session_id := r.Form.Get("session")
 	// log.Println(title + " " + description + " " + session_id)
-	return APISuccess(pics)
+	return APISuccess("OK")
 }
 // get meal draft
 // session, ID
