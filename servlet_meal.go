@@ -215,7 +215,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	pics := r.Form.Get("pics")
 	title := r.Form.Get("title")
 	for k, pic_s := range pics {
-		data, err := base64.StdEncoding.DecodeString(pic_s)
+		data, err := base64.StdEncoding.DecodeString(string(pic_s))
 		if err != nil {
 			log.Println(err)
 			return APIError("Couldn't decode string", 500)
