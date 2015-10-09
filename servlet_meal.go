@@ -213,8 +213,8 @@ update if there
 // curl -d "method=saveMealDraft&pics=<serialized pic strings>&title=<some title>" https://qa.yaychakula.com/api/meal
 func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	pics := r.Form.Get("pics")
-	title := r.Form.Get("title")
-	for k, pic_s := range pics {
+	// title := r.Form.Get("title")
+	for _, pic_s := range pics {
 		pic_s_split := strings.Split(string(pic_s), "base64,")
 		log.Println(pic_s_split)
 		// data, err := base64.StdEncoding.DecodeString(pic_s_split[1])
