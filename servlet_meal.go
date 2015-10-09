@@ -222,12 +222,12 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 		// 	log.Println(err)
 		// 	return APIError("Couldn't decode string", 500)
 		// }
-		filename := "/var/www/prod/img/" + title + strconv.Itoa(k)
-		err := ioutil.WriteFile(filename, data, os.FileMode(0664))
-		if err != nil {
-        	log.Println(err)
-        	return APIError("Error writing photo", 500)
-        }
+		// filename := "/var/www/prod/img/" + title + strconv.Itoa(k)
+		// err := ioutil.WriteFile(filename, data, os.FileMode(0664))
+		// if err != nil {
+  //       	log.Println(err)
+  //       	return APIError("Error writing photo", 500)
+  //       }
 	}
 	// title := r.Form.Get("title")
 	// description := r.Form.Get("description")
