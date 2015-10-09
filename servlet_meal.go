@@ -11,7 +11,7 @@ import (
 	"strings"
 	"os"
 	"io/ioutil"
-	"encoding/base64"
+	// "encoding/base64"
 )
 
 type MealServlet struct {
@@ -216,7 +216,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	title := r.Form.Get("title")
 	for k, pic_s := range pics {
 		pic_s_split := strings.Split(string(pic_s), "base64,")
-		log.println(pic_s_split)
+		log.Println(pic_s_split)
 		// data, err := base64.StdEncoding.DecodeString(pic_s_split[1])
 		if err != nil {
 			log.Println(err)
