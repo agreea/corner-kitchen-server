@@ -210,8 +210,10 @@ update if there
 
 func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	pics := r.Form.Get("pics")
+	title := r.Form.Get("title")
 	log.Println(pics)
 	log.Println("how about dis??")
+	log.Println("Title: " + title)
 	// title := r.Form.Get("title")
 	// description := r.Form.Get("description")
 	// // starts := r.Form.Get("starts")
