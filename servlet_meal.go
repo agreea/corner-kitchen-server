@@ -230,7 +230,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 			return APIError("Couldn't decode string", 500)
 		}
 		filename := "/var/www/prod/img/" + title + strconv.Itoa(k) + ".png"
-		err = ioutil.WriteFile(filename, data, 0664)
+		err = ioutil.WriteFile(filename, data, os.FileMode(int(0664)))
 		if err != nil {
         	log.Println(err)
         	return APIError("Error writing photo", 500)
