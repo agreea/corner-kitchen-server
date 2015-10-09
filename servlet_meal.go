@@ -11,7 +11,7 @@ import (
 	"strings"
 	"os"
 	"io/ioutil"
-	"base64"
+	"encoding/base64"
 )
 
 type MealServlet struct {
