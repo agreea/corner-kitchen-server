@@ -12,6 +12,7 @@ import (
 	// "os"
 	// "io/ioutil"
 	// "encoding/base64"
+	"encoding/json"
 )
 
 type MealServlet struct {
@@ -213,10 +214,16 @@ update if there
 // curl -d "method=saveMealDraft&pics=<serialized pic strings>&title=<some title>" https://qa.yaychakula.com/api/meal
 func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	pics := r.Form.Get("pics")
+	jsonBlob = []byte(pics)
+	pic_strings := []string 
+	err := json.Unmarshal(jsonBlob, &pic_strings)
+	if err != nil {
+		log.Println(err)
+	}
 	log.Println(pics)
 	// title := r.Form.Get("title")
-	for _, pic_s := range pics {
-		pic_s_split := strings.Split(string(pic_s), "base64,")
+	for _, pic_string := range pic_strings {
+		pic_s_split := strings.Split(string(pic_string), "base64,")
 		log.Println(pic_s_split)
 		// data, err := base64.StdEncoding.DecodeString(pic_s_split[1])
 		// if err != nil {
