@@ -214,8 +214,8 @@ update if there
 // curl -d "method=saveMealDraft&pics=<serialized pic strings>&title=<some title>" https://qa.yaychakula.com/api/meal
 func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	pics := r.Form.Get("pics")
-	jsonBlob = []byte(pics)
-	pic_strings := []string 
+	jsonBlob := []byte(pics)
+	pic_strings := []string
 	err := json.Unmarshal(jsonBlob, &pic_strings)
 	if err != nil {
 		log.Println(err)
