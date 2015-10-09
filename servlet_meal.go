@@ -215,7 +215,7 @@ update if there
 func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	pics := r.Form.Get("pics")
 	jsonBlob := []byte(pics)
-	pic_strings := []string
+	pic_strings := make([]string, 0)
 	err := json.Unmarshal(jsonBlob, &pic_strings)
 	if err != nil {
 		log.Println(err)
