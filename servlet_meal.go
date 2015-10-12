@@ -38,6 +38,7 @@ type MealData struct {
 	Open_spots 		int64
 	Price			float64
 	Status 			string
+	Has_email		bool
 	Attendees 		[]*Attendee_read
 	Starts			time.Time
 	Rsvp_by			time.Time
@@ -571,6 +572,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	} else if meal_req.Status == -1 {
 		meal_data.Status = "DECLINED"
 	}
+	meal_data.Has_email = !(session.Guest.Email == "")
 	return APISuccess(meal_data)
 }
 /*
