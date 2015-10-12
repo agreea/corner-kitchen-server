@@ -1260,7 +1260,7 @@ func SaveMealRequest(db *sql.DB, meal_req *MealRequest) error {
 		`INSERT INTO MealRequest
 		(Guest_id, Meal_id, Seats, Status, Last4)
 		VALUES
-		(?, ?, ?, ?)
+		(?, ?, ?, ?, ?)
 		`,
 		meal_req.Guest_id,
 		meal_req.Meal_id,
