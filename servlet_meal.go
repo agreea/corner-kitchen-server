@@ -234,7 +234,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 
 	// parse seats
 	seats_s := r.Form.Get("seats")
-	seats, err := strconv.ParseInt(seats_s, 64)
+	seats, err := strconv.ParseInt(seats_s, 10, 64)
 	if err != nil {
 		log.Println(err)
 		return APIError("Malformed price", 400)
