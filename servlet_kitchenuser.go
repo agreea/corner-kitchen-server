@@ -110,6 +110,7 @@ func (t *KitchenUserServlet) AddEmail(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	email := r.Form.Get("email")
 	// subscribe := r.Form.Get("subscribe")
+	// TODO: update all associated stripe customer objects 
 	session_exists, session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)

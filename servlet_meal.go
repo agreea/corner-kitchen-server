@@ -113,7 +113,7 @@ func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 		meal_data.Id = meal.Id
 		meal_data.Title = meal.Title
 		meal_data.Description = meal.Description
-		meal_data.Price = meal.Price
+		meal_data.Price = meal.Price * 1.28
 		meal_data.Open_spots = meal.Capacity
 		meal_data.Starts = meal.Starts
 		meal_data.Rsvp_by = meal.Rsvp_by
@@ -190,10 +190,6 @@ curl --data "method=getReviewsForHost&hostId=1" https://qa.yaychakula.com/api/re
 
 /*
 curl --data "method=getReviewsForGuest&guestId=1" https://qa.yaychakula.com/api/review
-*/
-
-/*
-curl --data "method=getMeal&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mealId=4" https://qa.yaychakula.com/api/meal
 */
 
 /*
@@ -491,6 +487,10 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 	log.Println(resp)
 	// TODO: react according to Stripe response!
 }
+
+/*
+curl --data "method=getMeal&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mealId=4" https://qa.yaychakula.com/api/meal
+*/
 
 func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	// parse the meal id
