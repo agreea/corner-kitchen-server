@@ -291,7 +291,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	meal_draft.Capacity = seats
 	meal_draft.Price = price
 	meal_draft.Starts = starts
-	meal_drat.Rsvp_by = rsvp_by
+	meal_draft.Rsvp_by = rsvp_by
 	// id_ s := r.Form.Get("id")
 	// if id_s == nil || id_s == "" { // there's no ufckin meal
 	// 	// create a meal
