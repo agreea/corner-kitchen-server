@@ -312,7 +312,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	// 100
 	// inished
 	// I SAID INISHED!
-	err := json.Unmarshal(jsonBlob, &pic_strings)
+	err = json.Unmarshal(jsonBlob, &pic_strings)
 	if err != nil {
 		log.Println(err)
 		return APIError("Failed to upload pictures. Please try again.", 500)
@@ -327,7 +327,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 		}
 		// extract the file ending from the json encoded string data
 		file_ending := strings.Split(pic_s_split[0], "image/")[1]
-		file_ending := strings.Replace(file_ending, ";", "", 1) // drop the "images/"
+		file_ending = strings.Replace(file_ending, ";", "", 1) // drop the "images/"
 		// generate the file name. TODO: base file name off of draft id
 		filename := "/var/www/prod/img/" + title + strconv.Itoa(k) + file_ending
 		log.Println(filename)
