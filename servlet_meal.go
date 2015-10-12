@@ -345,7 +345,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 		file_ending = strings.Replace(file_ending, ";", "", 1) // drop the "images/"
 		// generate the file name. TODO: base file name off of draft id
 		file_name := uuid.New()
-		filename := "/var/www/prod/img/" + file_name + '.' + file_ending
+		filename := "/var/www/prod/img/" + file_name + "." + file_ending
 		log.Println(filename)
 		syscall.Umask(022)
 		err = ioutil.WriteFile(filename, data, os.FileMode(int(0664)))
