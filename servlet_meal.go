@@ -332,7 +332,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Failed to upload pictures. Please try again.", 500)
 	}
-	for k, pic_string := range pic_strings {
+	for _, pic_string := range pic_strings {
 		pic_s_split := strings.Split(string(pic_string), "base64,")
 		log.Println(pic_s_split)
 		data, err := base64.StdEncoding.DecodeString(pic_s_split[1])
