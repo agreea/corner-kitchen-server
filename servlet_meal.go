@@ -277,23 +277,23 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	meal_draft.Capacity = seats
 	meal_draft.Price = price
 
-	id_ s := r.Form.Get("id")
-	if id_s == nil { // there's no ufckin meal
-		// create a meal
-		CreateMealDraft(t.db, meal_draft)
-	} else { // there's really an ufckin meal
-		id, err := strconv.ParseInt(id_s, 10, 64)
-		if err != nil {
-			log.Println(err)
-			return APIError("Malformed id", 400)
-		}
-		meal_draft.Id = id
-		err := SaveMealDraft(t.db, meal_draft)
-		if err != nil {
-			// assume there is no rows, create
-			meal_draft
-		}
-	}
+	// id_ s := r.Form.Get("id")
+	// if id_s == nil || id_s == "" { // there's no ufckin meal
+	// 	// create a meal
+	// 	CreateMealDraft(t.db, meal_draft)
+	// } else { // there's really an ufckin meal
+	// 	id, err := strconv.ParseInt(id_s, 10, 64)
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 		return APIError("Malformed id", 400)
+	// 	}
+	// 	meal_draft.Id = id
+	// 	err = SaveMealDraft(t.db, meal_draft)
+	// 	if err != nil {
+	// 		// assume there is no rows, create
+	// 		meal_draft
+	// 	}
+	// }
 	// get the pic data from the request
 	// get the pic urls from the db
 	// run a diff
