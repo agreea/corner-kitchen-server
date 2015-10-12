@@ -100,7 +100,9 @@ type MealData struct {
 	Host_reviews 	[]*Review_read		
 }
 */
-// curl --data "method=getUpcomingMeals" https://qa.yaychakula.com/api/meal
+/*
+curl --data "method=getUpcomingMeals" https://qa.yaychakula.com/api/meal
+*/
 func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 	meals, err := GetUpcomingMealsFromDB(t.db)
 	if err != nil {
