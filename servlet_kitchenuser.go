@@ -82,7 +82,9 @@ func (t *KitchenUserServlet) GetLast4s(r *http.Request) *ApiResult {
 	}
 	return APISuccess(last4s)
 }
-
+/*
+curl --data "method=AddPhone&session=f1caa66a-3351-48db-bcb3-d76bdc644634&phone=1234567890" https://qa.yaychakula.com/api/kitchenuser
+*/
 func (t *KitchenUserServlet) AddPhone(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	phone := r.Form.Get("phone")
@@ -100,6 +102,10 @@ func (t *KitchenUserServlet) AddPhone(r *http.Request) *ApiResult {
 
 // TODO: 	List management -- unsubscribe previous emails and subscribe the next next emails
 // 			Subscribe -- check if the person wants to receive weekly emails (eventually make this by market)
+/*
+curl --data "method=AddEmail&session=f1caa66a-3351-48db-bcb3-d76bdc644634&email=aka61@georgetown.edu" https://qa.yaychakula.com/api/kitchenuser
+*/
+
 func (t *KitchenUserServlet) AddEmail(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	email := r.Form.Get("email")
