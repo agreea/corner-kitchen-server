@@ -231,9 +231,16 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	pic_strings := make([]string, 0)
 	title := r.Form.Get("title")
 	description := r.Form.Get("description")
-	seats := r.Form.Get("seats")
 
-	// parse price
+	// parse seats
+	seats_s := r.Form.Get("seats")
+	seats, err := strconv.ParseFloat(seats_s, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed price", 400)
+	}
+
+	// and price
 	price_s := r.Form.Get("price")
 	price, err := strconv.ParseFloat(price_s, 64)
 	if err != nil {
