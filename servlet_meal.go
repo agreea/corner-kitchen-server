@@ -269,6 +269,13 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	// get the host data based on the session
 	session_id := r.Form.Get("session")
 	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not locate host", 400)
+	}
+	if !session_valid {
+		return APIError("Invalid session", 400)
+	}
 	host_as_guest := session.Guest
 	host, err := GetHostByGuestId(t.db, host_as_guest.Id)
 	if err != nil {
@@ -283,7 +290,8 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	meal_draft.Description = description
 	meal_draft.Capacity = seats
 	meal_draft.Price = price
-
+	meal_draft.Starts = starts
+	meal_drat.Rsvp_by = rsvp_by
 	// id_ s := r.Form.Get("id")
 	// if id_s == nil || id_s == "" { // there's no ufckin meal
 	// 	// create a meal
