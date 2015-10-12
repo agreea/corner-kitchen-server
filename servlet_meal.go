@@ -315,9 +315,8 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	err := json.Unmarshal(jsonBlob, &pic_strings)
 	if err != nil {
 		log.Println(err)
+		return APIError("Failed to upload pictures. Please try again.", 500)
 	}
-	log.Println(pics)
-	title := r.Form.Get("title")
 	for k, pic_string := range pic_strings {
 		pic_s_split := strings.Split(string(pic_string), "base64,")
 		log.Println(pic_s_split)
