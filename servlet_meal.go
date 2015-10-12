@@ -213,10 +213,105 @@ update if there
 // 	// 
 // }
 // curl -d "method=saveMealDraft&pics=<serialized pic strings>&title=<some title>" https://qa.yaychakula.com/api/meal
+/*
+type Meal struct {
+	Id      		int64
+	Host_id 		int64
+	Price   		float64
+	Title   		string
+	Description		string
+	Capacity		int64
+	Starts			time.Time
+	Rsvp_by			time.Time
+}
+*/
 func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	pics := r.Form.Get("pics")
 	jsonBlob := []byte(pics)
 	pic_strings := make([]string, 0)
+	title := r.Form.Get("title")
+	description := r.Form.Get("description")
+	seats := r.Form.Get("seats")
+
+	// parse price
+	price_s := r.Form.Get("price")
+	price, err := strconv.ParseFloat(price_s, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed price", 400)
+	}
+
+	// and start time
+	starts_s := r.Form.Get("starts")
+	starts_int, err := strconv.ParseInt(starts_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed start time", 400)
+	}
+	starts := time.Unix(starts_int, 0)
+
+	// and rsvp by time
+	rsvp_by_s := r.Form.Get("rsvpBy")
+	rsvp_by_int, err := strconv.ParseInt(rsvp_by_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed rsvp by time", 400)
+	}
+	rsvp_by := time.Unix(rsvp_by_int, 0)
+
+	// get the host data based on the session
+	session_id := r.Form.Get("session")
+	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	host_as_guest := session.Guest
+	host, err := GetHostByGuestId(t.db, host_as_guest.Id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not locate host", 400)
+	}
+
+	// create the meal draft 
+	meal_draft := new(Meal)
+	meal_draft.Host_id = host.Id
+	meal_draft.Title = title
+	meal_draft.Description = description
+	meal_draft.Capacity = seats
+	meal_draft.Price = price
+
+	id_ s := r.Form.Get("id")
+	if id_s == nil { // there's no ufckin meal
+		// create a meal
+		CreateMealDraft(t.db, meal_draft)
+	} else { // there's really an ufckin meal
+		id, err := strconv.ParseInt(id_s, 10, 64)
+		if err != nil {
+			log.Println(err)
+			return APIError("Malformed id", 400)
+		}
+		meal_draft.Id = id
+		err := SaveMealDraft(t.db, meal_draft)
+		if err != nil {
+			// assume there is no rows, create
+			meal_draft
+		}
+	}
+	// get the pic data from the request
+	// get the pic urls from the db
+	// run a diff
+	// delete the pic urls that aren't in the request
+	// write the pics that encoded in the request
+	// add the written pics to the db
+	// Routine looks like this:
+	// for pic in pics
+	// if it's a url --> push to stored_pics array
+	// if it's encoded --> write it to a file and then the db
+	// at the end of it: get the pics associated with the meal draft from the db
+	// run a diff
+	// for each of the left over urls from the diff, delete them. BOOM!
+	// meal draft has been saved
+	// there you go
+	// 100
+	// inished
+	// I SAID INISHED!
 	err := json.Unmarshal(jsonBlob, &pic_strings)
 	if err != nil {
 		log.Println(err)
@@ -231,7 +326,12 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 			log.Println(err)
 			return APIError("Couldn't decode string", 500)
 		}
-		filename := "/var/www/prod/img/" + title + strconv.Itoa(k) + ".png"
+		// extract the file ending from the json encoded string data
+		file_ending := strings.Split(pic_s_split[0], "image/")
+		file_ending := strings.Replace(file_ending, ";", "", 1) // drop the "images/"
+		// generate the file name. TODO: base file name off of draft id
+		filename := "/var/www/prod/img/" + title + strconv.Itoa(k) + file_ending
+		log.Println(filename)
 		syscall.Umask(022)
 		err = ioutil.WriteFile(filename, data, os.FileMode(int(0664)))
 		if err != nil {
@@ -345,7 +445,6 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 	log.Println(meal_req)
 	log.Println("Price in pennies: %d", int(meal.Price * 128))
 	log.Println("Price in pennies time seats: %d", int(meal.Price * 128) * int(meal_req.Seats))
-
 	host, err := GetHostById(t.db, meal.Host_id)
 	if err != nil {
 		log.Println(err)
