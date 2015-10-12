@@ -86,14 +86,41 @@ func (t *KitchenUserServlet) GetLast4s(r *http.Request) *ApiResult {
 func (t *KitchenUserServlet) AddPhone(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	phone := r.Form.Get("phone")
-	session_exists, kitchenSession, err := t.session_manager.GetGuestSession(session_id)
+	session_exists, session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
+		log.Println(err)
 		return APIError("Could not locate user", 400)
 	}
 	if !session_exists {
 		return APIError("Invalid session", 400)
 	}
-	err = UpdatePhoneForGuest(t.db, phone, kitchenSession.Guest.Id)
+	err = UpdatePhoneForGuest(t.db, phone, session.Guest.Id)
+	return APISuccess("OK")
+}
+
+// TODO: 	List management -- unsubscribe previous emails and subscribe the next next emails
+// 			Subscribe -- check if the person wants to receive weekly emails (eventually make this by market)
+func (t *KitchenUserServlet) AddEmail(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	email := r.Form.Get("email")
+	// subscribe := r.Form.Get("subscribe")
+	session_exists, session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not locate user", 400)
+	}
+	if !session_exists {
+		return APIError("Invalid session", 400)
+	}
+	// if session.Guest.Email != nil {
+	// 	// unsubscribe old email
+	// }
+	err = UpdateEmailForGuest(t.db, email, session.Guest.Id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to update email. Please try again", 500)
+	}
+	MailChimpRegister(email, false, t.db)
 	return APISuccess("OK")
 }
 
@@ -139,7 +166,7 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 		return APISuccess(guestData)
 	} else {
 		// also include long token and expires
-		guestData, err := t.create_guest(email, first_name, last_name, fb_id, long_token, expires)
+		guestData, err := t.create_guest(first_name, last_name, fb_id, long_token, expires)
 		if err != nil {
 			return APIError("Failed to create user", 500)
 		}
@@ -206,24 +233,6 @@ func (t *KitchenUserServlet) get_fb_long_token(fb_token string) (long_token stri
 		}
 		log.Println("Fb Token:" + long_token)
 		return long_token, int(expires64), nil
-			// if the array is size 1 you have an error
-			// else, split the first item by "="
-			//			then split the second item by "="
-			// try to make the second item in the second item an int
-			// the second item in the first item should be your token
-			// if err != nil {
-			// 	log.Println(err)
-			// 	return "",0, err
-			// } else {
-			// 	// if there's an error in the request:
-			// 	if fb_error, error_present := fbHash["error"]; error_present {
-			// 		log.Println(fb_error)
-			// 		return "", 0, err
-			// 	} 
-			// 	long_token = fbHash["access_token"]
-			// 	log.Println("Successfully got token: " + long_token)
-			// 	return long_token, int(expires64), nil
-			// }
 	}
 }
 
@@ -242,6 +251,11 @@ func (t *KitchenUserServlet) Get(r *http.Request) *ApiResult {
 
 func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
+	private_key := r.Form.Get("key")
+	if private_key != "67lk1j2345lkjd4jSAAA=o030924ffdVNLKAasdfnlAJmlj1rln,.as" {
+		log.Println("Tried to delete user without key: " + session_id)
+		return APIError("Command failed", 500)
+	}
 	session_valid, session, err := t.session_manager.GetSession(session_id)
 	if err != nil {
 		log.Println(err)
@@ -289,11 +303,11 @@ func (t *KitchenUserServlet) process_login(fb_id string, fb_long_token string, e
 }
 
 // Create a new user + session based off of the data returned from facebook and return a GuestData object
-func (t *KitchenUserServlet) create_guest(email string, first_name string, last_name string, fb_id string, fb_long_token string, expires int) (*GuestData, error) {
+func (t *KitchenUserServlet) create_guest(first_name string, last_name string, fb_id string, fb_long_token string, expires int) (*GuestData, error) {
 	// update FB token
 	_, err := t.db.Exec(`INSERT INTO Guest
-		(Email, First_name, Last_name, Facebook_id, Facebook_long_token) VALUES ( ?, ?, ?, ?, ?)`,
-		email, first_name, last_name, fb_id, fb_long_token)
+		(First_name, Last_name, Facebook_id, Facebook_long_token) VALUES (?, ?, ?, ?)`,
+		first_name, last_name, fb_id, fb_long_token)
 	if err != nil {
 		log.Println("Create guest", err)
 	}

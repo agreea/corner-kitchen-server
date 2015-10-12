@@ -289,7 +289,7 @@ func GetMealById(db *sql.DB, id int64) (*Meal, error) {
 func GetMealsToProcess(db *sql.DB) ([]*Meal, error) {
 	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
         FROM Meal 
-        WHERE Starts < ? AND Starts > ? AND Proccessed = 0`, 
+        WHERE Starts < ? AND Starts > ? AND Processed = 0`, 
         time.Now().Add(-time.Hour * 24 * 7),
         time.Now().Add(-time.Hour * 24 * 8))
 	if err != nil {
@@ -705,6 +705,16 @@ func UpdatePhoneForGuest(db *sql.DB, phone string, guest_id int64) error {
 	)
 	return err
 
+}
+
+func UpdateEmailForGuest(db *sql.DB, email string, guest_id int64) error {
+	_, err := db.Exec(`
+		UPDATE Guest
+		SET Email = ?
+		WHERE Id =?`,
+		email, guest_id,
+	)
+	return err
 }
 
 func readMealReviewLine(row *sql.Row) (*Review, error) {
