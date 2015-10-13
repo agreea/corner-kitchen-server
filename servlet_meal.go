@@ -264,7 +264,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	var id int64
 	if id_s == "" { // there's no ufckin meal
 		// create a meal
-		result, err = CreateMeal(t.db, meal_draft)
+		result, err := CreateMeal(t.db, meal_draft)
 		if err != nil {
 			log.Println(err)
 			return APIError("Failed to create meal", 500)
@@ -371,7 +371,7 @@ func (t *MealServlet) update_existing_pics(existing_pics []Pic, meal_id int64) e
 	return nil
 }
 
-func pic_slice_contains(s []Pic, e Pic) bool {
+func pic_slice_contains(s []Pic, e *Pic) bool {
     for _, a := range s {
         if a.Name == e.Name {
             return true
