@@ -294,7 +294,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	meal_draft.Rsvp_by = rsvp_by
 	// if there's no id, create a new meal
 	// if there is an id, update an existing meal
-	id_ s := r.Form.Get("id")
+	id_s := r.Form.Get("id")
 	if id_s == nil || id_s == "" { // there's no ufckin meal
 		// create a meal
 		err = CreateMeal(t.db, meal_draft)
@@ -354,7 +354,11 @@ func (t *MealServlet) process_pics(json_blob []byte, meal_id int64) error {
 				return err
 			}
 			// add pic to DB
-			err := SavePic(t.db, file_name, pic.Caption, meal_id)
+			err = SavePic(t.db, file_name, pic.Caption, meal_id)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
 		} else { // add it to the existing pictures array
 			existing_pics = append(existing_pics, pic)
 		}
