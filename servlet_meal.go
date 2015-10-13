@@ -388,9 +388,7 @@ func (t *MealServlet) update_existing_pics(existing_pics []Pic, meal_id int64) e
 	          log.Println(err)
     	      return err
       		}
-      		_, err = t.db.Exec('DELETE FROM MealPic 
-      							WHERE Name = ?', 
-      							database_pic.Name,)
+      		_, err = t.db.Exec('DELETE FROM MealPic WHERE Name = ?', database_pic.Name)
       		if err != nil {
 				log.Println(err)
     	      	return err
