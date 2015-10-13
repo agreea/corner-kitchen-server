@@ -558,7 +558,7 @@ func GetReviewsForMeal(db *sql.DB, meal_id int64) ([]*Review, error) {
 
 
 func GetPicsForMeal(db *sql.DB, meal_id int64) ([]*Pic, error) {
-	meal_pics, err := getMealPics(db, meal_id)
+	meal_pics, err := GetMealPics(db, meal_id)
 	if err != nil {
 		log.Println(err)
 		return nil, err		
@@ -576,7 +576,7 @@ func GetPicsForMeal(db *sql.DB, meal_id int64) ([]*Pic, error) {
 	return append(meal_pics, host_pics...), nil
 }
 
-func getMealPics(db *sql.DB, meal_id int64) ([]*Pic, error) {
+func GetMealPics(db *sql.DB, meal_id int64) ([]*Pic, error) {
 	rows, err := db.Query(`
 		SELECT Name, Caption
 		FROM MealPic
@@ -677,11 +677,19 @@ func UpdateHost(db *sql.DB, address string, host_id int64) error{
 
 
 func UpdateMealRequest(db *sql.DB, request_id int64, status int64) error {
-	_, err := db.Exec(`
-		UPDATE MealRequest
-		SET Status = ?
-		WHERE Id = ?`,
-		status, request_id,
+	_, err := db.Exec(
+		`UPDATE Meal
+		SET Host_id = ?, Price = ?, Title = ?, Description = ?, Capacity = ?, Starts = ?, Rsvp_by = ?
+		WHERE Id = ?
+		`,
+		meal_draft.Host_id,
+		meal_draft.Price,
+		meal_draft.Title,
+		meal_draft.Description,
+		meal_draft.Capacity,
+		meal_draft.Starts,
+		meal_draft.Rsvp_by,
+		meal_draft.Id,
 	)
 	return err
 }
@@ -715,6 +723,17 @@ func UpdateEmailForGuest(db *sql.DB, email string, guest_id int64) error {
 		email, guest_id,
 	)
 	return err
+}
+
+func UpdateMeal(db *sql, meal_draft *MealData) error {
+	_, err := db.Exec(`
+		UPDATE Meal
+		SET Email = ?
+		WHERE Id =?`,
+		email, guest_id,
+	)
+	return err
+
 }
 
 func readMealReviewLine(row *sql.Row) (*Review, error) {
@@ -1219,6 +1238,39 @@ func SaveOrderToDB(db *sql.DB, order *Order) (int64, error) {
 	}
 
 	return order.Id, nil
+}
+
+func SavePic(db *sql.DB, pic_name string, caption string, meal_id int64) error {
+	_, err := db.Exec(
+		`INSERT INTO MealPic
+		(Name, Caption, Meal_id)
+		VALUES
+		(?, ?, ?)
+		`,
+		pic_name,
+		caption,
+		meal_id,
+	)
+	return err
+
+}
+
+func CreateMeal(db *sql.DB, meal_draft *MealData) error {
+	_, err := db.Exec(
+		`INSERT INTO Meal
+		(Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by)
+		VALUES
+		(?, ?, ?, ?, ?, ?, ?)
+		`,
+		meal_draft.Host_id,
+		meal_draft.Price,
+		meal_draft.Title,
+		meal_draft.Description,
+		meal_draft.Capacity,
+		meal_draft.Starts,
+		meal_draft.Rsvp_by,
+	)
+	return err
 }
 
 func SaveReview(db *sql.DB, guest_id int64, meal_id int64, rating int64, comment string, tip_percent int64) error {
