@@ -269,7 +269,11 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 			log.Println(err)
 			return APIError("Failed to create meal", 500)
 		}
-		id = result.LastInsertId()
+		id, err = result.LastInsertId()
+		if err != nil {
+			log.Println(err)
+			return APIError("Please try to save your meal again!", 500)
+		}
 	} else { // there's really an ufckin meal
 		id, err = strconv.ParseInt(id_s, 10, 64)
 		if err != nil {
