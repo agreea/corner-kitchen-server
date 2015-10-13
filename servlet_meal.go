@@ -352,7 +352,7 @@ func (t *MealServlet) update_existing_pics(existing_pics []Pic, meal_id int64) e
 	for _, database_pic := range database_pics {
 		// if it's not in the existing pics passed by user,
 		// delete from the img directory and delete from the MealPic table
-		if !pic_slice_contains(existing_pics, database_pic.Name) {
+		if !pic_slice_contains(existing_pics, database_pic) {
     		err := os.Remove("/var/www/prod/img/" + database_pic.Name)
       		if err != nil {
 	          log.Println(err)
