@@ -48,6 +48,17 @@ type Meal_read struct {
 	Host_reviews 	[]*Review_read		
 }
 
+type Meal_draft struct {
+	Id 				int64
+	Title 			string
+	Description 	string
+	Price 			string
+	Seats 			string
+	Pics 			[]*Pic
+	Starts 			time.Time
+	Rsvp_by 		time.Time
+}
+
 type Review_read struct {
 	First_name 		string
 	Prof_pic_url 	string
@@ -89,7 +100,7 @@ func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 		meal_data.Open_spots = meal.Capacity
 		meal_data.Starts = meal.Starts
 		meal_data.Rsvp_by = meal.Rsvp_by
-		meal_data.Pics, err = GetPicsForMeal(t.db, meal.Id)
+		meal_data.Pics, err = GetAllPicsForMeal(t.db, meal.Id)
 		if err != nil{ 
 			log.Println(err)
 		}
@@ -183,17 +194,59 @@ update if there
 // }
 // curl -d "method=saveMealDraft&pics=<serialized pic strings>&title=<some title>" https://qa.yaychakula.com/api/meal
 /*
-type Meal struct {
-	Id      		int64
-	Host_id 		int64
-	Price   		float64
-	Title   		string
-	Description		string
-	Capacity		int64
-	Starts			time.Time
-	Rsvp_by			time.Time
+type Meal_draft struct {
+	Id 				int64
+	Title 			string
+	Description 	string
+	Price 			string
+	Seats 			string
+	Pics 			[]*Pic
+	Starts 			time.Time
+	Rsvp_by 		time.Time
 }
 */
+
+func (t* MealServlet) GetMealDraft(r *http.Request) *ApiResult {
+	// get session
+	session_id := r.Form.Get("session")
+	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not locate host", 400)
+	}
+	host, err := GetHostByGuestId(t.db, session.Guest.Id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not locate host", 400)
+	}
+	// get meal id
+	meal_id_s := r.Form.Get("id")
+	meal_id, err := strconv.ParseInt(meal_id_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed meal id", 400)
+	}
+	// make sure the host id matches the meal draft
+	meal_draft, err := GetMealDraft(t.db, meal_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed meal id", 400)
+	}
+	if meal_draft.Host_id != host.Id {
+		return APIError("This is not your meal draft", 400)
+	}
+	// get pics
+	pics, err := GetMealPics(t.db, meal_draft.Id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed meal id", 400)
+	}
+	meal_draft.Pics = pics
+	return APISuccess(meal_draft)
+	// if no, error
+	// if yes, say yes
+}
+
 func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	title := r.Form.Get("title")
 	description := r.Form.Get("description")
@@ -203,7 +256,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	seats, err := strconv.ParseInt(seats_s, 10, 64)
 	if err != nil {
 		log.Println(err)
-		return APIError("Malformed price", 400)
+		return APIError("Malformed seat count", 400)
 	}
 
 	// and price
@@ -290,83 +343,86 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	}
 	pics := r.Form.Get("pics")
 	jsonBlob := []byte(pics)
-	t.process_pics(jsonBlob, id)
+	err := t.process_pics(jsonBlob, id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to load pictures. Please try again.", 500)
+	}
+	// TODO: Load meal into api call... OR just return the id
 	return APISuccess("OK")
 }
 
-// get meal draft
-// session, ID
-// if there is a meal draft with that host id, send it to them
-// else error
-
+// Takes json blob of pic data and meal id
+// checks each pic to see if it is a new upload or a previous one
+// if it's a new upload, creates the pic file
 func (t *MealServlet) process_pics(json_blob []byte, meal_id int64) error {
 	existing_pics := make([]Pic, 0)
 	pics_to_save := make([]Pic, 0)
 	err := json.Unmarshal(json_blob, &pics_to_save)
 	if err != nil {
-		log.Println(err)
 		return err
 	}
 	for _, pic := range pics_to_save {
-		if strings.HasPrefix(pic.Name, "data:image") {
-			// create file for this new picture data
-			pic_s_split := strings.Split(string(pic.Name), "base64,")
-			data, err := base64.StdEncoding.DecodeString(pic_s_split[1])
+		if strings.HasPrefix(pic.Name, "data:image") { 
+		// pic is a new upload, create a file for it
+			err := t.create_pic_file(pic.Name)
 			if err != nil {
-				log.Println(err)
 				return err
 			}
-			// extract the file ending from the json encoded string data
-			file_ending := strings.Split(pic_s_split[0], "image/")[1]
-			file_ending = strings.Replace(file_ending, ";", "", 1) // drop the "images/"
-			// generate the file name. TODO: base file name off of draft id
-			file_name := uuid.New() + "." + file_ending
-			file_address := "/var/www/prod/img/" + file_name
-			log.Println(file_name)
-			syscall.Umask(022)
-			err = ioutil.WriteFile(file_address, data, os.FileMode(int(0664)))
-			if err != nil {
-				log.Println(err)
-				return err
-			}
-			// add pic to DB
-			err = SavePic(t.db, file_name, pic.Caption, meal_id)
-			if err != nil {
-				log.Println(err)
-				return err
-			}
-		} else { // add it to the existing pictures array
+		} else { // pic is already stored on server
 			existing_pics = append(existing_pics, pic)
 		}
 	}
-	if len(existing_pics) > 0 {
-		return t.update_existing_pics(existing_pics, meal_id)
+	if len(existing_pics) > 0 { 
+		// update the pics in the db to make sure unwanted ones are deleted 
+		// and also that captions are up-to-date
+		return t.update_database_pics(existing_pics, meal_id)
 	} else {
 		return nil	
 	}
 }
 
-// arguments: id of meal, array of picture urls (in http format)
-// compares the array of stored pics sent by the user with the list of stored pics in the db
-// deletes all pictures from the server and db if they were not part of the array of pics sent by the user
-func (t *MealServlet) update_existing_pics(existing_pics []Pic, meal_id int64) error {
-	database_pics, err := GetMealPics(t.db, meal_id)
+func (t *MealServlet) create_pic_file(pic_string string) error {
+	pic_s_split := strings.Split(string(pic_string), "base64,")
+	data, err := base64.StdEncoding.DecodeString(pic_s_split[1])
 	if err != nil {
-		log.Println(err)
 		return err
 	}
-	for _, database_pic := range database_pics {
+	// extract the file ending from the json encoded string data
+	file_ending := strings.Split(pic_s_split[0], "image/")[1]
+	file_ending = strings.Replace(file_ending, ";", "", 1) // drop the "images/"
+			// generate the file name and address
+	file_name := uuid.New() + "." + file_ending
+	file_address := "/var/www/prod/img/" + file_name
+	log.Println(file_name)
+	syscall.Umask(022)
+	err = ioutil.WriteFile(file_address, data, os.FileMode(int(0664)))
+	if err != nil {
+		return err
+	}
+	// add pic to DB
+	return SavePic(t.db, file_name, pic.Caption, meal_id)
+}
+
+// takes id of meal, array of picture file names
+// compares the array of stored pics sent by the user with the list of stored pics in the db
+// deletes all pictures from the server and db if they were not part of the array of pics sent by the user
+func (t *MealServlet) update_database_pics(submitted_pics []Pic, meal_id int64) error {
+	database_pics, err := GetMealPics(t.db, meal_id)
+	if err != nil {
+		return err
+	}
+	for _, db_pic := range database_pics {
 		// if it's not in the existing pics passed by user,
 		// delete from the img directory and delete from the MealPic table
-		if !pic_slice_contains(existing_pics, database_pic) {
-    		err := os.Remove("/var/www/prod/img/" + database_pic.Name)
+		keep_db_pic, err := sync_with_submitted_pics(submitted_pics, db_pic)
+		if !keep_db_pic {
+    		err := os.Remove("/var/www/prod/img/" + db_pic.Name)
       		if err != nil {
-	          log.Println(err)
     	      return err
       		}
-      		_, err = t.db.Exec("DELETE FROM MealPic WHERE Name = ?", database_pic.Name)
+      		_, err = t.db.Exec("DELETE FROM MealPic WHERE Name = ?", db_pic.Name)
       		if err != nil {
-				log.Println(err)
     	      	return err
       		}
 		}
@@ -374,13 +430,26 @@ func (t *MealServlet) update_existing_pics(existing_pics []Pic, meal_id int64) e
 	return nil
 }
 
-func pic_slice_contains(s []Pic, e *Pic) bool {
-    for _, a := range s {
-        if a.Name == e.Name {
-            return true
-        }
-    }
-    return false
+// takes an individual pic from the db
+// checks if it is among the pics the user submitted
+// if it is and has a different caption, updates the caption in the db
+// returns true if the db pic should be kept, false if it should be deleted
+func sync_with_submitted_pics(existing_pics []Pic, db_pic *Pic) (bool, error) {
+	existing_pics_contains_db_pic := false
+	for _, existing_pic := range existing_pics {
+		if existing_pic.Name == database_pic.Name {
+			existing_pics_contains = true
+			if existing_pic.Caption != database_pic.Caption {
+				_, err = t.db.Exec("UPDATE MealPic SET Caption = ? WHERE Name = ?", 
+								existing_pic.Caption, 
+								existing_pic.Name)
+				if err != nil {
+					return existing_pics_contains_db_pic, err
+				}
+			}
+		}
+	}
+    return existing_pics_contains_db_pic, nil
 }
 
 func (t *MealServlet) process_meal_charge_worker() {
@@ -551,7 +620,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	if err != nil {
 		log.Println(err)
 	}
-	pics, err := GetPicsForMeal(t.db, meal.Id)
+	pics, err := GetAllPicsForMeal(t.db, meal.Id)
 	if err != nil {
 		log.Println(err)
 	}
