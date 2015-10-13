@@ -264,12 +264,12 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	// if there's no id, create a new meal
 	// if there is an id, update an existing meal
 	id_s := r.Form.Get("id")
-	if id_s == nil || id_s == "" { // there's no ufckin meal
+	if id_s == "" { // there's no ufckin meal
 		// create a meal
 		err = CreateMeal(t.db, meal_draft)
 		if err != nil {
 			log.Println(err)
-			return APIError("Malformed id", 400)
+			return APIError("Failed to create meal", 500)
 		}
 	} else { // there's really an ufckin meal
 		id, err := strconv.ParseInt(id_s, 10, 64)
@@ -281,7 +281,8 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 		err = UpdateMeal(t.db, meal_draft)
 		if err != nil {
 			// assume there is no rows, create
-			meal_draft
+			log.Println(err)
+			return APIError("Failed to update meal", 500)
 		}
 	}
 	return APISuccess("OK")
@@ -315,7 +316,7 @@ func (t *MealServlet) process_pics(json_blob []byte, meal_id int64) error {
 			// generate the file name. TODO: base file name off of draft id
 			file_name := uuid.New() + "." + file_ending
 			file_address := "/var/www/prod/img/" + file_name
-			log.Println(filename)
+			log.Println(file_name)
 			syscall.Umask(022)
 			err = ioutil.WriteFile(file_address, data, os.FileMode(int(0664)))
 			if err != nil {
@@ -351,7 +352,7 @@ func (t *MealServlet) update_existing_pics(existing_pics []Pic, meal_id int64) e
 	for _, database_pic := range database_pics {
 		// if it's not in the existing pics passed by user,
 		// delete from the img directory and delete from the MealPic table
-		if !string_slice_contains(existing_pics, database_pic.Name) {
+		if !pic_slice_contains(existing_pics, database_pic.Name) {
     		err := os.Remove("/var/www/prod/img/" + database_pic.Name)
       		if err != nil {
 	          log.Println(err)
