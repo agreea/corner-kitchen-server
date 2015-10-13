@@ -344,7 +344,7 @@ func (t *MealServlet) process_pics(json_blob []byte, meal_id int64) error {
 			file_ending := strings.Split(pic_s_split[0], "image/")[1]
 			file_ending = strings.Replace(file_ending, ";", "", 1) // drop the "images/"
 			// generate the file name. TODO: base file name off of draft id
-			file_name := file_name + "." + file_ending
+			file_name := uuid.New() + "." + file_ending
 			file_address := "/var/www/prod/img/" + file_name
 			log.Println(filename)
 			syscall.Umask(022)
