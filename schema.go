@@ -677,19 +677,11 @@ func UpdateHost(db *sql.DB, address string, host_id int64) error{
 
 
 func UpdateMealRequest(db *sql.DB, request_id int64, status int64) error {
-	_, err := db.Exec(
-		`UPDATE Meal
-		SET Host_id = ?, Price = ?, Title = ?, Description = ?, Capacity = ?, Starts = ?, Rsvp_by = ?
-		WHERE Id = ?
-		`,
-		meal_draft.Host_id,
-		meal_draft.Price,
-		meal_draft.Title,
-		meal_draft.Description,
-		meal_draft.Capacity,
-		meal_draft.Starts,
-		meal_draft.Rsvp_by,
-		meal_draft.Id,
+	_, err := db.Exec(`
+		UPDATE MealRequest
+		SET Status = ?
+		WHERE Id = ?`,
+		status, request_id,
 	)
 	return err
 }
@@ -726,14 +718,21 @@ func UpdateEmailForGuest(db *sql.DB, email string, guest_id int64) error {
 }
 
 func UpdateMeal(db *sql, meal_draft *MealData) error {
-	_, err := db.Exec(`
-		UPDATE Meal
-		SET Email = ?
-		WHERE Id =?`,
-		email, guest_id,
+	_, err := db.Exec(
+		`UPDATE Meal
+		SET Host_id = ?, Price = ?, Title = ?, Description = ?, Capacity = ?, Starts = ?, Rsvp_by = ?
+		WHERE Id = ?
+		`,
+		meal_draft.Host_id,
+		meal_draft.Price,
+		meal_draft.Title,
+		meal_draft.Description,
+		meal_draft.Capacity,
+		meal_draft.Starts,
+		meal_draft.Rsvp_by,
+		meal_draft.Id,
 	)
 	return err
-
 }
 
 func readMealReviewLine(row *sql.Row) (*Review, error) {
@@ -1266,7 +1265,6 @@ func CreateMeal(db *sql.DB, meal_draft *MealData) error {
 		meal_draft.Price,
 		meal_draft.Title,
 		meal_draft.Description,
-		meal_draft.Capacity,
 		meal_draft.Starts,
 		meal_draft.Rsvp_by,
 	)
