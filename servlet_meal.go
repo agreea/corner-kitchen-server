@@ -29,7 +29,7 @@ type Attendee_read struct {
 	Seats 			int64
 }
 
-type MealData struct {
+type Meal_read struct {
 	Id 				int64
 	Title 			string
 	Description		string
@@ -70,37 +70,6 @@ func NewMealServlet(server_config *Config, session_manager *SessionManager) *Mea
 	return t
 }
 
-
-/*
-
-type Meal struct {
-	Id      		int64
-	Host_id 		int64
-	Price   		float64
-	Title   		string
-	Description		string
-	Capacity		int64
-	Starts			time.Time
-	Rsvp_by			time.Time
-}
-
-type MealData struct {
-	Title 			string
-	Description		string
-	Host_name 		string
-	Host_pic		string
-	Host_bio		string
-	Open_spots 		int64
-	Price			float64
-	Status 			string
-	Attendees 		[]*Attendee
-	Starts			time.Time
-	Rsvp_by			time.Time
-	Pics 			[]*Pic
-	Meal_reviews	[]*Review
-	Host_reviews 	[]*Review_read		
-}
-*/
 /*
 curl --data "method=getUpcomingMeals" https://qa.yaychakula.com/api/meal
 */
@@ -110,9 +79,9 @@ func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Failed to retrieve meals", 500)
 	}
-	meal_datas := make([]*MealData, 0)
+	meal_datas := make([]*Meal_read, 0)
 	for _, meal := range meals {
-		meal_data := new(MealData)
+		meal_data := new(Meal_read)
 		meal_data.Id = meal.Id
 		meal_data.Title = meal.Title
 		meal_data.Description = meal.Description
@@ -326,7 +295,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 func (t *MealServlet) process_pics(json_blob []byte, meal_id int64) error {
 	existing_pics := make([]Pic, 0)
 	pics_to_save := make([]Pic, 0)
-	err = json.Unmarshal(json_blob, &pics_to_save)
+	err := json.Unmarshal(json_blob, &pics_to_save)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -561,7 +530,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		log.Println(err)
 		return APIError("Server error", 500)
 	}
-	meal_data := new(MealData)
+	meal_data := new(Meal_read)
 	meal_data.Id = meal.Id
 	meal_data.Title = meal.Title
 	meal_data.Description = meal.Description
