@@ -195,9 +195,6 @@ type Meal struct {
 }
 */
 func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
-	pics := r.Form.Get("pics")
-	jsonBlob := []byte(pics)
-	t.process_pics(jsonBlob)
 	title := r.Form.Get("title")
 	description := r.Form.Get("description")
 
@@ -264,15 +261,17 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	// if there's no id, create a new meal
 	// if there is an id, update an existing meal
 	id_s := r.Form.Get("id")
+	var id int64
 	if id_s == "" { // there's no ufckin meal
 		// create a meal
-		err = CreateMeal(t.db, meal_draft)
+		result, err = CreateMeal(t.db, meal_draft)
 		if err != nil {
 			log.Println(err)
 			return APIError("Failed to create meal", 500)
 		}
+		id = result.LastInsertId()
 	} else { // there's really an ufckin meal
-		id, err := strconv.ParseInt(id_s, 10, 64)
+		id, err = strconv.ParseInt(id_s, 10, 64)
 		if err != nil {
 			log.Println(err)
 			return APIError("Malformed id", 400)
@@ -285,6 +284,10 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 			return APIError("Failed to update meal", 500)
 		}
 	}
+	pics := r.Form.Get("pics")
+	jsonBlob := []byte(pics)
+	t.process_pics(jsonBlob, id)
+
 	return APISuccess("OK")
 }
 
