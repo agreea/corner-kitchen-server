@@ -267,7 +267,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 		result, err := CreateMeal(t.db, meal_draft)
 		if err != nil {
 			log.Println(err)
-			return APIError("Failed to create meal", 500)
+			return APIError("Failed to create meal draft", 500)
 		}
 		id, err = result.LastInsertId()
 		if err != nil {
@@ -291,7 +291,6 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	pics := r.Form.Get("pics")
 	jsonBlob := []byte(pics)
 	t.process_pics(jsonBlob, id)
-
 	return APISuccess("OK")
 }
 

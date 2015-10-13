@@ -1264,6 +1264,7 @@ func CreateMeal(db *sql.DB, meal_draft *Meal) (sql.Result, error) {
 		meal_draft.Price,
 		meal_draft.Title,
 		meal_draft.Description,
+		meal_draft.Capacity,
 		meal_draft.Starts,
 		meal_draft.Rsvp_by,
 	)
