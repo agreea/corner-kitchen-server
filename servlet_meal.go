@@ -336,7 +336,7 @@ func (t *MealServlet) process_pics(json_blob []byte, meal_id int64) error {
 			existing_pics = append(existing_pics, pic)
 		}
 	}
-	if existing_pics.size > 0 {
+	if len(existing_pics) > 0 {
 		return t.update_existing_pics(existing_pics, meal_id)
 	} else {
 		return nil	
