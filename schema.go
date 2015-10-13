@@ -282,10 +282,16 @@ func GetUserByPhone(db *sql.DB, phone string) (*UserData, error) {
 func GetMealById(db *sql.DB, id int64) (*Meal, error) {
 	row := db.QueryRow(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
         FROM Meal 
-        WHERE Id = ?`, id)
+        WHERE Id = ? AND Published = 1`, id)
 	return readMealLine(row)
 }
 
+func GetMealDraft(db *sql.DB, meal_id int64) (*MealDraft, error) {
+	row := db.QueryRow(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
+        FROM Meal 
+        WHERE Id = ? AND Published = 0`, id)
+	return readMealDraftLine(row)
+}
 func GetMealsToProcess(db *sql.DB) ([]*Meal, error) {
 	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
         FROM Meal 
@@ -556,8 +562,9 @@ func GetReviewsForMeal(db *sql.DB, meal_id int64) ([]*Review, error) {
 	return reviews, nil
 }
 
-
-func GetPicsForMeal(db *sql.DB, meal_id int64) ([]*Pic, error) {
+// Returns all of the pics and the pics associated with the host
+// Use only for published meals
+func GetAllPicsForMeal(db *sql.DB, meal_id int64) ([]*Pic, error) {
 	meal_pics, err := GetMealPics(db, meal_id)
 	if err != nil {
 		log.Println(err)
@@ -826,6 +833,34 @@ func readMealLine(row *sql.Row) (*Meal, error) {
 		&meal.Capacity,
 		&meal.Starts,
 		&meal.Rsvp_by, 
+	); err != nil {
+		return nil, err
+	}
+	return meal, nil
+}
+
+/*
+	Id 				int64
+	Title 			string
+	Description 	string
+	Price 			string
+	Seats 			string
+	Pics 			[]*Pic
+	Starts 			time.Time
+	Rsvp_by 		time.Time
+*/
+
+func readMealDraftLine(row *sql.Row) (*Meal_draft, error) {
+	meal_draft := new(Meal_draft)
+	if err := row.Scan(
+		&meal_draft.Id,
+		&meal_draft.Host_id,
+		&meal_draft.Price,
+		&meal_draft.Title,
+		&meal_draft.Description,
+		&meal_draft.Capacity,
+		&meal_draft.Starts,
+		&meal_draft.Rsvp_by, 
 	); err != nil {
 		return nil, err
 	}
