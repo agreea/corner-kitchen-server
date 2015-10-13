@@ -1254,8 +1254,8 @@ func SavePic(db *sql.DB, pic_name string, caption string, meal_id int64) error {
 
 }
 
-func CreateMeal(db *sql.DB, meal_draft *Meal) error {
-	_, err := db.Exec(
+func CreateMeal(db *sql.DB, meal_draft *Meal) (Result, error) {
+	result, err := db.Exec(
 		`INSERT INTO Meal
 		(Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by)
 		VALUES
@@ -1268,7 +1268,7 @@ func CreateMeal(db *sql.DB, meal_draft *Meal) error {
 		meal_draft.Starts,
 		meal_draft.Rsvp_by,
 	)
-	return err
+	return result, err
 }
 
 func SaveReview(db *sql.DB, guest_id int64, meal_id int64, rating int64, comment string, tip_percent int64) error {
