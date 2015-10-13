@@ -717,7 +717,7 @@ func UpdateEmailForGuest(db *sql.DB, email string, guest_id int64) error {
 	return err
 }
 
-func UpdateMeal(db *sql, meal_draft *Meal) error {
+func UpdateMeal(db *sql.DB, meal_draft *Meal) error {
 	_, err := db.Exec(
 		`UPDATE Meal
 		SET Host_id = ?, Price = ?, Title = ?, Description = ?, Capacity = ?, Starts = ?, Rsvp_by = ?
@@ -1251,10 +1251,9 @@ func SavePic(db *sql.DB, pic_name string, caption string, meal_id int64) error {
 		meal_id,
 	)
 	return err
-
 }
 
-func CreateMeal(db *sql.DB, meal_draft *Meal) (Result, error) {
+func CreateMeal(db *sql.DB, meal_draft *Meal) (sql.Result, error) {
 	result, err := db.Exec(
 		`INSERT INTO Meal
 		(Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by)
