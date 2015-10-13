@@ -228,7 +228,7 @@ type Meal struct {
 func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	pics := r.Form.Get("pics")
 	jsonBlob := []byte(pics)
-	pic_strings := make([]string, 0)
+	t.process_pics(jsonBlob)
 	title := r.Form.Get("title")
 	description := r.Form.Get("description")
 
@@ -292,80 +292,118 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	meal_draft.Price = price
 	meal_draft.Starts = starts
 	meal_draft.Rsvp_by = rsvp_by
-	// id_ s := r.Form.Get("id")
-	// if id_s == nil || id_s == "" { // there's no ufckin meal
-	// 	// create a meal
-	// 	CreateMealDraft(t.db, meal_draft)
-	// } else { // there's really an ufckin meal
-	// 	id, err := strconv.ParseInt(id_s, 10, 64)
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 		return APIError("Malformed id", 400)
-	// 	}
-	// 	meal_draft.Id = id
-	// 	err = SaveMealDraft(t.db, meal_draft)
-	// 	if err != nil {
-	// 		// assume there is no rows, create
-	// 		meal_draft
-	// 	}
-	// }
-	// get the pic data from the request
-	// get the pic urls from the db
-	// run a diff
-	// delete the pic urls that aren't in the request
-	// write the pics that encoded in the request
-	// add the written pics to the db
-	// Routine looks like this:
-	// for pic in pics
-	// if it's a url --> push to stored_pics array
-	// if it's encoded --> write it to a file and then the db
-	// at the end of it: get the pics associated with the meal draft from the db
-	// run a diff
-	// for each of the left over urls from the diff, delete them. BOOM!
-	// meal draft has been saved
-	// there you go
-	// 100
-	// inished
-	// I SAID INISHED!
-	err = json.Unmarshal(jsonBlob, &pic_strings)
-	if err != nil {
-		log.Println(err)
-		return APIError("Failed to upload pictures. Please try again.", 500)
-	}
-	for _, pic_string := range pic_strings {
-		pic_s_split := strings.Split(string(pic_string), "base64,")
-		log.Println(pic_s_split)
-		data, err := base64.StdEncoding.DecodeString(pic_s_split[1])
+	// if there's no id, create a new meal
+	// if there is an id, update an existing meal
+	id_ s := r.Form.Get("id")
+	if id_s == nil || id_s == "" { // there's no ufckin meal
+		// create a meal
+		err = CreateMeal(t.db, meal_draft)
 		if err != nil {
 			log.Println(err)
-			return APIError("Couldn't decode string", 500)
+			return APIError("Malformed id", 400)
 		}
-		// extract the file ending from the json encoded string data
-		file_ending := strings.Split(pic_s_split[0], "image/")[1]
-		file_ending = strings.Replace(file_ending, ";", "", 1) // drop the "images/"
-		// generate the file name. TODO: base file name off of draft id
-		file_name := uuid.New()
-		filename := "/var/www/prod/img/" + file_name + "." + file_ending
-		log.Println(filename)
-		syscall.Umask(022)
-		err = ioutil.WriteFile(filename, data, os.FileMode(int(0664)))
+	} else { // there's really an ufckin meal
+		id, err := strconv.ParseInt(id_s, 10, 64)
 		if err != nil {
-        	log.Println(err)
-        	return APIError("Error writing photo", 500)
-        }
+			log.Println(err)
+			return APIError("Malformed id", 400)
+		}
+		meal_draft.Id = id
+		err = UpdateMeal(t.db, meal_draft)
+		if err != nil {
+			// assume there is no rows, create
+			meal_draft
+		}
 	}
-	// title := r.Form.Get("title")
-	// description := r.Form.Get("description")
-	// // starts := r.Form.Get("starts")
-	// // rsvp_by := r.Form.Get("rsvpBy")
-	// session_id := r.Form.Get("session")
-	// log.Println(title + " " + description + " " + session_id)
 	return APISuccess("OK")
 }
+
 // get meal draft
 // session, ID
 // if there is a meal draft with that host id, send it to them
 // else error
+
+func (t *MealServlet) process_pics(json_blob []byte, meal_id int64) error {
+	existing_pics := make([]Pic, 0)
+	pics_to_save := make([]Pic, 0)
+	err = json.Unmarshal(json_blob, &pics_to_save)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	for _, pic := range pics_to_save {
+		if strings.HasPrefix(pic.Name, "data:image") {
+			// create file for this new picture data
+			pic_s_split := strings.Split(string(pic.Name), "base64,")
+			data, err := base64.StdEncoding.DecodeString(pic_s_split[1])
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+			// extract the file ending from the json encoded string data
+			file_ending := strings.Split(pic_s_split[0], "image/")[1]
+			file_ending = strings.Replace(file_ending, ";", "", 1) // drop the "images/"
+			// generate the file name. TODO: base file name off of draft id
+			file_name := file_name + "." + file_ending
+			file_address := "/var/www/prod/img/" + file_name
+			log.Println(filename)
+			syscall.Umask(022)
+			err = ioutil.WriteFile(file_address, data, os.FileMode(int(0664)))
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+			// add pic to DB
+			err := SavePic(t.db, file_name, pic.Caption, meal_id)
+		} else { // add it to the existing pictures array
+			existing_pics = append(existing_pics, pic)
+		}
+	}
+	if existing_pics.size > 0 {
+		return t.update_existing_pics(existing_pics, meal_id)
+	} else {
+		return nil	
+	}
+}
+
+// arguments: id of meal, array of picture urls (in http format)
+// compares the array of stored pics sent by the user with the list of stored pics in the db
+// deletes all pictures from the server and db if they were not part of the array of pics sent by the user
+func (t *MealServlet) update_existing_pics(existing_pics []Pic, meal_id int64) error {
+	database_pics, err := GetMealPics(t.db, meal_id)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	for _, database_pic := range database_pics {
+		// if it's not in the existing pics passed by user,
+		// delete from the img directory and delete from the MealPic table
+		if !string_slice_contains(existing_pics, database_pic.Name) {
+    		err := os.Remove("/var/www/prod/img/" + database_pic.Name)
+      		if err != nil {
+	          log.Println(err)
+    	      return err
+      		}
+      		_, err = t.db.Exec("DELETE FROM MealPic 
+      							WHERE Name = ?", 
+      							database_pic.Name)
+      		if err != nil {
+				log.Println(err)
+    	      	return err
+      		}
+		}
+	}
+	return nil
+}
+
+func pic_slice_contains(s []Pic, e Pic) bool {
+    for _, a := range s {
+        if a.Name == e.Name {
+            return true
+        }
+    }
+    return false
+}
 
 func (t *MealServlet) process_meal_charge_worker() {
 	// get all meals that happened 7 - 8 days ago
