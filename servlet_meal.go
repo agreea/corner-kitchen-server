@@ -215,6 +215,9 @@ func (t* MealServlet) GetMealDraft(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Could not locate host", 400)
 	}
+	if !session_valid {
+		return APIError("Expired session. Please log out and log back in.", 400)
+	}
 	host, err := GetHostByGuestId(t.db, session.Guest.Id)
 	if err != nil {
 		log.Println(err)
