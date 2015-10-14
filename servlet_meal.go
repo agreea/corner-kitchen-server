@@ -417,6 +417,9 @@ func (t *MealServlet) update_database_pics(submitted_pics []Pic, meal_id int64) 
 		// if it's not in the existing pics passed by user,
 		// delete from the img directory and delete from the MealPic table
 		keep_db_pic, err := t.sync_with_submitted_pics(submitted_pics, db_pic)
+		if err != nil {
+			return err
+		}
 		if !keep_db_pic {
     		err := os.Remove("/var/www/prod/img/" + db_pic.Name)
       		if err != nil {
