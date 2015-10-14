@@ -343,7 +343,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	}
 	pics := r.Form.Get("pics")
 	jsonBlob := []byte(pics)
-	err := t.process_pics(jsonBlob, id)
+	err = t.process_pics(jsonBlob, id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Failed to load pictures. Please try again.", 500)
@@ -365,7 +365,7 @@ func (t *MealServlet) process_pics(json_blob []byte, meal_id int64) error {
 	for _, pic := range pics_to_save {
 		if strings.HasPrefix(pic.Name, "data:image") { 
 		// pic is a new upload, create a file for it
-			err := t.create_pic_file(pic.Name)
+			err := t.create_pic_file(pic, meal_id)
 			if err != nil {
 				return err
 			}
@@ -382,8 +382,8 @@ func (t *MealServlet) process_pics(json_blob []byte, meal_id int64) error {
 	}
 }
 
-func (t *MealServlet) create_pic_file(pic_string string) error {
-	pic_s_split := strings.Split(string(pic_string), "base64,")
+func (t *MealServlet) create_pic_file(pic Pic, meal_id int64) error {
+	pic_s_split := strings.Split(string(pic.Name), "base64,")
 	data, err := base64.StdEncoding.DecodeString(pic_s_split[1])
 	if err != nil {
 		return err
@@ -437,7 +437,7 @@ func (t *MealServlet) update_database_pics(submitted_pics []Pic, meal_id int64) 
 func sync_with_submitted_pics(existing_pics []Pic, db_pic *Pic) (bool, error) {
 	existing_pics_contains_db_pic := false
 	for _, existing_pic := range existing_pics {
-		if existing_pic.Name == database_pic.Name {
+		if existing_pic.Name == db_pic.Name {
 			existing_pics_contains = true
 			if existing_pic.Caption != database_pic.Caption {
 				_, err = t.db.Exec("UPDATE MealPic SET Caption = ? WHERE Name = ?", 
