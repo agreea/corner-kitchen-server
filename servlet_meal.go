@@ -233,7 +233,7 @@ func (t* MealServlet) GetMealDraft(r *http.Request) *ApiResult {
 	meal_draft, err := GetMealDraft(t.db, meal_id)
 	if err != nil {
 		log.Println(err)
-		return APIError("Malformed meal id", 400)
+		return APIError("Could not retrieve draft", 400)
 	}
 	if meal_draft.Host_id != host.Id {
 		return APIError("This is not your meal draft", 400)
