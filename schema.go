@@ -289,9 +289,10 @@ func GetMealById(db *sql.DB, id int64) (*Meal, error) {
 func GetMealDraft(db *sql.DB, meal_id int64) (*MealDraft, error) {
 	row := db.QueryRow(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
         FROM Meal 
-        WHERE Id = ? AND Published = 0`, id)
+        WHERE Id = ? AND Published = 0`, meal_id)
 	return readMealDraftLine(row)
 }
+
 func GetMealsToProcess(db *sql.DB) ([]*Meal, error) {
 	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
         FROM Meal 

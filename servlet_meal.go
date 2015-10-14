@@ -121,7 +121,7 @@ func (t *MealServlet) get_meal_attendees(meal_id int64) ([]*Attendee_read, error
 	}
 	attendee_reads := make([]*Attendee_read, 0)
 	for _, attendee := range attendees {
-    	attendee_read := new(Attendee_read)
+		attendee_read := new(Attendee_read)
     	attendee_read.First_name = attendee.Guest.First_name
     	attendee_read.Prof_pic_url = GetFacebookPic(attendee.Guest.Facebook_id)
     	attendee_read.Seats = attendee.Seats
@@ -450,7 +450,7 @@ func (t *MealServlet) sync_with_submitted_pics(existing_pics []Pic, db_pic *Pic)
 			}
 		}
 	}
-    return existing_pics_contains_db_pic, nil
+    return keep_db_pic, nil
 }
 
 func (t *MealServlet) process_meal_charge_worker() {
