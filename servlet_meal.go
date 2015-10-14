@@ -465,7 +465,7 @@ func (t *MealServlet) process_meal_charge_worker() {
 		time.Sleep(time.Hour * 24)
 	}
 }
-
+// TODO: handle failed charges
 func (t *MealServlet) process_meal_charges(){
 	meals, err := GetMealsToProcess(t.db)
 	if err != nil {
