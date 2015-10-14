@@ -286,7 +286,7 @@ func GetMealById(db *sql.DB, id int64) (*Meal, error) {
 	return readMealLine(row)
 }
 
-func GetMealDraft(db *sql.DB, meal_id int64) (*MealDraft, error) {
+func GetMealDraft(db *sql.DB, meal_id int64) (*Meal_draft, error) {
 	row := db.QueryRow(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
         FROM Meal 
         WHERE Id = ? AND Published = 0`, meal_id)
@@ -865,7 +865,7 @@ func readMealDraftLine(row *sql.Row) (*Meal_draft, error) {
 	); err != nil {
 		return nil, err
 	}
-	return meal, nil
+	return meal_draft, nil
 }
 
 func readMealRequestLine(row *sql.Row) (*MealRequest, error) {
