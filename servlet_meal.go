@@ -415,7 +415,7 @@ func (t *MealServlet) update_database_pics(submitted_pics []Pic, meal_id int64) 
 	for _, db_pic := range database_pics {
 		// if it's not in the existing pics passed by user,
 		// delete from the img directory and delete from the MealPic table
-		keep_db_pic, err := sync_with_submitted_pics(submitted_pics, db_pic)
+		keep_db_pic, err := t.sync_with_submitted_pics(submitted_pics, db_pic)
 		if !keep_db_pic {
     		err := os.Remove("/var/www/prod/img/" + db_pic.Name)
       		if err != nil {
@@ -434,17 +434,17 @@ func (t *MealServlet) update_database_pics(submitted_pics []Pic, meal_id int64) 
 // checks if it is among the pics the user submitted
 // if it is and has a different caption, updates the caption in the db
 // returns true if the db pic should be kept, false if it should be deleted
-func sync_with_submitted_pics(existing_pics []Pic, db_pic *Pic) (bool, error) {
+func (t *MealServlet) sync_with_submitted_pics(existing_pics []Pic, db_pic *Pic) (bool, error) {
 	existing_pics_contains_db_pic := false
 	for _, existing_pic := range existing_pics {
 		if existing_pic.Name == db_pic.Name {
-			existing_pics_contains = true
+			keep_db_pic = true
 			if existing_pic.Caption != database_pic.Caption {
 				_, err = t.db.Exec("UPDATE MealPic SET Caption = ? WHERE Name = ?", 
 								existing_pic.Caption, 
 								existing_pic.Name)
 				if err != nil {
-					return existing_pics_contains_db_pic, err
+					return keep_db_pic, err
 				}
 			}
 		}
