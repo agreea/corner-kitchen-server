@@ -50,10 +50,11 @@ type Meal_read struct {
 
 type Meal_draft struct {
 	Id 				int64
+	Host_id 		int64
+	Capacity 		int64
 	Title 			string
 	Description 	string
 	Price 			string
-	Seats 			string
 	Pics 			[]*Pic
 	Starts 			time.Time
 	Rsvp_by 		time.Time
@@ -435,12 +436,12 @@ func (t *MealServlet) update_database_pics(submitted_pics []Pic, meal_id int64) 
 // if it is and has a different caption, updates the caption in the db
 // returns true if the db pic should be kept, false if it should be deleted
 func (t *MealServlet) sync_with_submitted_pics(existing_pics []Pic, db_pic *Pic) (bool, error) {
-	existing_pics_contains_db_pic := false
+	keep_db_pic := false
 	for _, existing_pic := range existing_pics {
 		if existing_pic.Name == db_pic.Name {
 			keep_db_pic = true
-			if existing_pic.Caption != database_pic.Caption {
-				_, err = t.db.Exec("UPDATE MealPic SET Caption = ? WHERE Name = ?", 
+			if existing_pic.Caption != db_pic.Caption {
+				_, err := t.db.Exec("UPDATE MealPic SET Caption = ? WHERE Name = ?", 
 								existing_pic.Caption, 
 								existing_pic.Name)
 				if err != nil {
