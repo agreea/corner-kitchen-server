@@ -136,6 +136,7 @@ func SendEmail(email_address string, subject string, message string) {
 		"api_user": {"agree"},
 		"api_key": {"***REMOVED***"},
 		"to": {email_address},
+		"toname":{"Chakula"},
 		"subject": {subject},
 		"html": {message},
 		"from": {"meals@yaychakula.com"},
