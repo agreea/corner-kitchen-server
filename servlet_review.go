@@ -66,7 +66,7 @@ func (t *ReviewServlet) nudge_review_worker(){
 func (t *ReviewServlet) nudge_review_for_recent_meals(){
 	// get meals from time window
 	window_starts := time.Now().Add(-time.Hour * 3) // starts should be farther back in the past than the ends
-	window_ends := time.Now().Add(-time.Hour * 2)
+	window_ends := time.Now().Add(-time.Minutes * 2)
 	meals, err := GetMealsFromTimeWindow(t.db, window_starts, window_ends)
 	if err != nil {
 		log.Println(err)
