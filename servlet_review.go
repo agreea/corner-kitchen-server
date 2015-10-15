@@ -107,7 +107,7 @@ func (t *ReviewServlet) nudge_attendee(attendee *GuestData, meal *Meal) {
 
 	if attendee.Phone != "" {
 		msg := new(SMS)
-		msg.To = guest.Phone
+		msg.To = attendee.Phone
 		// Heyo! Make sure to you review %s's %s so they can build their reputation. Here's the link:
 		msg.Message = fmt.Sprintf("Heyo! Make sure you review %s's %s so they can build their reputation." +
 									" Here's the link: https://yaychakula.com/review.html?Id=%d." +
