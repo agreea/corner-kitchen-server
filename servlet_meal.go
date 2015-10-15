@@ -150,33 +150,6 @@ curl --data "method=leaveReview&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mea
 */
 
 /*
-Get averag
-
-*/
-
-/*
-curl --data "method=getReviewsForMeal&mealId=3" https://qa.yaychakula.com/api/review
-*/
-
-// query the meals table to get all meals hosted by host
-// query the review table to get all reviews where meal_id = 1 OR 2 OR ...
-// get all the reviews into an array
-// iterate over all the ratings: 
-// 		get the sum, convert every Guest_id into a First Name and Prof pic
-//		
-// divide  the sume by the size of the array
-// round so that   5 == > 4.7, 4.5 == 4.2 -> 4.7, 4.0 == 3.7 --> 4.2, etc. etc.
-// return rating plus an array of review objects
-
-/*
-curl --data "method=getReviewsForHost&hostId=1" https://qa.yaychakula.com/api/review
-*/
-
-/*
-curl --data "method=getReviewsForGuest&guestId=1" https://qa.yaychakula.com/api/review
-*/
-
-/*
 TITLE
 ASKING_PRICE
 DESCRIPTION
@@ -205,6 +178,11 @@ type Meal_draft struct {
 	Rsvp_by 		time.Time
 }
 */
+
+// SENDGRID API KEY: ***REMOVED***
+// SENDGRID PASSWORD: ***REMOVED***
+curl -X POST https://api.sendgrid.com/api/mail.send.json -d api_user=agree -d api_key=***REMOVED*** -d to="agree.ahmed@gmail.com" -d toname=Agree -d subject=Testing -d text="Hey Agree, Can you let me know if this worked?" -d from=agree@yaychakula.com
+
 // curl --data "method=getMealDraft&mealId=3&session=f1caa66a-3351-48db-bcb3-d76bdc644634" https://qa.yaychakula.com/api/meal
 func (t* MealServlet) GetMealDraft(r *http.Request) *ApiResult {
 	// get session
