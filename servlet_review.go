@@ -59,14 +59,14 @@ func (t *ReviewServlet) nudge_review_worker(){
 	for {
 		log.Println("In the nudge review loop")
 		t.nudge_review_for_recent_meals()
-		time.Sleep(time.Minute * 1)
+		time.Sleep(time.Hour * 1)
 	}
 }
 
 func (t *ReviewServlet) nudge_review_for_recent_meals(){
 	// get meals from time window
 	window_starts := time.Now().Add(-time.Hour * 3) // starts should be farther back in the past than the ends
-	window_ends := time.Now().Add(-time.Minute * 2)
+	window_ends := time.Now().Add(-time.Hour * 2)
 	meals, err := GetMealsFromTimeWindow(t.db, window_starts, window_ends)
 	if err != nil {
 		log.Println(err)
@@ -118,7 +118,7 @@ func (t *ReviewServlet) nudge_attendee(attendee *GuestData, meal *Meal) {
 			meal.Id)
 		t.twilio_queue <- msg
 	} else if attendee.Email != "" {
-		subject := fmt.Sprintf("%s, Please Review %s's Meal", attendee.First_name, host_as_guest.First_name)
+		subject := fmt.Sprintf("%s, Please Review %s's Chakula Meal", attendee.First_name, host_as_guest.First_name)
 		html := fmt.Sprintf("<p>Hi %s,</p>" +
 							"<p>Thank you for attending %s's meal.</p>" + 
 							"<p>We hope that you will take the time to <a href=https://yaychakula.com/review.html?Id=%d>review your meal here</a>. It will help %s build their reputation and will strengthen our little Chakula community.</p>" +
