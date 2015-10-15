@@ -79,7 +79,7 @@ func (t *ReviewServlet) nudge_review_for_recent_meals(){
 			return
 		}
 		for _, attendee := range attendees {
-			t.nudge_attendee(attendee, meal)
+			t.nudge_attendee(attendee.Guest, meal)
 		}
 	}
 	// for each attendee, notify them that you want them to review that meal
