@@ -449,7 +449,7 @@ func (t *MealServlet) process_meal_charge_worker() {
 func (t *MealServlet) process_meal_charges(){
 	window_starts := time.Now().Add(-time.Hour * 24 * 8)
 	window_ends := time.Now().Add(-time.Hour * 24 * 7)
-	meals, err := GetMealsFromTimeWindow(t.db, window_starts, window_starts)
+	meals, err := GetMealsFromTimeWindow(t.db, window_starts, window_ends)
 	if err != nil {
 		log.Println(err)
 		return
