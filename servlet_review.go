@@ -94,7 +94,7 @@ curl -X POST https://api.sendgrid.com/api/mail.send.json -d api_user=agree -d ap
 */
 func (t *ReviewServlet) nudge_attendee(attendee *GuestData, meal *Meal) {
 	// if they have a phone, text them
-	host, err := GetHostById(t.db, meal.Id)
+	host, err := GetHostById(t.db, meal.Host_id)
 	if err != nil {
 		log.Println(err)
 		return
