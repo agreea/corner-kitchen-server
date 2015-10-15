@@ -330,7 +330,8 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 		return APIError("Failed to load pictures. Please try again.", 500)
 	}
 	// TODO: Load meal into api call... OR just return the id
-	return APISuccess("OK")
+
+	return APISuccess(id)
 }
 
 // Takes json blob of pic data and meal id
