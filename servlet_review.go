@@ -59,14 +59,14 @@ func (t *ReviewServlet) nudge_review_worker(){
 	for {
 		log.Println("In the nudge review loop")
 		t.nudge_review_for_recent_meals()
-		time.Sleep(time.Minute * 1)
+		time.Sleep(time.Hour * 1)
 	}
 }
 
 func (t *ReviewServlet) nudge_review_for_recent_meals(){
 	// get meals from time window
-	window_starts := time.Now().Add(-time.Minute * 30) // starts should be farther back in the past than the ends
-	window_ends := time.Now().Add(-time.Minute * 1)
+	window_starts := time.Now().Add(-time.Hour * 3) // starts should be farther back in the past than the ends
+	window_ends := time.Now().Add(-time.Hour * 2)
 	meals, err := GetMealsFromTimeWindow(t.db, window_starts, window_ends)
 	if err != nil {
 		log.Println(err)
@@ -110,10 +110,10 @@ func (t *ReviewServlet) nudge_attendee(attendee *GuestData, meal *Meal) {
 		msg := new(SMS)
 		msg.To = attendee.Phone
 		// Heyo! Make sure to you review %s's %s so they can build their reputation. Here's the link:
-		msg.Message = fmt.Sprintf("Heyo! Make sure you review %s's %s so they can build their reputation." +
+		msg.Message = fmt.Sprintf("Heyo! Thanks for coming to %s's meal! Make sure you leave a review so %s can build their reputation." +
 									" Here's the link: https://yaychakula.com/review.html?Id=%d." +
 									"Love, Chakula",
-			host_as_guest.First_name, meal.Title,
+			host_as_guest.First_name, host_as_guest.First_name,
 			meal.Id)
 		t.twilio_queue <- msg
 	} else if attendee.Email != "" {
@@ -147,7 +147,7 @@ func SendEmail(email_address string, subject string, message string) {
 		log.Println(err)
 		return
 	}
-	// req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	// req.SetBasicAuth("***REMOVED***:", "")
 	resp, err := client.Do(req)
 	if err != nil {
