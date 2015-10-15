@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"fmt"
 	"time"
+	"net/url"
+	"strings"
 )
 
 type ReviewServlet struct {
@@ -89,7 +91,7 @@ SENDGRID PASSWORD: ***REMOVED***
 "<p>Hi %s,</p><p>Thank you for attending %s's meal. We hope you enjoyed it.</p><p>We hope that you will take the time to <a href=https://yaychakula.com/review.html?Id=%d>review your meal here</a>. It will help %s build their reputation and will strengthen our little Chakula community.</p><p>We are so happy that you are part of the Chakula movement.</p><p>Have a good one!</p><p> Agree and Pat </p>"
 curl -X POST https://api.sendgrid.com/api/mail.send.json -d api_user=agree -d api_key=***REMOVED*** -d to="agree.ahmed@gmail.com" -d toname=Agree -d subject=Testing -d html="<p>Hi %s,</p><p>Thank you for attending %s's meal. We hope you enjoyed it.</p><p>We hope that you will take the time to <a href=https://yaychakula.com/review.html?Id=%d>review your meal here</a>. It will help %s build their reputation and will strengthen our little Chakula community.</p><p>We are so happy that you are part of the Chakula movement.</p><p>Have a good one</p><p> Agree and Pat </p>" -d from=agree@yaychakula.com
 */
-func (t *ReviewServelt) nudge_attendee(attendee *Guest, meal *Meal) {
+func (t *ReviewServlet) nudge_attendee(attendee *GuestData, meal *Meal) {
 	// if they have a phone, text them
 	host, err := GetHostById(t.db, meal.Id)
 	if err != nil {
