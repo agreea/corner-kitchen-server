@@ -124,7 +124,7 @@ func (t *ReviewServlet) nudge_attendee(attendee *GuestData, meal *Meal) {
 							"<p>Have a good one!</p>" +
 							"<p> Agree and Pat </p>",
 							attendee.First_name, host_as_guest.First_name, meal.Id, host_as_guest.First_name)
-		SendEmail(attendee.Email, subject, message)
+		SendEmail(attendee.Email, subject, html)
 	}
 }
 
