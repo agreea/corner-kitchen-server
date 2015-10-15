@@ -174,6 +174,8 @@ type Meal struct {
 	Capacity		int64
 	Starts			time.Time
 	Rsvp_by			time.Time
+	Processed 		int64
+	Published 		int64
 }
 
 type StripeToken struct {
@@ -280,25 +282,25 @@ func GetUserByPhone(db *sql.DB, phone string) (*UserData, error) {
 }
 
 func GetMealById(db *sql.DB, id int64) (*Meal, error) {
-	row := db.QueryRow(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
+	row := db.QueryRow(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by, Processed, Published
         FROM Meal 
         WHERE Id = ? AND Published = 1`, id)
 	return readMealLine(row)
 }
 
 func GetMealDraft(db *sql.DB, meal_id int64) (*Meal_draft, error) {
-	row := db.QueryRow(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
+	row := db.QueryRow(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by, Processed, Published
         FROM Meal 
         WHERE Id = ? AND Published = 0`, meal_id)
 	return readMealDraftLine(row)
 }
 
-func GetMealsToProcess(db *sql.DB) ([]*Meal, error) {
-	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
+func GetMealsFromTimeWindow(db *sql.DB, window_starts time.Time, window_ends time.Time) ([]*Meal, error) {
+	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by, Processed, Published
         FROM Meal 
-        WHERE Starts < ? AND Starts > ? AND Processed = 0`, 
-        time.Now().Add(-time.Hour * 24 * 7),
-        time.Now().Add(-time.Hour * 24 * 8))
+        WHERE Starts > ? AND Starts < ? AND Published = 1`, 
+        window_starts,
+        window_ends)
 	if err != nil {
 		return nil, err
 	}
@@ -315,6 +317,8 @@ func GetMealsToProcess(db *sql.DB) ([]*Meal, error) {
 			&meal.Capacity,
 			&meal.Starts,
 			&meal.Rsvp_by,
+			&meal.Processed,
+			&meal.Published,
 		); err != nil {
 			log.Println(err)
 			return nil, err
@@ -833,7 +837,9 @@ func readMealLine(row *sql.Row) (*Meal, error) {
 		&meal.Description,
 		&meal.Capacity,
 		&meal.Starts,
-		&meal.Rsvp_by, 
+		&meal.Rsvp_by,
+		&meal.Processed,
+		&meal.Published, 
 	); err != nil {
 		return nil, err
 	}

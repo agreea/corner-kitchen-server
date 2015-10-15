@@ -28,6 +28,7 @@ func NewReviewServlet(server_config *Config, session_manager *SessionManager, tw
 	t.db = db
 	t.session_manager = session_manager
 	t.twilio_queue = twilio_queue
+	go t.nudge_review_worker()
 	return t
 }
 
@@ -52,7 +53,106 @@ func NewReviewServlet(server_config *Config, session_manager *SessionManager, tw
 // 		}
 // 	}
 // }
+func (t *ReviewServlet) nudge_review_worker(){
+	for {
+		t.nudge_review_for_recent_meals()
+		time.Sleep(time.Minute * 1)
+	}
+}
 
+func (t *ReviewServlet) nudge_review_for_recent_meals(){
+	// get meals from time window
+	window_starts := time.Now().Add(-time.Minute * 30) // starts should be farther back in the past than the ends
+	window_ends := time.Now().Add(-time.Hour * 1)
+	meals, err := GetMealsFromTimeWindow(t.db, window_starts, window_starts)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	for _, meal := range meals {
+		// for each meal get attendees
+		attendees, err := GetAttendeesForMeal(t.db, meal.Id)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		for _, attendee := range attendees {
+			t.nudge_attendee(attendee, meal)
+		}
+	}
+	// for each attendee, notify them that you want them to review that meal
+}
+/*
+SENDGRID API KEY: ***REMOVED***
+SENDGRID PASSWORD: ***REMOVED***
+"<p> Hi Agree </p><p> Can you tell me if this worked? </p>"
+"<p>Hi %s,</p><p>Thank you for attending %s's meal. We hope you enjoyed it.</p><p>We hope that you will take the time to <a href=https://yaychakula.com/review.html?Id=%d>review your meal here</a>. It will help %s build their reputation and will strengthen our little Chakula community.</p><p>We are so happy that you are part of the Chakula movement.</p><p>Have a good one!</p><p> Agree and Pat </p>"
+curl -X POST https://api.sendgrid.com/api/mail.send.json -d api_user=agree -d api_key=***REMOVED*** -d to="agree.ahmed@gmail.com" -d toname=Agree -d subject=Testing -d html="<p>Hi %s,</p><p>Thank you for attending %s's meal. We hope you enjoyed it.</p><p>We hope that you will take the time to <a href=https://yaychakula.com/review.html?Id=%d>review your meal here</a>. It will help %s build their reputation and will strengthen our little Chakula community.</p><p>We are so happy that you are part of the Chakula movement.</p><p>Have a good one</p><p> Agree and Pat </p>" -d from=agree@yaychakula.com
+*/
+func (t *ReviewServelt) nudge_attendee(attendee *Guest, meal *Meal) {
+	// if they have a phone, text them
+	host, err := GetHostById(t.db, meal.Id)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
+	if attendee.Phone != "" {
+		msg := new(SMS)
+		msg.To = guest.Phone
+		// Heyo! Make sure to you review %s's %s so they can build their reputation. Here's the link:
+		msg.Message = fmt.Sprintf("Heyo! Make sure you review %s's %s so they can build their reputation." +
+									" Here's the link: https://yaychakula.com/review.html?Id=%d." +
+									"Love, Chakula",
+			host_as_guest.First_name, meal.Title,
+			meal.Id)
+		t.twilio_queue <- msg
+	} else if attendee.Email != "" {
+		subject := fmt.Sprintf("%s, Please Review %s's Meal", attendee.First_name, host_as_guest.First_name)
+		html := fmt.Sprintf("<p>Hi %s,</p>" +
+							"<p>Thank you for attending %s's meal.</p>" + 
+							"<p>We hope that you will take the time to <a href=https://yaychakula.com/review.html?Id=%d>review your meal here</a>. It will help %s build their reputation and will strengthen our little Chakula community.</p>" +
+							"<p>We are so happy that you are part of the Chakula movement.</p>" +
+							"<p>Have a good one!</p>" +
+							"<p> Agree and Pat </p>",
+							attendee.First_name, host_as_guest.First_name, meal.Id, host_as_guest.First_name)
+		SendEmail(attendee.Email, subject, message)
+	}
+}
+
+func SendEmail(email_address string, subject string, message string) {
+	client := &http.Client{}
+   	sendgrid_body := url.Values{
+		"api_user": {"agree"},
+		"api_key": {"***REMOVED***"},
+		"to": {email_address},
+		"subject": {subject},
+		"html": {message},
+		"from": {"meals@yaychakula.com"}
+	}
+	req, err := http.NewRequest(
+		"POST",
+		"https://api.sendgrid.com/api/mail.send.json",
+		strings.NewReader(sendgrid_body.Encode()))
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	// req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	// req.SetBasicAuth("***REMOVED***:", "")
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	log.Println(resp)
+}
 func (t *ReviewServlet) notify_attendee_to_review(guest_id int64, meal_id int64) {
 	meal, err := GetMealById(t.db, meal_id)
 	if err != nil {
@@ -82,7 +182,7 @@ func (t *ReviewServlet) notify_attendee_to_review(guest_id int64, meal_id int64)
 		msg := new(SMS)
 		msg.To = guest.Phone
 		// Heyo! Make sure to you review %s's %s so they can build their reputation. Here's the link:
-		msg.Message = fmt.Sprintf("Heyo! Make sure you review %s's %s so they can build their reputation. Here's the link: https://yaychakula.com/review.html?Id=%d",
+		msg.Message = fmt.Sprintf("Hey! Make sure you review %s's %s so they can build their reputation. Here's the link: https://yaychakula.com/review.html?Id=%d",
 			host_as_guest.First_name, meal.Title,
 			meal.Id)
 		t.twilio_queue <- msg
