@@ -134,7 +134,7 @@ func SendEmail(email_address string, subject string, message string) {
 		"to": {email_address},
 		"subject": {subject},
 		"html": {message},
-		"from": {"meals@yaychakula.com"}
+		"from": {"meals@yaychakula.com"},
 	}
 	req, err := http.NewRequest(
 		"POST",
