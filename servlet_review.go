@@ -57,6 +57,7 @@ func NewReviewServlet(server_config *Config, session_manager *SessionManager, tw
 // }
 func (t *ReviewServlet) nudge_review_worker(){
 	for {
+		log.Println("In the nudge review loop")
 		t.nudge_review_for_recent_meals()
 		time.Sleep(time.Minute * 1)
 	}
