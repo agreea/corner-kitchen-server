@@ -80,7 +80,7 @@ func (t *ReviewServlet) nudge_review_for_recent_meals(){
 			return
 		}
 		for _, attendee := range attendees {
-			log.Println("Nudginging " + attende.Guest.First_name)
+			log.Println("Nudginging " + attendee.Guest.First_name)
 			t.nudge_attendee(attendee.Guest, meal)
 		}
 	}
