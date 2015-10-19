@@ -73,7 +73,7 @@ func (t *ReviewServlet) nudge_review_for_recent_meals(){
 		return
 	}
 	for _, meal := range meals {
-		requests, err := GetConfirmedRequestsForMeal(t.db, meal.Id)
+		requests, err := GetConfirmedMealRequestsForMeal(t.db, meal.Id)
 		if err != nil {
 			log.Println(err)
 			continue

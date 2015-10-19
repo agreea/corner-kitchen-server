@@ -273,7 +273,7 @@ func GetHostBySession(db *sql.DB, session_manager *SessionManager, session_id st
 	valid, session, err := session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
-		return nil, errors.New("Couldn't locate guest", 400)
+		return nil, errors.New("Couldn't locate guest")
 	}
 	if !valid {
 		return nil, errors.New("Invalid session")
@@ -349,7 +349,7 @@ func read_meal_rows(rows *sql.Rows) ([]*Meal, error) {
 		}
 		meals = append(meals, meal)
 	}
-	return meals
+	return meals, nil
 }
 
 func GetMealRequestByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) (meal_req *MealRequest, err error) {
@@ -359,7 +359,7 @@ func GetMealRequestByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64)
 	return readMealRequestLine(row)
 }
 
-func GetConfirmedMealRequestsForMeal(db *sql.DB, meal_id int64) ([]*MealRequest, error) {
+func GetConfirmedRequestsForMeal(db *sql.DB, meal_id int64) ([]*MealRequest, error) {
 	rows, err := db.Query(`SELECT Id, Guest_id, Meal_id, Seats, Status, Last4, Nudge_count, Last_nudge
         FROM MealRequest
         WHERE Meal_id = ? AND Status = 1`, meal_id)
