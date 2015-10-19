@@ -73,14 +73,16 @@ func (t *ReviewServlet) nudge_review_for_recent_meals(){
 		return
 	}
 	for _, meal := range meals {
-		requests, err := GetConfirmedMealRequestsForMeal(t.db, meal.Id)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		for _, request := range requests {
-			
-		}
+		// requests, err := GetConfirmedMealRequestsForMeal(t.db, meal.Id)
+		// if err != nil {
+		// 	log.Println(err)
+		// 	continue
+		// }
+		// for _, request := range requests {
+		// 	if(request.Nudge_count == 0 && ) {
+
+		// 	}
+		// }
 		// for each meal get attendees
 		/*
 			TODO routine: 
