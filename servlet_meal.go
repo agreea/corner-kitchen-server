@@ -220,7 +220,7 @@ func (t *MealServlet) PublishMeal(r *http.Request) *ApiResult {
 	if meal_draft.Host_id != host.Id {
 		return APIError("You are not the author of this meal", 400)
 	}
-	_, err := db.Exec(`
+	_, err = db.Exec(`
 		UPDATE Meal
 		SET Published = 1
 		WHERE Id = ?
@@ -231,7 +231,7 @@ func (t *MealServlet) PublishMeal(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Failed to publish meal", 500)
 	}
-	return APISuccess('OK')
+	return APISuccess("OK")
 }
 
 // Maybe add safeguard that prevents hosts from updating starts or price on already published meals
