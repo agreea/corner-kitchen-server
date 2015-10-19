@@ -6,6 +6,7 @@ import (
 	"github.com/stripe/stripe-go/customer"
 	"time"
 	"log"
+	"errors"
 )
 
 type SMS struct {
@@ -176,6 +177,7 @@ type Meal struct {
 	Rsvp_by			time.Time
 	Processed 		int64
 	Published 		int64
+	Pics 			[]*Pic
 }
 
 type StripeToken struct {
@@ -271,10 +273,10 @@ func GetHostBySession(db *sql.DB, session_manager *SessionManager, session_id st
 	valid, session, err := session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
-		return nil, error.New("Couldn't locate guest", 400)
+		return nil, errors.New("Couldn't locate guest", 400)
 	}
 	if !valid {
-		return nil, error.New("Invalid session")
+		return nil, errors.New("Invalid session")
 	}
 	return GetHostByGuestId(db, session.Guest.Id)
 }
@@ -327,7 +329,7 @@ func GetMealsForHost(db *sql.DB, host_id int64) ([]*Meal, error) {
 	return read_meal_rows(rows)
 }
 
-func read_meal_rows(rows sql.Rows) ([]*Meal, error) {
+func read_meal_rows(rows *sql.Rows) ([]*Meal, error) {
 	meals := make([]*Meal, 0)
 	for rows.Next() {
 		meal := new(Meal)

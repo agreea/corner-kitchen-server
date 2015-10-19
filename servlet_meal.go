@@ -145,7 +145,7 @@ curl --data "method=leaveReview&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mea
 func (t* MealServlet) GetMealDraft(r *http.Request) *ApiResult {
 	// get session
 	session_id := r.Form.Get("session")
-	host, err := GetHostBySession(t.db, session.Guest.Id)
+	host, err := GetHostBySession(t.db, t.session_manager, session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Could not locate host", 400)
@@ -187,7 +187,7 @@ func (t *MealServlet) GetMealsForHost(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Could not locate host", 400)
 	}
-	meals, err := GetMealsForHost(host.Id)
+	meals, err := GetMealsForHost(t.db, host.Id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Could not locate meals", 400)
@@ -220,7 +220,7 @@ func (t *MealServlet) PublishMeal(r *http.Request) *ApiResult {
 	if meal_draft.Host_id != host.Id {
 		return APIError("You are not the author of this meal", 400)
 	}
-	_, err = db.Exec(`
+	_, err = t.db.Exec(`
 		UPDATE Meal
 		SET Published = 1
 		WHERE Id = ?

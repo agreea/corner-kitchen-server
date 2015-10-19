@@ -78,6 +78,9 @@ func (t *ReviewServlet) nudge_review_for_recent_meals(){
 			log.Println(err)
 			continue
 		}
+		for _, request := range requests {
+			
+		}
 		// for each meal get attendees
 		/*
 			TODO routine: 
