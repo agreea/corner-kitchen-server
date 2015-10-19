@@ -73,7 +73,27 @@ func (t *ReviewServlet) nudge_review_for_recent_meals(){
 		return
 	}
 	for _, meal := range meals {
+		requests, err := GetConfirmedRequestsForMeal(t.db, meal.Id)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
 		// for each meal get attendees
+		/*
+			TODO routine: 
+			For each meal {
+				get the requests for the meal
+				for each request {
+					nudge_request():
+						if the request's nudge count == 0
+							if we have their phone, text them
+							else if we have their email, email them
+						if the nudge count > 0 && < 3 && we have their email
+							email them
+				}
+			}
+			// TODO: update review to set nudge count for request to -1 
+		*/
 		attendees, err := GetAttendeesForMeal(t.db, meal.Id)
 		if err != nil {
 			log.Println(err)
@@ -112,7 +132,7 @@ func (t *ReviewServlet) nudge_attendee(attendee *GuestData, meal *Meal) {
 		msg.To = attendee.Phone
 		// Heyo! Make sure to you review %s's %s so they can build their reputation. Here's the link:
 		msg.Message = fmt.Sprintf("Heyo! Thanks for coming to %s's meal! Make sure you leave a review so %s can build their reputation." +
-									" Here's the link: https://yaychakula.com/review.html?Id=%d." +
+									" Here's the link: https://yaychakula.com/review.html?Id=%d %0a" +
 									"Love, Chakula",
 			host_as_guest.First_name, host_as_guest.First_name,
 			meal.Id)
@@ -158,6 +178,7 @@ func SendEmail(email_address string, subject string, message string) {
 	}
 	log.Println(resp)
 }
+
 func (t *ReviewServlet) notify_attendee_to_review(guest_id int64, meal_id int64) {
 	meal, err := GetMealById(t.db, meal_id)
 	if err != nil {

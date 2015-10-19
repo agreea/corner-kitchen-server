@@ -63,17 +63,23 @@ func (t *MealRequestServlet) SendRequest(r *http.Request) *ApiResult {
 	if err != nil {
 		return APIError("Couldn't process request", 400)
 	}
-
+	last4_s := r.Form.Get("last4")
+	last4, err := strconv.ParseInt(count_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed meal ID", 400)
+	}
 	count_s := r.Form.Get("seats")
 	count, err := strconv.ParseInt(count_s, 10, 64)
 	if err != nil {
+		log.Println(err)
 		return APIError("Malformed meal ID", 400)
 	}
 	_, err = GetMealRequestByGuestIdAndMealId(t.db, guest.Id, meal.Id)
 	if err != nil { // error here (99%) means the request doesn't exist
 		// get last4 digits
 		// convert digits to int
-		return t.record_request(guest, host, meal, count) // add last 4 as an arg in the request
+		return t.record_request(guest, host, meal, count, last4) // add last 4 as an arg in the request
 	}
 	return APIError("You've already requested to join this meal", 400)
 }
@@ -259,11 +265,12 @@ func (t *MealRequestServlet) get_guest_host_meal(meal_id int64, session_id strin
 }
 
 // Called if the meal request doesn't exist. Generate and save it
-func (t *MealRequestServlet) record_request(guest *GuestData, host *HostData, meal *Meal, count int64) *ApiResult {
+func (t *MealRequestServlet) record_request(guest *GuestData, host *HostData, meal *Meal, count int64, last4 int64) *ApiResult {
 	meal_req := new(MealRequest)
 	meal_req.Guest_id = guest.Id
 	meal_req.Meal_id = meal.Id
 	meal_req.Seats = count
+	meal_req.Last4 = last4
 	err := SaveMealRequest(t.db, meal_req)
 	if err != nil {
 		log.Println(err)

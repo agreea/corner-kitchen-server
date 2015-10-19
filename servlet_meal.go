@@ -48,18 +48,6 @@ type Meal_read struct {
 	Host_reviews 	[]*Review_read		
 }
 
-type Meal_draft struct {
-	Id 				int64
-	Host_id 		int64
-	Capacity 		int64
-	Title 			string
-	Description 	string
-	Price 			string
-	Pics 			[]*Pic
-	Starts 			time.Time
-	Rsvp_by 		time.Time
-}
-
 type Review_read struct {
 	First_name 		string
 	Prof_pic_url 	string
@@ -149,36 +137,6 @@ curl --data "method=leaveReview&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mea
 				&comment=Food was delicious. I absolutely love Izzie's Cuban food." https://qa.yaychakula.com/api/review
 */
 
-/*
-TITLE
-ASKING_PRICE
-DESCRIPTION
-IMAGES...???????????????????????????????????
-STARTS_TIME
-RSVP_BY_TIME
-SESSION
-ID (how generated? maybe rand(ms as seed))
-
-create if not there
-update if there
-*/
-
-// func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult{
-// 	// 
-// }
-/*
-type Meal_draft struct {
-	Id 				int64
-	Title 			string
-	Description 	string
-	Price 			string
-	Seats 			string
-	Pics 			[]*Pic
-	Starts 			time.Time
-	Rsvp_by 		time.Time
-}
-*/
-
 // SENDGRID API KEY: ***REMOVED***
 // SENDGRID PASSWORD: ***REMOVED***
 // curl -X POST https://api.sendgrid.com/api/mail.send.json -d api_user=agree -d api_key=***REMOVED*** -d to="agree.ahmed@gmail.com" -d toname=Agree -d subject=Testing -d text="Hey Agree, Can you let me know if this worked?" -d from=agree@yaychakula.com
@@ -187,15 +145,7 @@ type Meal_draft struct {
 func (t* MealServlet) GetMealDraft(r *http.Request) *ApiResult {
 	// get session
 	session_id := r.Form.Get("session")
-	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
-	if err != nil {
-		log.Println(err)
-		return APIError("Could not locate host", 400)
-	}
-	if !session_valid {
-		return APIError("Expired session. Please log out and log back in.", 400)
-	}
-	host, err := GetHostByGuestId(t.db, session.Guest.Id)
+	host, err := GetHostBySession(t.db, session.Guest.Id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Could not locate host", 400)
@@ -208,7 +158,7 @@ func (t* MealServlet) GetMealDraft(r *http.Request) *ApiResult {
 		return APIError("Malformed meal id", 400)
 	}
 	// make sure the host id matches the meal draft
-	meal_draft, err := GetMealDraft(t.db, meal_id)
+	meal_draft, err := GetMealById(t.db, meal_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Could not retrieve draft", 400)
@@ -223,11 +173,68 @@ func (t* MealServlet) GetMealDraft(r *http.Request) *ApiResult {
 		return APIError("Malformed meal id", 400)
 	}
 	meal_draft.Pics = pics
+	// if meal is published, price and start time fields should be disabled
 	return APISuccess(meal_draft)
 	// if no, error
 	// if yes, say yes
 }
 
+// Called by browser to fetch all meals for host.
+func (t *MealServlet) GetMealsForHost(r *http.Request) *ApiResult {
+	session := r.Form.Get("session")
+	host, err := GetHostBySession(t.db, t.session_manager, session)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not locate host", 400)
+	}
+	meals, err := GetMealsForHost(host.Id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not locate meals", 400)
+	}
+	return APISuccess(meals)
+}
+
+// Currently can be called on a meal that has already been published
+func (t *MealServlet) PublishMeal(r *http.Request) *ApiResult {
+	// get meal
+	meal_id_s := r.Form.Get("mealId")
+	meal_id, err := strconv.ParseInt(meal_id_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed meal Id", 400)
+	}
+	meal_draft, err := GetMealById(t.db, meal_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Invalid meal Id", 400)
+	}
+	// get host by user's session
+	session := r.Form.Get("session")
+	host, err := GetHostBySession(t.db, t.session_manager, session)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not locate host", 400)
+	}
+	// check that the host is the author of this meal draft
+	if meal_draft.Host_id != host.Id {
+		return APIError("You are not the author of this meal", 400)
+	}
+	_, err := db.Exec(`
+		UPDATE Meal
+		SET Published = 1
+		WHERE Id = ?
+		`,
+		meal_id,
+	)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to publish meal", 500)
+	}
+	return APISuccess('OK')
+}
+
+// Maybe add safeguard that prevents hosts from updating starts or price on already published meals
 func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	title := r.Form.Get("title")
 	description := r.Form.Get("description")
@@ -268,16 +275,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 
 	// get the host data based on the session
 	session_id := r.Form.Get("session")
-	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
-	if err != nil {
-		log.Println(err)
-		return APIError("Could not locate host", 400)
-	}
-	if !session_valid {
-		return APIError("Invalid session", 400)
-	}
-	host_as_guest := session.Guest
-	host, err := GetHostByGuestId(t.db, host_as_guest.Id)
+	host, err := GetHostBySession(t.db, t.session_manager, session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Could not locate host", 400)
@@ -315,6 +313,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 			return APIError("Malformed id", 400)
 		}
 		meal_draft.Id = id
+		// Safeguard against hosts updating price or start time of a published meal
 		err = UpdateMeal(t.db, meal_draft)
 		if err != nil {
 			// assume there is no rows, create
@@ -329,8 +328,6 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Failed to load pictures. Please try again.", 500)
 	}
-	// TODO: Load meal into api call... OR just return the id
-
 	return APISuccess(id)
 }
 
@@ -652,6 +649,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	meal_data.Has_email = !(session.Guest.Email == "")
 	return APISuccess(meal_data)
 }
+
 /*
 type Review_read struct {
 	First_name 		string
