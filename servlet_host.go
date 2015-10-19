@@ -194,7 +194,6 @@ func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 	host_resp.Stripe_connect = !(host.Stripe_user_id == "")
 	return APISuccess(host_resp)
 }
-
 // func (t *HostServlet) Pay(r *http.Request) *ApiResult {
 // get the guest's Stripe id
 // get the meal data

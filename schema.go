@@ -201,12 +201,14 @@ type AttendeeData struct {
 }
 
 type MealRequest struct {
-	Id       	int64
-	Guest_id 	int64
-	Meal_id  	int64
-	Seats 	 	int64
-	Status   	int64
-	Last4 	 	int64
+	Id       		int64
+	Guest_id 		int64
+	Meal_id  		int64
+	Seats 	 		int64
+	Status   		int64
+	Last4 	 		int64
+	Nudge_count 	int64
+	Last_nudge 		time.Time
 }
 
 type Review struct {
@@ -265,6 +267,18 @@ func GetHostById(db *sql.DB, id int64) (*HostData, error) {
 	return readHostLine(row)
 }
 
+func GetHostBySession(db *sql.DB, session_manager *SessionManager, session_id string) (*HostData, error) {
+	valid, session, err := session_manager.GetGuestSession(session_id)
+	if err != nil {
+		log.Println(err)
+		return nil, error.New("Couldn't locate guest", 400)
+	}
+	if !valid {
+		return nil, error.New("Invalid session")
+	}
+	return host, err := GetHostByGuestId(db, session.Guest.Id)
+}
+
 func GetUserByEmail(db *sql.DB, email string) (*UserData, error) {
 	row := db.QueryRow(`SELECT Id, Email, First_name, Last_name,
 		Password_salt, Password_hash,
@@ -288,13 +302,6 @@ func GetMealById(db *sql.DB, id int64) (*Meal, error) {
 	return readMealLine(row)
 }
 
-func GetMealDraft(db *sql.DB, meal_id int64) (*Meal_draft, error) {
-	row := db.QueryRow(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by, Processed, Published
-        FROM Meal 
-        WHERE Id = ? AND Published = 0`, meal_id)
-	return readMealDraftLine(row)
-}
-
 func GetMealsFromTimeWindow(db *sql.DB, window_starts time.Time, window_ends time.Time) ([]*Meal, error) {
 	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by, Processed, Published
         FROM Meal 
@@ -305,6 +312,22 @@ func GetMealsFromTimeWindow(db *sql.DB, window_starts time.Time, window_ends tim
 		return nil, err
 	}
 	defer rows.Close()
+	return read_meal_rows(rows)
+}
+
+func GetMealsForHost(db *sql.DB, host_id int64) ([]*Meal, error) {
+	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by, Processed, Published
+        FROM Meal 
+        WHERE Host_id = ?`, 
+        host_id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return read_meal_rows(rows)
+}
+
+func read_meal_rows(rows sql.Rows) ([]*Meal, error) {
 	meals := make([]*Meal, 0)
 	for rows.Next() {
 		meal := new(Meal)
@@ -320,28 +343,22 @@ func GetMealsFromTimeWindow(db *sql.DB, window_starts time.Time, window_ends tim
 			&meal.Processed,
 			&meal.Published,
 		); err != nil {
-			log.Println(err)
 			return nil, err
 		}
 		meals = append(meals, meal)
 	}
-	return meals, nil
+	return meals
 }
 
 func GetMealRequestByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) (meal_req *MealRequest, err error) {
-	row := db.QueryRow(`SELECT Id, Guest_id, Meal_id, Seats, Status, Last4
+	row := db.QueryRow(`SELECT Id, Guest_id, Meal_id, Seats, Status, Last4, Nudge_count, Last_nudge
         FROM MealRequest
         WHERE Guest_id = ? AND Meal_id = ?`, guest_id, meal_id)
-	meal_req, err = readMealRequestLine(row)
-	// err thrown will be "NoRowsError"
-	if err != nil {
-		return nil, err
-	}
-	return meal_req, nil
+	return readMealRequestLine(row)
 }
 
 func GetConfirmedMealRequestsForMeal(db *sql.DB, meal_id int64) ([]*MealRequest, error) {
-	rows, err := db.Query(`SELECT Id, Guest_id, Meal_id, Seats, Status, Last4
+	rows, err := db.Query(`SELECT Id, Guest_id, Meal_id, Seats, Status, Last4, Nudge_count, Last_nudge
         FROM MealRequest
         WHERE Meal_id = ? AND Status = 1`, meal_id)
 	if err != nil {
@@ -359,8 +376,9 @@ func GetConfirmedMealRequestsForMeal(db *sql.DB, meal_id int64) ([]*MealRequest,
 			&meal_req.Seats,
 			&meal_req.Status,
 			&meal_req.Last4,
+			&meal_req.Nudge_count,
+			&meal_req.Last_nudge,
 		); err != nil {
-			log.Println(err)
 			return nil, err
 		}
 		meal_reqs = append(meal_reqs, meal_req)
@@ -396,7 +414,7 @@ func GetMealReviewByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) 
 
 
 func GetMealRequestById(db *sql.DB, request_id int64) (*MealRequest, error) {
-	row := db.QueryRow(`SELECT Id, Guest_id, Meal_id, Seats, Status, Last4
+	row := db.QueryRow(`SELECT Id, Guest_id, Meal_id, Seats, Status, Last4, Nudge_count, Last_nudge
         FROM MealRequest
         WHERE Id = ?`, request_id)
 	meal_req, err := readMealRequestLine(row)
@@ -441,21 +459,6 @@ func GetAttendeesForMeal(db *sql.DB, meal_id int64) ([]*AttendeeData, error) {
 	return attendees, nil
 }
 
-/*
-
-type Meal struct {
-	Id      		int64
-	Host_id 		int64
-	Price   		float64
-	Title   		string
-	Description		string
-	Capacity		int64
-	Starts			time.Time
-	Rsvp_by			time.Time
-}
-
-*/
-
 func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal, error) {
 	rows, err := db.Query(`
 		SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
@@ -488,15 +491,6 @@ func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal, error) {
 	}
 	return meals, nil
 }
-
-// type Review struct {
-//  Id 			int64
-// 	Guest_id 	int64
-// 	Rating 		int64
-// 	Comment 	string
-// 	Meal_id 	int64
-// 	Date 		time.Time
-// }
 
 func GetReviewsForHost(db *sql.DB, host_id int64) ([]*Review, error) {
 	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
@@ -846,34 +840,6 @@ func readMealLine(row *sql.Row) (*Meal, error) {
 	return meal, nil
 }
 
-/*
-	Id 				int64
-	Title 			string
-	Description 	string
-	Price 			string
-	Seats 			string
-	Pics 			[]*Pic
-	Starts 			time.Time
-	Rsvp_by 		time.Time
-*/
-
-func readMealDraftLine(row *sql.Row) (*Meal_draft, error) {
-	meal_draft := new(Meal_draft)
-	if err := row.Scan(
-		&meal_draft.Id,
-		&meal_draft.Host_id,
-		&meal_draft.Price,
-		&meal_draft.Title,
-		&meal_draft.Description,
-		&meal_draft.Capacity,
-		&meal_draft.Starts,
-		&meal_draft.Rsvp_by, 
-	); err != nil {
-		return nil, err
-	}
-	return meal_draft, nil
-}
-
 func readMealRequestLine(row *sql.Row) (*MealRequest, error) {
 	meal_req := new(MealRequest)
 	if err := row.Scan(
@@ -883,6 +849,8 @@ func readMealRequestLine(row *sql.Row) (*MealRequest, error) {
 		&meal_req.Seats,
 		&meal_req.Status,
 		&meal_req.Last4,
+		&meal_req.Nudge_count,
+		&meal_req.Last_nudge
 	); err != nil {
 		return nil, err
 	}
