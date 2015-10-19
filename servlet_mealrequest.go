@@ -64,7 +64,7 @@ func (t *MealRequestServlet) SendRequest(r *http.Request) *ApiResult {
 		return APIError("Couldn't process request", 400)
 	}
 	last4_s := r.Form.Get("last4")
-	last4, err := strconv.ParseInt(count_s, 10, 64)
+	last4, err := strconv.ParseInt(last4_s, 10, 64)
 	if err != nil {
 		log.Println(err)
 		return APIError("Malformed meal ID", 400)
