@@ -276,7 +276,7 @@ func GetHostBySession(db *sql.DB, session_manager *SessionManager, session_id st
 	if !valid {
 		return nil, error.New("Invalid session")
 	}
-	return host, err := GetHostByGuestId(db, session.Guest.Id)
+	return GetHostByGuestId(db, session.Guest.Id)
 }
 
 func GetUserByEmail(db *sql.DB, email string) (*UserData, error) {
@@ -850,7 +850,7 @@ func readMealRequestLine(row *sql.Row) (*MealRequest, error) {
 		&meal_req.Status,
 		&meal_req.Last4,
 		&meal_req.Nudge_count,
-		&meal_req.Last_nudge
+		&meal_req.Last_nudge,
 	); err != nil {
 		return nil, err
 	}
