@@ -359,7 +359,7 @@ func GetMealRequestByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64)
 	return readMealRequestLine(row)
 }
 
-func GetConfirmedRequestsForMeal(db *sql.DB, meal_id int64) ([]*MealRequest, error) {
+func GetConfirmedMealRequestsForMeal(db *sql.DB, meal_id int64) ([]*MealRequest, error) {
 	rows, err := db.Query(`SELECT Id, Guest_id, Meal_id, Seats, Status, Last4, Nudge_count, Last_nudge
         FROM MealRequest
         WHERE Meal_id = ? AND Status = 1`, meal_id)
