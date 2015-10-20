@@ -580,6 +580,9 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		log.Println(err)
 		return APIError("Invalid meal ID", 400)
 	}
+	if !meal.Published {
+		return APIError("Invalid meal ID", 400)
+	}
 	// use host to get guest
 	host, err := GetHostById(t.db, meal.Host_id)
 	if err != nil {
