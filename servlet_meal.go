@@ -267,6 +267,7 @@ func (t *MealServlet) DeleteMeal(r *http.Request) *ApiResult {
     	log.Println(err)
 		return APIError("Failed to delete meal. Please contact agree@yaychakula.com", 400)
     }
+    return APISuccess("Okay")
 }
 
 // Maybe add safeguard that prevents hosts from updating starts or price on already published meals
