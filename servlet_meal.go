@@ -195,6 +195,13 @@ func (t *MealServlet) GetMealsForHost(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Could not locate meals", 400)
 	}
+	for _, meal := range meals {
+		meal.Pics, err = GetMealPics(t.db, meal.Id)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+	}
 	return APISuccess(meals)
 }
 
@@ -250,7 +257,6 @@ func (t *MealServlet) DeleteMeal(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Could not locate host", 400)		
 	}
-
 	meal, err := GetMealById(t.db, meal_id)
 	if err != nil {
 		log.Println(err)
