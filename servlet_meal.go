@@ -245,7 +245,7 @@ func (t *MealServlet) DeleteMeal(r *http.Request) *ApiResult {
 		return APIError("Malformed meal id", 400)
 	}
 	session_id := r.Form.Get("session")
-	host, err := GetHostBySession(t.db, session_id)
+	host, err := GetHostBySession(t.db, t.session_manager, session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Could not locate host", 400)		
@@ -259,10 +259,14 @@ func (t *MealServlet) DeleteMeal(r *http.Request) *ApiResult {
 	if meal.Host_id != host.Id {
 		return APIError("This is not your meal", 400)		
 	}
-	if meal.Published {
+	if meal.Published == 1 {
 		return APIError("You cannot delete a published meal. Please contact agree@yaychakula.com if you need assistance.", 400)
 	}
     _, err = t.db.Exec("DELETE FROM Meal WHERE Id = ?", meal_id)
+    if err != nil {
+    	log.Println(err)
+		return APIError("Failed to delete meal. Please contact agree@yaychakula.com", 400)
+    }
 }
 
 // Maybe add safeguard that prevents hosts from updating starts or price on already published meals
