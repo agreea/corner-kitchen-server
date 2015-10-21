@@ -180,6 +180,9 @@ func (t* MealServlet) GetMealDraft(r *http.Request) *ApiResult {
 }
 
 // Called by browser to fetch all meals for host.
+/* 
+curl --data "method=GetMealsForHost&session=f1caa66a-3351-48db-bcb3-d76bdc644634" https://qa.yaychakula.com/api/meal
+*/
 func (t *MealServlet) GetMealsForHost(r *http.Request) *ApiResult {
 	session := r.Form.Get("session")
 	host, err := GetHostBySession(t.db, t.session_manager, session)
@@ -232,6 +235,34 @@ func (t *MealServlet) PublishMeal(r *http.Request) *ApiResult {
 		return APIError("Failed to publish meal", 500)
 	}
 	return APISuccess("OK")
+}
+
+func (t *MealServlet) DeleteMeal(r *http.Request) *ApiResult {
+	meal_id_s := r.Form.Get("mealId")
+	meal_id, err := strconv.ParseInt(meal_id_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed meal id", 400)
+	}
+	session_id := r.Form.Get("session")
+	host, err := GetHostBySession(t.db, session_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not locate host", 400)		
+	}
+
+	meal, err := GetMealById(t.db, meal_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not locate meal", 400)
+	}
+	if meal.Host_id != host.Id {
+		return APIError("This is not your meal", 400)		
+	}
+	if meal.Published {
+		return APIError("You cannot delete a published meal. Please contact agree@yaychakula.com if you need assistance.", 400)
+	}
+    _, err = t.db.Exec("DELETE FROM Meal WHERE Id = ?", meal_id)
 }
 
 // Maybe add safeguard that prevents hosts from updating starts or price on already published meals
