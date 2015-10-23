@@ -527,13 +527,18 @@ type StripeCharge struct {
 	Chakula_fee		int `json:"application_fee"`
 }
 
-// curl --data "method=issueStripeCharge&id=55" https://qa.yaychakula.com/api/meal
+// curl --data "method=issueStripeCharge&id=55&key=***REMOVED***" https://qa.yaychakula.com/api/meal
 func (t *MealServlet) IssueStripeCharge(r *http.Request) *ApiResult {
 	meal_req_id_s := r.Form.Get("id")
 	meal_req_id, err := strconv.ParseInt(meal_req_id_s, 10, 64)
 	if err != nil {
 		log.Println(err)
 		return APIError("Ya fucked up", 400)
+	}
+
+	key := r.Form.Get("key")
+	if key != "***REMOVED***" {
+		return APIError("Error", 400)
 	}
 
 	meal_req, err := GetMealRequestById(t.db, meal_req_id)
