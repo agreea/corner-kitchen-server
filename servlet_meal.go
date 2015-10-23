@@ -334,7 +334,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	meal_draft.Rsvp_by = rsvp_by
 	// if there's no id, create a new meal
 	// if there is an id, update an existing meal
-	id_s := r.Form.Get("id")
+	id_s := r.Form.Get("mealId")
 	var id int64
 	if id_s == "" { // there's no ufckin meal
 		// create a meal
