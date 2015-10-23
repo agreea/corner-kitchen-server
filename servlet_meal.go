@@ -494,6 +494,9 @@ func (t *MealServlet) process_meal_charges(){
 		return
 	}
 	for _, meal := range meals {
+		if (meal.Processed == 1 || meal.Published == 0) { // skip the processed meals
+			continue
+		}
 		meal_reqs, err := GetConfirmedMealRequestsForMeal(t.db, meal.Id)
 		if err != nil {
 			log.Println(err)
@@ -527,7 +530,9 @@ type StripeCharge struct {
 	Chakula_fee		int `json:"application_fee"`
 }
 
-// curl --data "method=issueStripeCharge&id=55&key=***REMOVED***" https://qa.yaychakula.com/api/meal
+/* 
+curl --data "method=issueStripeCharge&id=57&key=***REMOVED***" https://qa.yaychakula.com/api/meal
+*/
 func (t *MealServlet) IssueStripeCharge(r *http.Request) *ApiResult {
 	meal_req_id_s := r.Form.Get("id")
 	meal_req_id, err := strconv.ParseInt(meal_req_id_s, 10, 64)
