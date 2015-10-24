@@ -378,6 +378,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 // if it's a new upload, creates the pic file
 func (t *MealServlet) process_pics(json_blob []byte, meal_id int64) error {
 	existing_pics := make([]Pic, 0)
+	new_pics := make([]Pic, 0)
 	pics_to_save := make([]Pic, 0)
 	err := json.Unmarshal(json_blob, &pics_to_save)
 	if err != nil {
@@ -385,23 +386,30 @@ func (t *MealServlet) process_pics(json_blob []byte, meal_id int64) error {
 	}
 	for _, pic := range pics_to_save {
 		if strings.HasPrefix(pic.Name, "data:image") { 
-		// pic is a new upload, create a file for it
-			log.Println("Creating new image file")
-			err := t.create_pic_file(pic, meal_id)
-			if err != nil {
-				return err
-			}
+			new_pics = append(new_pics, pic)
 		} else { // pic is already stored on server
 			existing_pics = append(existing_pics, pic)
 		}
 	}
-	if len(existing_pics) > 0 { 
-		// update the pics in the db to make sure unwanted ones are deleted 
-		// and also that captions are up-to-date
-		return t.update_database_pics(existing_pics, meal_id)
-	} else {
-		return nil	
+	err = t.update_database_pics(existing_pics, meal_id)
+	if err != nil {
+		return err
 	}
+	// pic is a new upload, create a file for it
+	log.Println("Creating new image file")
+	err = t.create_pic_files(new_pics, meal_id)
+	if err != nil {
+		return err
+	}
+}
+func (t *MealServlet) create_pic_files(pics []Pic, meal_id int64) error {
+	for _, pic := range pics {
+		err := t.create_pic_file(pic, meal_id)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (t *MealServlet) create_pic_file(pic Pic, meal_id int64) error {
