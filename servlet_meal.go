@@ -595,7 +595,7 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 	review, err := GetReviewByGuestAndMealId(t.db, meal_req.Guest_id, meal_req.Meal_id)
 	if review != nil {
 		multiplier := 128 + review.Tip_percent
-		amount = int(meal.Price * multiplier) * int(meal_req.Seats)
+		amount = int(meal.Price) * multiplier * int(meal_req.Seats)
 	} else {
 		amount = int(meal.Price * 128) * int(meal_req.Seats)
 	}
