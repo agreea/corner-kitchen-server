@@ -432,6 +432,7 @@ func (t *MealServlet) create_pic_file(pic Pic, meal_id int64) error {
 	   if err != nil {
 	       return err
 	   }
+	   log.Println(stat)
 	}
 	// add pic to DB
 	return SavePic(t.db, file_name, pic.Caption, meal_id)
