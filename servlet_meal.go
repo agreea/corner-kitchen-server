@@ -616,9 +616,9 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 	// get the review if it's there to include the tip
 	review, err := GetReviewByGuestAndMealId(t.db, meal_req.Guest_id, meal_req.Meal_id)
 	if review != nil {
-		log.Println("Found the review. Heres the tip i'm casting: ", float64(review.Tip_percent/100))
-		tip_percent = (float64(review.Tip_percent) / float64(100))
-		multiplier += (tip_percent)
+		tip_percent := (float64(review.Tip_percent) / float64(100))
+		log.Println("Found the review. Heres the tip i'm casting: ", tip_percent)
+		multiplier += tip_percent
 	}
 	multiplier *= 1.28 // total cost reflects value
 	final_amount_float := price_pennies * multiplier * seats
