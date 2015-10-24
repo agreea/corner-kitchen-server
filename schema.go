@@ -563,6 +563,16 @@ func GetReviewsForMeal(db *sql.DB, meal_id int64) ([]*Review, error) {
 	return reviews, nil
 }
 
+func GetReviewByGuestAndMealId(db *sql.DB, guest_id int64, meal_id int64) (*Review, error) {
+	row := db.QueryRow(`
+		SELECT Id, Guest_id, Rating, Comment, Meal_id, Date, Tip_percent
+		FROM HostReview
+		WHERE Guest_id = ? AND Meal_id = ?`,
+		guest_id,
+		meal_id
+	)
+	return readMealReviewLine(row)
+}
 // Returns all of the pics and the pics associated with the host
 // Use only for published meals
 func GetAllPicsForMeal(db *sql.DB, meal_id int64) ([]*Pic, error) {

@@ -590,13 +590,14 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 		log.Println(err)
 		return
 	}
+	var amount int
 	// get the review if it's there to include the tip
 	review, err := GetReviewByGuestAndMealId(t.db, meal_req.Guest_id, meal_req.Meal_id)
 	if review != nil {
 		multiplier := 128 + review.Tip_percent
-		amount := int(meal.Price * multiplier) * int(meal_req.Seats)
+		amount = int(meal.Price * multiplier) * int(meal_req.Seats)
 	} else {
-		amount := int(meal.Price * 128) * int(meal_req.Seats)
+		amount = int(meal.Price * 128) * int(meal_req.Seats)
 	}
 	client := &http.Client{}
    	stripe_body := url.Values{
