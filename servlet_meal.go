@@ -610,7 +610,7 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 		return
 	}
 	price_pennies := meal.Price * 100
-	multiplier := 1
+	multiplier := 1.00
 	percent_fee := 0.28
 	seats := float64(meal_req.Seats)
 	// get the review if it's there to include the tip
