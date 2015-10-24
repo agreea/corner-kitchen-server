@@ -609,14 +609,14 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 		log.Println(err)
 		return
 	}
-	price_pennies := float(meal.Price * 100)
+	price_pennies := meal.Price * 100
 	multipler := 1.28
 	percent_fee := 0.28
-	seats := float(meal_req.Seats)
+	seats := float64(meal_req.Seats)
 	// get the review if it's there to include the tip
 	review, err := GetReviewByGuestAndMealId(t.db, meal_req.Guest_id, meal_req.Meal_id)
 	if review != nil {
-		multiplier += float(review.Tip_percent/100)
+		multiplier += float64(review.Tip_percent/100)
 	}
 	final_amount_float := price_pennies * multiplier * seats
 	final_amount_int := int(final_amount_float)
