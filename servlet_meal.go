@@ -399,6 +399,7 @@ func (t *MealServlet) process_pics(json_blob []byte, meal_id int64) error {
 	log.Println("Creating new image file")
 	return t.create_pic_files(new_pics, meal_id)
 }
+
 func (t *MealServlet) create_pic_files(pics []Pic, meal_id int64) error {
 	for _, pic := range pics {
 		err := t.create_pic_file(pic, meal_id)
@@ -553,7 +554,7 @@ type StripeCharge struct {
 }
 
 /* 
-curl --data "method=issueStripeCharge&id=57&key=***REMOVED***" https://qa.yaychakula.com/api/meal
+curl --data "method=issueStripeCharge&id=55&key=***REMOVED***" https://qa.yaychakula.com/api/meal
 */
 func (t *MealServlet) IssueStripeCharge(r *http.Request) *ApiResult {
 	meal_req_id_s := r.Form.Get("id")
@@ -617,6 +618,7 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 	} else {
 		amount = int(meal.Price * 128) * int(meal_req.Seats)
 	}
+	log.Println(amount)
 	client := &http.Client{}
    	stripe_body := url.Values{
 		"amount": {strconv.Itoa(amount)},
