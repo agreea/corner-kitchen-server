@@ -23,3 +23,6 @@ Host = "localhost:11211"
 SID = "***REMOVED***"
 Token = "***REMOVED***"
 From = "8452432425"
+
+[Version]
+V = "prod"
