@@ -617,7 +617,8 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 	review, err := GetReviewByGuestAndMealId(t.db, meal_req.Guest_id, meal_req.Meal_id)
 	if review != nil {
 		log.Println("Found the review. Heres the tip i'm casting: ", float64(review.Tip_percent/100))
-		multiplier += float64(review.Tip_percent/100)
+
+		multiplier += (float64(review.Tip_percent) / float64(100)) // cast both integers to floats before operating to get decimals
 	}
 	final_amount_float := price_pennies * multiplier * seats
 	final_amount_int := int(final_amount_float)
