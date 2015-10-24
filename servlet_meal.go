@@ -421,8 +421,18 @@ func (t *MealServlet) create_pic_file(pic Pic, meal_id int64) error {
 	err = ioutil.WriteFile(file_address, data, os.FileMode(int(0664)))
 	if err != nil {
 		return err
+	} else {
+		file, err := os.Open(file_address)
+     	if err != nil {
+         // handle the error here
+         return err
+     	}
+     	defer file.Close()
+	   stat, err := file.Stat()
+	   if err != nil {
+	       return err
+	   }
 	}
-	log.Println(err)
 	// add pic to DB
 	return SavePic(t.db, file_name, pic.Caption, meal_id)
 }
