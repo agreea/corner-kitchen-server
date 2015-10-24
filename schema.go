@@ -1272,7 +1272,7 @@ func SavePic(db *sql.DB, pic_name string, caption string, meal_id int64) error {
 		caption,
 		meal_id,
 	)
-	console.log(result)
+	log.Println(result)
 	return err
 }
 
