@@ -397,10 +397,7 @@ func (t *MealServlet) process_pics(json_blob []byte, meal_id int64) error {
 	}
 	// pic is a new upload, create a file for it
 	log.Println("Creating new image file")
-	err = t.create_pic_files(new_pics, meal_id)
-	if err != nil {
-		return err
-	}
+	return t.create_pic_files(new_pics, meal_id)
 }
 func (t *MealServlet) create_pic_files(pics []Pic, meal_id int64) error {
 	for _, pic := range pics {
