@@ -43,6 +43,9 @@ type Config struct {
 		Token string
 		From  string
 	}
+	Version struct {
+		V string
+	}
 }
 
 func (kc Config) GetSqlURI() string {
