@@ -569,7 +569,7 @@ func GetReviewByGuestAndMealId(db *sql.DB, guest_id int64, meal_id int64) (*Revi
 		FROM HostReview
 		WHERE Guest_id = ? AND Meal_id = ?`,
 		guest_id,
-		meal_id
+		meal_id,
 	)
 	return readMealReviewLine(row)
 }
