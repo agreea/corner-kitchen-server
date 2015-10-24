@@ -616,6 +616,7 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 	// get the review if it's there to include the tip
 	review, err := GetReviewByGuestAndMealId(t.db, meal_req.Guest_id, meal_req.Meal_id)
 	if review != nil {
+		console.log("Found the review. Heres the tip i'm casting: ", (Tip_percent/100))
 		multiplier += float64(review.Tip_percent/100)
 	}
 	final_amount_float := price_pennies * multiplier * seats
