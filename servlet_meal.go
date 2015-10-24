@@ -582,7 +582,6 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 		log.Println(err)
 		return	
 	}
-	log.Println(meal)
 	log.Println(meal_req)
 	log.Println("Price in pennies: %d", int(meal.Price * 128))
 	log.Println("Price in pennies time seats: %d", int(meal.Price * 128) * int(meal_req.Seats))
@@ -591,13 +590,21 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 		log.Println(err)
 		return
 	}
+	// get the review if it's there to include the tip
+	review, err := GetReviewByGuestAndMealId(t.db, meal_req.Guest_id, meal_req.Meal_id)
+	if review != nil {
+		multiplier := 128 + review.Tip_percent
+		amount := int(meal.Price * multiplier) * int(meal_req.Seats)
+	} else {
+		amount := int(meal.Price * 128) * int(meal_req.Seats)
+	}
 	client := &http.Client{}
    	stripe_body := url.Values{
-		"amount": {strconv.Itoa(int(meal.Price * 128) * int(meal_req.Seats))},
+		"amount": {strconv.Itoa(amount)},
 		"currency": {"usd"},
 		"customer": {customer.Stripe_token},
 		"destination": {host.Stripe_user_id},
-		"application_fee": {strconv.Itoa(int(meal.Price * 28) * int(meal_req.Seats))},
+		"application_fee": {strconv.Itoa(int(amount/100 * 28))}, // 28% application fee
 	}
 	req, err := http.NewRequest(
 		"POST",
