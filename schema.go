@@ -1309,7 +1309,7 @@ func SaveReview(db *sql.DB, guest_id int64, meal_id int64, rating int64, comment
 		tip_percent,
 	)
 	if err == nil {
-		_, err = t.db.Exec(`
+		_, err := db.Exec(`
 			UPDATE MealRequest
 			SET Nudge_count = -1
 			WHERE Guest_id = ? AND Meal_id = ?
