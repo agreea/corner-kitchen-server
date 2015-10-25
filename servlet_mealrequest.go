@@ -173,7 +173,7 @@ func (t *MealRequestServlet) notify_guest(updated_request *MealRequest) (error) 
 		}
 		return err
 	} 
-	err := t.email_guest(guest, host, meal, updated_request.Status)
+	err = t.email_guest(guest, host, meal, updated_request.Status)
 	if err != nil {
 		log.Println(err)
 	}
