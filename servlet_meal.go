@@ -67,9 +67,18 @@ func NewMealServlet(server_config *Config, session_manager *SessionManager) *Mea
 	t.db = db
 	t.session_manager = session_manager
 	go t.process_meal_charge_worker()
+	go t.test_qa_vs_prod()
 	return t
 }
 
+func (t *MealServlet) test_qa_vs_prod() {
+	for {
+		if server_config.Version.V == "prod" {
+			log.Println("This is prod, this is not qa")
+			time.Sleep(time.Second * 20)
+		}
+	}
+}
 /*
 curl --data "method=getUpcomingMeals" https://qa.yaychakula.com/api/meal
 */
