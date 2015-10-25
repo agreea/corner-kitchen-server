@@ -118,7 +118,7 @@ func (t *ReviewServlet) nudge_attendees(requests []*MealRequest) error {
 		}
 		// nudge the attendee if they haven't reviewed the meal in 48 hours 
 		if (time.Since(request.Last_nudge) > time.Hour * 48 && request.Nudge_count < 3) {
-			if (request.Nudge_count == 0 && guest.Phone != "") { // text if we have their phone and it's the first nudge
+			if (request.Nudge_count == 0 && attendee.Phone != "") { // text if we have their phone and it's the first nudge
 				msg := new(SMS)
 				msg.To = attendee.Phone
 				msg.Message = fmt.Sprintf("Heyo! Thanks for coming to %s's meal! Make sure you leave a review so %s can build their reputation." +
