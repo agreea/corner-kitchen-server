@@ -82,7 +82,10 @@ func (t *ReviewServlet) nudge_review_for_recent_meals(){
 			log.Println(err)
 			return
 		}
-		err := t.nudge_attendees(requests)
+		err = t.nudge_attendees(requests)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 }
 
@@ -108,7 +111,7 @@ func (t *ReviewServlet) nudge_attendees(requests []*MealRequest) error {
 		if request.Nudge_count == -1 {
 			continue
 		}
-		guest, err := GetGuestById(t.db, request.Guest_id)
+		attendee, err := GetGuestById(t.db, request.Guest_id)
 		if err != nil {
 			log.Println(err)
 			continue
