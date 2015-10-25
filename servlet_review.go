@@ -119,7 +119,10 @@ func (t *ReviewServlet) nudge_attendees(requests []*MealRequest) error {
 					meal.Id)
 				t.twilio_queue <- msg
 			} else { // email them
-				subject := fmt.Sprintf("%s, Please Review %s's Chakula Meal", attendee.First_name, host_as_guest.First_name)
+				subject := fmt.Sprintf("%s, Please Review %s's Meal", attendee.First_name, host_as_guest.First_name)
+				if request.Nudge_count > 1 {
+					subject = "Reminder: " + subject
+				}
 				html := fmt.Sprintf("<p>Hi %s,</p>" +
 									"<p>Thank you for attending %s's meal.</p>" + 
 									"<p>We hope that you will take the time to <a href=https://yaychakula.com/review.html?Id=%d>review your meal here</a>. " +
