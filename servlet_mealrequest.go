@@ -219,7 +219,7 @@ func (t *MealRequestServlet) email_guest(guest *GuestData, host *HostData, meal 
 		html :=fmt.Sprintf("<p>Get excited!</p><p>The dinner is at %s, %s</p>" + 
 							"<p>Please reply to this email if you need any help.</p>" +
 							"<p>View the meal again <a href=https://yaychakula.com/meal.html?Id=" + meal.Id + ">here</a> " +
-							"<p>Peace, love and full stomachs,</p>"
+							"<p>Peace, love and full stomachs,</p>" +
 							"<p>Chakula</p>", host.Address, BuildTime(meal.Starts))
 		SendEmail(guest.Email, subject, html)
 	} else {
