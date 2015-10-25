@@ -69,8 +69,8 @@ func (t *ReviewServlet) nudge_review_worker(){
 }
 
 func (t *ReviewServlet) nudge_review_for_recent_meals(){
-	window_starts := time.Now().Sub(time.Hour * 24 * 6) // starts should be farther back in the past than the ends
-	window_ends := time.Now().Sub(time.Hour * 2)
+	window_starts := time.Now().Add(-time.Hour * 24 * 6) // starts should be farther back in the past than the ends
+	window_ends := time.Now().Add(-time.Hour * 2)
 	meals, err := GetMealsFromTimeWindow(t.db, window_starts, window_ends)
 	if err != nil {
 		log.Println(err)
@@ -91,14 +91,20 @@ func (t *ReviewServlet) nudge_attendees(requests []*MealRequest) error {
 	host, err := GetHostById(t.db, meal.Host_id)
 	if err != nil {
 		log.Println(err)
-		return
+		return err
 	}
 	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
 	if err != nil {
 		log.Println(err)
-		return
+		return err
 	}
 	for _, request := range requests {
+		meal, err := GetMealById(t.db, request.Meal_id)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
 		if request.Nudge_count == -1 {
 			continue
 		}
@@ -143,9 +149,11 @@ func (t *ReviewServlet) nudge_attendees(requests []*MealRequest) error {
 			)
 			if err != nil {
 				log.Println(err)
+				return err
 			}
 		}
 	}
+	return nil
 }
 /*
 SENDGRID API KEY: ***REMOVED***
