@@ -91,7 +91,7 @@ func (t *ReviewServlet) nudge_review_for_recent_meals(){
 
 // Called for each meal
 func (t *ReviewServlet) nudge_attendees(requests []*MealRequest) error {
-	host, err := GetHostById(t.db, meal.Host_id)
+	host, err := GetHostById(t.db, requests[0].Host_id)
 	if err != nil {
 		log.Println(err)
 		return err
