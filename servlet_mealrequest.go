@@ -172,14 +172,15 @@ func (t *MealRequestServlet) notify_guest(updated_request *MealRequest) (error) 
 			log.Println(err)
 		}
 		return err
-	} else {
-		err := t.text_pat(guest, host, meal, updated_request.Status)
-		if err != nil {
-			log.Println(err)
-		}
-		return err
+	} 
+	err := t.email_guest(guest, host, meal, updated_request.Status)
+	if err != nil {
+		log.Println(err)
 	}
+	return err
 }
+
+// Called to let them know if they made it
 func (t *MealRequestServlet) text_guest(guest *GuestData, host *HostData, meal *Meal, status int64) (error) {
 	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
 	if err != nil {
@@ -207,32 +208,27 @@ func (t *MealRequestServlet) text_guest(guest *GuestData, host *HostData, meal *
 	return nil
 }
 
-func (t *MealRequestServlet) text_pat(guest *GuestData, host *HostData, meal *Meal, status int64) error {
+func (t *MealRequestServlet) email_guest(guest *GuestData, host *HostData, meal *Meal, status int64) error {
 	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
-	msg := new(SMS)
-	msg.To = "4438313923"
-	// Yay more money! {HOST} welcomed {GUEST} to {DINNER}. It's at {ADDRESS} and {TIME}. Let them know at {GUEST EMAIL}  
 	if status == 1 {
-		msg.Message = fmt.Sprintf("Yay $$$! %s welcomed %s to %s. It's at %s at %s. Let them know at %s",
-			host_as_guest.First_name,
-			guest.First_name, 
-			meal.Title,
-			BuildTime(meal.Starts),
-			host.Address,
-			guest.Email)
-	} else if status == -1 {
-	// You've gotta break another heart... {HOST} declined {GUEST} to {DINNER}. Let them know at {GUEST EMAIL}
-		msg.Message = fmt.Sprintf("You've gotta break another heart... %s declined %s to %s. Let them know at %s",
-			host_as_guest.First_name, 
-			guest.First_name,
-			meal.Title,
-			guest.Email)
+		subject := fmt.Sprintf("%s Welcomed You to Their Chakula Meal!", host_as_guest.First_name)
+		html :=fmt.Sprintf("<p>Get excited!</p><p>The dinner is at %s, %s</p>" + 
+							"<p>Please reply to this email if you need any help</p>" +
+							"<p>Chakula</p>", host.Address, BuildTime(meal.Starts))
+		SendEmail(guest.Email, subject, html)
+	} else {
+		subject := fmt.Sprintf("%s Couldn't Welcome You to their Chakula Meal", host_as_guest.First_name)
+		html :=fmt.Sprintf("<p>Bummer.</p><p>There's always hope...</p>" + 
+							"<p>Michael Jordan got cut from his high school's JV basketball team." + 
+							"<p>His coach probably didn't expect him to ball with Bugs Bunny in" +
+							" the 1996 blockbuster, <i>Space Jam</i></p>" +
+							"<p>Love,</p><p>Chakula</p>")
+		SendEmail(guest.Email, subject, html)
 	}
-	t.twilio_queue <- msg
 	return nil
 }
 
