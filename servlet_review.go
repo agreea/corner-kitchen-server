@@ -34,27 +34,6 @@ func NewReviewServlet(server_config *Config, session_manager *SessionManager, tw
 	return t
 }
 
-// func (t *ReviewServlet) review_notifier() {
-// 	// get every meal that's happened recently
-// 	for { 
-// 		meals, err := GetMealsToNotifyForReview(t.db)
-// 		if err != nil {
-// 			log.Println(err)
-// 		}
-// 		// get every attendee for every meal
-// 		for _, meal := range meals { 
-// 			attendees, err := GetAttendeesForMeal(t.db, meal.Id)
-// 			if err!= nil {
-// 				log.Println(err)
-// 				time.Sleep(1 * time.Hour)
-// 				continue
-// 			}
-// 			for _, attendee := range attendees { // remind every attendee to leave a review
-// 				t.notify_attendee_to_review(attendee.Id, meal.Id)
-// 			}
-// 		}
-// 	}
-// }
 func (t *ReviewServlet) nudge_review_worker(){
 	for {
 		if server_config.Version.V == "qa" {
@@ -307,16 +286,6 @@ Get averag
 /*
 curl --data "method=getReviewsForMeal&mealId=3" https://qa.yaychakula.com/api/review
 */
-
-// query the meals table to get all meals hosted by host
-// query the review table to get all reviews where meal_id = 1 OR 2 OR ...
-// get all the reviews into an array
-// iterate over all the ratings: 
-// 		get the sum, convert every Guest_id into a First Name and Prof pic
-//		
-// divide  the sume by the size of the array
-// round so that   5 == > 4.7, 4.5 == 4.2 -> 4.7, 4.0 == 3.7 --> 4.2, etc. etc.
-// return rating plus an array of review objects
 
 /*
 curl --data "method=getReviewsForHost&hostId=1" https://qa.yaychakula.com/api/review
