@@ -30,7 +30,7 @@ func NewReviewServlet(server_config *Config, session_manager *SessionManager, tw
 	t.db = db
 	t.session_manager = session_manager
 	t.twilio_queue = twilio_queue
-	go t.nudge_review_worker()
+	// go t.nudge_review_worker()
 	return t
 }
 

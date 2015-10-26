@@ -66,12 +66,12 @@ func NewMealServlet(server_config *Config, session_manager *SessionManager) *Mea
 	}
 	t.db = db
 	t.session_manager = session_manager
-	go t.process_meal_charge_worker()
+	// go t.process_meal_charge_worker()
 	return t
 }
 
 /*
-curl --data "method=getUpcomingMeals" https://qa.yaychakula.com/api/meal
+curl --data "method=getUpcomingMeals" https://yaychakula.com/api/meal
 */
 func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 	meals, err := GetUpcomingMealsFromDB(t.db)
