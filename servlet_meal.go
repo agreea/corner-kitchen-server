@@ -656,7 +656,7 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 }
 
 /*
-curl --data "method=getMeal&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mealId=4" https://qa.yaychakula.com/api/meal
+curl --data "method=getMeal&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mealId=4" https://yaychakula.com/api/meal
 */
 
 func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
