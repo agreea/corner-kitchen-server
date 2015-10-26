@@ -39,11 +39,11 @@ func (t *ReviewServlet) nudge_review_worker(){
 		if server_config.Version.V == "qa" {
 			log.Println("Continuing as qa. Not filling out email")
 			time.Sleep(time.Hour * 100)
-			continue
+			break
 		}
 		log.Println("In the nudge review loop")
 		t.nudge_review_for_recent_meals()
-		time.Sleep(time.Hour * 1)
+		time.Sleep(time.Hour)
 	}
 }
 
