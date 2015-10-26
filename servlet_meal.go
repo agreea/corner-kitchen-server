@@ -503,7 +503,7 @@ func (t *MealServlet) process_meal_charge_worker() {
 	}
 }
 
-// TODO: handle failed charges
+// TODO: handle failed charges...
 func (t *MealServlet) process_meal_charges(){
 	if server_config.Version.V == "qa" { // only run this routine on prod
 		log.Println("Exiting meal_charge routine on qa")
