@@ -246,6 +246,10 @@ func (t *KitchenUserServlet) Get(r *http.Request) *ApiResult {
 	if !session_valid {
 		return APIError("Session has expired. Please log in again", 200)
 	}
+	key := r.Form.Get("key")
+	if key != "12q4lkjLK99JnfalsmfFDfdkd" {
+		session.Guest.Facebook_long_token = "nah b"
+	}
 	return APISuccess(session.Guest)
 }
 

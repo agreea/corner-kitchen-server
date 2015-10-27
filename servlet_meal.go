@@ -525,6 +525,26 @@ func (t *MealServlet) process_meal_charges(){
 			log.Println(err)
 		}
 		t.process_meal_requests(meal_reqs)
+		SetMealProcessed(t.db, meal.Id)
+		host, err := GetHostById(t.db, meal.Host_id)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		host_as_guest, err := GetGuestById(t.db, host.Guest_id)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		subject := "Chakula has Processed Your Payments"
+		html := "<p>Chakula processed the payments for the meal you recently held.</p>" +
+				"<p>Please be advised that <b>Stripe still has to clear the payments</b> before the funds are transferred to your account." +
+				"This should take no more than 4 business days</p>" +
+				"<p>To check the status of your funds please log into your <a href='https://stripe.com'>stripe account</a></p>" +
+				"<p>If you have any further questions, contact Agree at agree@yaychakula.com</p>" +
+				"<p>Sincerely,</p>" +
+				"<p>Chakula</p>"
+		SendEmail(host_as_guest.Email, subject, html)
 	}
 }
 
@@ -533,7 +553,6 @@ func (t *MealServlet) process_meal_requests(meal_reqs []*MealRequest) {
 		// create stripe charge
 		t.stripe_charge(meal_req)
 	}
-	SetMealProcessed(t.db, meal_reqs[0].Meal_id)
 }
 /*
 curl https://api.stripe.com/v1/charges \
@@ -554,7 +573,7 @@ type StripeCharge struct {
 }
 
 /* 
-curl --data "method=issueStripeCharge&id=55&key=***REMOVED***" https://qa.yaychakula.com/api/meal
+curl --data "method=issueStripeCharge&id=63&key=***REMOVED***" https://qa.yaychakula.com/api/meal
 */
 func (t *MealServlet) IssueStripeCharge(r *http.Request) *ApiResult {
 	meal_req_id_s := r.Form.Get("id")
