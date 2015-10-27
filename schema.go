@@ -320,7 +320,8 @@ func GetMealsFromTimeWindow(db *sql.DB, window_starts time.Time, window_ends tim
 func GetMealsForHost(db *sql.DB, host_id int64) ([]*Meal, error) {
 	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by, Processed, Published
         FROM Meal 
-        WHERE Host_id = ?`, 
+        WHERE Host_id = ?
+        ORDER BY Starts DESC`, 
         host_id)
 	if err != nil {
 		return nil, err
