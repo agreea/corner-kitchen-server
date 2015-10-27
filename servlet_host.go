@@ -128,11 +128,9 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 	}
 	guest := session.Guest
 	// Update the guest data according to the form
-	first_name := r.Form.Get("firstName")
-	last_name := r.Form.Get("lastName")
 	email := r.Form.Get("email")
 	phone := r.Form.Get("phone")
-	err = UpdateGuest(t.db, first_name, last_name, email, phone, guest.Id)
+	err = UpdateGuest(t.db, guest.First_name, guest.Last_name, email, phone, guest.Id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Failed to update host data", 500)
