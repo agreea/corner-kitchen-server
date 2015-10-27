@@ -93,6 +93,29 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	return APISuccess(nil)
 }
 
+func (t *HostServlet) Get(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	valid, session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Couldn't locate guest", 400)
+	}
+	if !valid {
+		return APIError("Invalid session", 400)
+	}
+
+	host, err := GetHostByGuestId(t.db, t.session_manager, session_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("No host in db matching this record", 400)
+	}
+	if host.Stripe_user_id != "" {
+		host.Stripe_user_id = "yes"
+	}
+	host.Stripe_access_token = ""
+	host.Stripe_refresh_token = ""
+	return APISuccess(host)
+}
 func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	valid, session, err := t.session_manager.GetGuestSession(session_id)
