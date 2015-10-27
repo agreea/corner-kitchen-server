@@ -104,7 +104,7 @@ func (t *HostServlet) Get(r *http.Request) *ApiResult {
 		return APIError("Invalid session", 400)
 	}
 
-	host, err := GetHostBySession(t.db, t.session_manager, session_id)
+	host, err := GetHostByGuestId(t.db, session.Guest_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("No host in db matching this record", 400)
