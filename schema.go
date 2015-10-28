@@ -684,12 +684,12 @@ func UpdateGuest(db *sql.DB, first_name string, last_name string, email string, 
 	return err
 }
 
-func UpdateHost(db *sql.DB, address string, host_id int64) error{
+func UpdateHost(db *sql.DB, address string, host_id int64, bio string) error{
 	_, err := db.Exec(`
 		UPDATE Host
-		SET Address = ?
+		SET Address = ?, Bio = ?
 		WHERE Id =?`,
-		address, host_id,
+		address, bio, host_id,
 	)
 	return err
 }
