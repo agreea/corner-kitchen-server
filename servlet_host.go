@@ -201,7 +201,7 @@ func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 	host, err := GetHostByGuestId(t.db, guest.Id)
 	if err != nil { // there wasn't a host with this guest id
 		log.Println(err)
-		err = CreateHost(t.db, guest.Id)
+		err = CreateHost(t.db, guest.Id, "")
 		if err != nil {
 			log.Println(err)
 			return APIError("Failed to create Host", 500)
