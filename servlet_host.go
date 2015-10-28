@@ -129,6 +129,7 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 	// Update the guest data according to the form
 	email := r.Form.Get("email")
 	phone := r.Form.Get("phone")
+	bio := r.Form.Get("bio")
 	err = UpdateGuest(t.db, guest.First_name, guest.Last_name, email, phone, guest.Id)
 	if err != nil {
 		log.Println(err)
@@ -148,7 +149,6 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 		}
 	}
 	address := r.Form.Get("address")
-	bio := r.Form.Get("bio")
 	err = UpdateHost(t.db, address, host.Id, bio)
 	if err != nil {
 		log.Println(err)
