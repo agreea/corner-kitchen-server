@@ -117,6 +117,7 @@ func (t *HostServlet) Get(r *http.Request) *ApiResult {
 	host.Stripe_refresh_token = ""
 	return APISuccess(host)
 }
+
 func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	valid, session, err := t.session_manager.GetGuestSession(session_id)
@@ -184,7 +185,9 @@ func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
 	}
 	return stripeJSON, nil
 }
-
+/*
+curl --data "method=GetHost&session=c12c1704-d2b0-4af5-83eb-a562afcfe277"  https://qa.yaychakula.com/api/host
+*/
 func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	valid, session, err := t.session_manager.GetGuestSession(session_id)
@@ -218,7 +221,7 @@ func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
         "client_id=ca_6n8She3UUNpFgbv1sYtB28b6Db7sTLY6&amp;scope=read_write&amp;" +
         "stripe_user[email]=%s&amp;" +
     	"stripe_user[url]=https://yaychakula.com/host?Id=%d&amp;" +
-        "stripe_user[stripe_user[business_name]=%s_on_Chakula&amp;" +
+        "stripe_user[business_name]=%s_on_Chakula&amp;" +
         "stripe_user[business_type]=sole_prop&amp;" +
         "stripe_user[phone_number]=%s&amp;" +
         "stripe_user[first_name]=%s&amp;" +
