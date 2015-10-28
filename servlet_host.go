@@ -18,12 +18,11 @@ type HostServlet struct {
 }
 
 type HostResponse struct {
-	First_name 		string
-	Last_name 		string
 	Email 			string
 	Phone 			string
 	Address 		string
 	Prof_pic		string
+	Bio 			string
 	Stripe_connect	bool
 }
 
@@ -139,7 +138,7 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 	// create a host if there isn't one and then update their data
 	if err != nil {
 		log.Println(err)
-		err = CreateHost(t.db, guest.Id)
+		err = CreateHost(t.db, guest.Id, bio)
 		if err != nil {
 			return APIError("Failed to create host", 500)
 		}
@@ -149,7 +148,7 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 		}
 	}
 	address := r.Form.Get("address")
-	err = UpdateHost(t.db, address, host.Id)
+	err = UpdateHost(t.db, address, host.Id, bio)
 	if err != nil {
 		log.Println(err)
 		return APIError("Failed to update host data", 500)
@@ -195,8 +194,6 @@ func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 	}
 	guest := session.Guest
 	host_resp := new(HostResponse)
-	host_resp.First_name = guest.First_name
-	host_resp.Last_name = guest.Last_name
 	host_resp.Email = guest.Email
 	host_resp.Phone = guest.Phone
 	host_resp.Prof_pic = GetFacebookPic(guest.Facebook_id)
@@ -212,6 +209,7 @@ func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 		return APISuccess(host_resp)
 	}
 	host_resp.Address = host.Address
+	host_resp.Bio = host.Bio
 	host_resp.Stripe_connect = !(host.Stripe_user_id == "")
 	return APISuccess(host_resp)
 }
