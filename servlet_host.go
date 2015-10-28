@@ -23,6 +23,7 @@ type HostResponse struct {
 	Address 		string
 	Prof_pic		string
 	Bio 			string
+	Stripe_url 		string
 	Stripe_connect	bool
 }
 
@@ -154,7 +155,7 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Failed to update host data", 500)
 	}
-	return APISuccess(nil)
+	return t.GetHost(r)
 }
 
 func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
@@ -209,9 +210,33 @@ func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 		host_resp.Stripe_connect = false
 		return APISuccess(host_resp)
 	}
+	host_resp.Id = host.Id
 	host_resp.Address = host.Address
 	host_resp.Bio = host.Bio
 	host_resp.Stripe_connect = !(host.Stripe_user_id == "")
+	host_resp.Stripe_url = fmt.Sprintf("https://connect.stripe.com/oauth/authorize?response_type=code&amp;" + 
+        "client_id=ca_6n8She3UUNpFgbv1sYtB28b6Db7sTLY6&amp;scope=read_write&amp;" +
+        "stripe_user[email]=%s&amp;" +
+    	"stripe_user[url]=https://yaychakula.com/host?Id=%d&amp;" +
+        "stripe_user[stripe_user[business_name]=%s_on_Chakula&amp;" +
+        "stripe_user[business_type]=sole_prop&amp;" +
+        "stripe_user[phone_number]=%s&amp;" +
+        "stripe_user[first_name]=%s&amp;" +
+        "stripe_user[last_name]=%s&amp;" +
+        "stripe_user[street_address]=%s&amp;" +
+        "stripe_user[city]=Washington&amp;" +
+        "stripe_user[state]=DC&amp;" +
+        "stripe_user[product_category]=food_and_restaurants&amp;" +
+        "stripe_user[product_description]=Food&amp;" +
+        "stripe_user[country]=US&amp;" +
+		"stripe_user[currency]=usd",
+		guest.Email,
+		host.Id,
+		guest.First_name,
+		guest.Phone,
+		guest.First_name,
+		guest.Last_name,
+		host.Address)
 	return APISuccess(host_resp)
 }
 // func (t *HostServlet) Pay(r *http.Request) *ApiResult {
