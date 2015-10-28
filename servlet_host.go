@@ -210,7 +210,6 @@ func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 		host_resp.Stripe_connect = false
 		return APISuccess(host_resp)
 	}
-	host_resp.Id = host.Id
 	host_resp.Address = host.Address
 	host_resp.Bio = host.Bio
 	host_resp.Stripe_connect = !(host.Stripe_user_id == "")
