@@ -148,6 +148,7 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 		}
 	}
 	address := r.Form.Get("address")
+	bio := r.Form.Get("bio")
 	err = UpdateHost(t.db, address, host.Id, bio)
 	if err != nil {
 		log.Println(err)

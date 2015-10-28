@@ -665,12 +665,12 @@ func contains(s []int64, e int64) bool {
     return false
 }
 
-func CreateHost(db *sql.DB, guest_id int64) error {
+func CreateHost(db *sql.DB, guest_id int64, bio string) error {
 	_, err := db.Exec(`INSERT INTO Host
-			(Guest_id)
+			(Guest_id, Bio)
 			VALUES
-			(?)`,
-			guest_id,)
+			(?, ?)`,
+			guest_id, bio,)
 	return err
 }
 
