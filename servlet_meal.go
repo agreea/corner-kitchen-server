@@ -716,7 +716,6 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	meal_data.Host_name = host_as_guest.First_name
 	meal_data.Host_pic = GetFacebookPic(host_as_guest.Facebook_id)
 	meal_data.Host_bio = host.Bio
-	meal_data.Address = host.Address
 	meal_data.Starts = meal.Starts
 	meal_data.Rsvp_by = meal.Rsvp_by
 	meal_data.Host_reviews = t.get_host_reviews(host.Id)
@@ -763,6 +762,11 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		meal_data.Status = "ATTENDING"
 	} else if meal_req.Status == -1 {
 		meal_data.Status = "DECLINED"
+	}
+	if meal_data.Status == "ATTENDING" {
+		meal_data.Address = host.Address
+	} else {
+		meal_data.Address = "Address revealed upon purchase"
 	}
 	meal_data.Has_email = !(session.Guest.Email == "")
 	return APISuccess(meal_data)
