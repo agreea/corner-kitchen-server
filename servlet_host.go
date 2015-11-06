@@ -115,6 +115,11 @@ func (t *HostServlet) Get(r *http.Request) *ApiResult {
 	}
 	host.Stripe_access_token = ""
 	host.Stripe_refresh_token = ""
+	// return every review
+	// return number of plates served
+	// return bio
+	// return name
+	// return all meals
 	return APISuccess(host)
 }
 

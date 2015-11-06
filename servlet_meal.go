@@ -36,6 +36,7 @@ type Meal_read struct {
 	Host_name 		string
 	Host_pic		string
 	Host_bio		string
+	Address 		string
 	Open_spots 		int64
 	Price			float64
 	Status 			string
@@ -52,6 +53,7 @@ type Review_read struct {
 	First_name 		string
 	Prof_pic_url 	string
 	Meal_id 		int64
+	Meal_title 		string
 	Rating 			int64
 	Comment 		string
 	Date 			time.Time
@@ -714,6 +716,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	meal_data.Host_name = host_as_guest.First_name
 	meal_data.Host_pic = GetFacebookPic(host_as_guest.Facebook_id)
 	meal_data.Host_bio = host.Bio
+	meal_data.Address = host.Address
 	meal_data.Starts = meal.Starts
 	meal_data.Rsvp_by = meal.Rsvp_by
 	meal_data.Host_reviews = t.get_host_reviews(host.Id)
@@ -791,12 +794,18 @@ func (t *MealServlet) get_host_reviews(host_id int64) ([]*Review_read) {
 			log.Println(err)
 			return nil
 		}
+		meal, err := GetMealById(t.db, review.Meal_id)
+		if err != nil {
+			log.Println(err)
+			return nil
+		}
 		review_read.First_name = guest.First_name
 		review_read.Prof_pic_url = GetFacebookPic(guest.Facebook_id)
 		review_read.Rating = review.Rating
 		review_read.Comment = review.Comment
 		review_read.Date = review.Date
 		review_read.Meal_id = review.Meal_id
+		review_read.Meal_title = meal.Title
 		review_reads = append(review_reads, review_read)
 	}
 	return review_reads
