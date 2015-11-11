@@ -771,8 +771,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		meal_data.Address = "Address revealed upon purchase"
 	}
 	maps_address := strings.Replace(host.Address, " ", "%20", -1)
-	meal_data.Maps_url = strings.Join("https://maps.googleapis.com/maps/api/staticmap?size=460x300&markers=color:blue%7Csize:mid%7C", 
-		maps_address)
+	meal_data.Maps_url := "https://maps.googleapis.com/maps/api/staticmap?size=460x300&markers=color:blue%7Csize:mid%7C" + maps_address
 	meal_data.Has_email = !(session.Guest.Email == "")
 	return APISuccess(meal_data)
 }
