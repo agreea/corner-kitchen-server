@@ -40,6 +40,7 @@ type Meal_read struct {
 	Open_spots 		int64
 	Price			float64
 	Status 			string
+	Maps_url 		string
 	Has_email		bool
 	Attendees 		[]*Attendee_read
 	Starts			time.Time
@@ -751,6 +752,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		log.Println(session_valid)
 		return APISuccess(meal_data)
 	}
+
 	// get the request, if there is one. Show this in the status
 	meal_req, err := t.get_request_by_guest_and_meal_id(session.Guest.Id, meal_id)
 	if err != nil {
@@ -768,6 +770,9 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	} else {
 		meal_data.Address = "Address revealed upon purchase"
 	}
+	maps_address := strings.Replace(host.Address, " ", "%20", -1)
+	meal_data.Maps_url := "https://maps.googleapis.com/maps/api/staticmap?size=460x300&markers=color:blue%7Csize:mid%7C" 
+		+ maps_address
 	meal_data.Has_email = !(session.Guest.Email == "")
 	return APISuccess(meal_data)
 }
