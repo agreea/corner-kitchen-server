@@ -772,7 +772,6 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	}
 	meal_data.Maps_url = "https://maps.googleapis.com/maps/api/staticmap?size=460x300&markers=color:blue|size:mid|" + host.Address
 	log.Println(meal_data.Maps_url)
-	log.Println(maps_address)
 	meal_data.Has_email = !(session.Guest.Email == "")
 	return APISuccess(meal_data)
 }
