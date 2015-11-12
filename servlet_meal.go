@@ -716,7 +716,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	meal_data.Price = meal.Price * 1.28
 	meal_data.Host_name = host_as_guest.First_name
 	meal_data.Host_pic = GetFacebookPic(host_as_guest.Facebook_id)
-	meal_data.Host_bio = host.Bio
+	meal_data.Host_bio = "just a test 123049123401092340123490234"// host.Bio
 	meal_data.Starts = meal.Starts
 	meal_data.Rsvp_by = meal.Rsvp_by
 	meal_data.Host_reviews = t.get_host_reviews(host.Id)
