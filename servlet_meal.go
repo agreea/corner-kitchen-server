@@ -678,7 +678,7 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 }
 
 /*
-curl --data "method=getMeal&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mealId=4" https://yaychakula.com/api/meal
+curl --data "method=getMeal&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&mealId=4" https://yaychakula.com/api/meal
 */
 
 func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
@@ -771,12 +771,10 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		meal_data.Address = "Address revealed upon purchase"
 	}
 	maps_address := strings.Replace(host.Address, " ", "%20", -1)
-	meal_data.Maps_url = "check it out"
-	// "https://maps.googleapis.com/maps/api/staticmap?size=460x300&markers=color:blue%7Csize:mid%7C" 
+	meal_data.Maps_url = "https://maps.googleapis.com/maps/api/staticmap?size=460x300&markers=color:blue%7Csize:mid%7C" + maps_address
 	log.Println(meal_data.Maps_url)
 	log.Println(maps_address)
-	// + maps_address
-	meal_data.Has_email = true//!(session.Guest.Email == "")
+	meal_data.Has_email = !(session.Guest.Email == "")
 	return APISuccess(meal_data)
 }
 
