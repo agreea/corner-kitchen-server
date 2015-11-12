@@ -770,7 +770,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	} else {
 		meal_data.Address = "Address revealed upon purchase"
 	}
-	meal_data.Maps_url = "https://maps.googleapis.com/maps/api/staticmap?size=460x300&zoom=14&center=" + host.Address + "Washington, DC"
+	meal_data.Maps_url = "https://maps.googleapis.com/maps/api/staticmap?size=500x310&scale=2&zoom=14&center=" + host.Address + "Washington, DC"
 	log.Println(meal_data.Maps_url)
 	meal_data.Has_email = !(session.Guest.Email == "")
 	return APISuccess(meal_data)
