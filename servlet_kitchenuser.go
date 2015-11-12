@@ -235,7 +235,9 @@ func (t *KitchenUserServlet) get_fb_long_token(fb_token string) (long_token stri
 		return long_token, int(expires64), nil
 	}
 }
-
+/*
+curl --data "method=Get&session=f1caa66a-3351-48db-bcb3-d76bdc644634" https://qa.yaychakula.com/api/kitchenuser
+*/
 func (t *KitchenUserServlet) Get(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
