@@ -753,6 +753,20 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 			return APIError("Could not process session", 500)
 		}
 		meal_req, err := t.get_request_by_guest_and_meal_id(session.Guest.Id, meal_id)
+		if err != nil {
+			log.Println(err)
+			meal_data.Status = "NONE"
+		} else if meal_req.Status == 0 {
+			meal_data.Status = "PENDING"
+		} else if meal_req.Status == 1 {
+			meal_data.Status = "ATTENDING"
+		} else if meal_req.Status == -1 {
+			meal_data.Status = "DECLINED"
+		}
+		if meal_data.Status == "ATTENDING" {
+			meal_data.Address = host.Address
+			meal_data.Maps_url = "https://maps.googleapis.com/maps/api/staticmap?size=600x300&scale=2&zoom=14&markers=color:red|" + host.Address + "Washington, DC"
+		}
 		meal_data.Has_email = !(session.Guest.Email == "")
 		if !session_valid {
 			meal_data.Status = "NONE"
@@ -761,20 +775,6 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		}
 	}
 	// get the request, if there is one. Show this in the status
-	if err != nil {
-		log.Println(err)
-		meal_data.Status = "NONE"
-	} else if meal_req.Status == 0 {
-		meal_data.Status = "PENDING"
-	} else if meal_req.Status == 1 {
-		meal_data.Status = "ATTENDING"
-	} else if meal_req.Status == -1 {
-		meal_data.Status = "DECLINED"
-	}
-	if meal_data.Status == "ATTENDING" {
-		meal_data.Address = host.Address
-		meal_data.Maps_url = "https://maps.googleapis.com/maps/api/staticmap?size=600x300&scale=2&zoom=14&markers=color:red|" + host.Address + "Washington, DC"
-	}
 	// if 
 	log.Println(meal_data.Maps_url)
 	return APISuccess(meal_data)
