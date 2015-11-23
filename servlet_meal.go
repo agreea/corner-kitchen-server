@@ -678,7 +678,7 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 }
 
 /*
-curl --data "method=getMeal&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&mealId=4" https://yaychakula.com/api/meal
+curl --data "method=getMeal&mealId=4&session=" https://yaychakula.com/api/meal
 */
 
 func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
@@ -739,17 +739,28 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		meal_data.Open_spots = meal.Capacity
 	}
 	meal_data.Pics = pics
+	meal_data.Address = "Address revealed upon purchase"
+	meal_data.Maps_url = "https://maps.googleapis.com/maps/api/staticmap?size=600x300&scale=2&zoom=14&center=" + host.Address + "Washington, DC"
 	// get the guest's session
 	session_id := r.Form.Get("session")
-	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
-	if err != nil {
+	if session_id == "" {
 		meal_data.Status = "NONE"
-		log.Println(err)
-		return APIError("Could not process session", 500)
+	} else {
+		session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+		if err != nil {
+			meal_data.Status = "NONE"
+			log.Println(err)
+			return APIError("Could not process session", 500)
+		}
+		meal_req, err := t.get_request_by_guest_and_meal_id(session.Guest.Id, meal_id)
+		meal_data.Has_email = !(session.Guest.Email == "")
+		if !session_valid {
+			meal_data.Status = "NONE"
+			log.Println(session_valid)
+			return APISuccess(meal_data)
+		}
 	}
 	// get the request, if there is one. Show this in the status
-	meal_req, err := t.get_request_by_guest_and_meal_id(session.Guest.Id, meal_id)
-	meal_data.Maps_url = "https://maps.googleapis.com/maps/api/staticmap?size=600x300&scale=2&zoom=14&center=" + host.Address + "Washington, DC"
 	if err != nil {
 		log.Println(err)
 		meal_data.Status = "NONE"
@@ -763,17 +774,9 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	if meal_data.Status == "ATTENDING" {
 		meal_data.Address = host.Address
 		meal_data.Maps_url = "https://maps.googleapis.com/maps/api/staticmap?size=600x300&scale=2&zoom=14&markers=color:red|" + host.Address + "Washington, DC"
-	} else {
-		meal_data.Address = "Address revealed upon purchase"
-	}
-	if !session_valid {
-		meal_data.Status = "NONE"
-		log.Println(session_valid)
-		return APISuccess(meal_data)
 	}
 	// if 
 	log.Println(meal_data.Maps_url)
-	meal_data.Has_email = !(session.Guest.Email == "")
 	return APISuccess(meal_data)
 }
 
