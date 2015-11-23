@@ -746,6 +746,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	if session_id == "" {
 		meal_data.Status = "NONE"
 	} else {
+		log.Println("Made it to else...")
 		session_valid, session, err := t.session_manager.GetGuestSession(session_id)
 		if err != nil {
 			meal_data.Status = "NONE"
