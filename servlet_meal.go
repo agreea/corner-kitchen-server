@@ -269,7 +269,7 @@ func (t *MealServlet) DeleteMeal(r *http.Request) *ApiResult {
 		return APIError("This is not your meal", 400)		
 	}
 	attendees, _ := GetAttendeesForMeal(t.db, meal_id)
-	if meal.Published == 1 && attendees != nil {
+	if meal.Published == 1 && attendees != nil && len(attendees) > 0 {
 		return APIError("You cannot delete a published meal. Please contact agree@yaychakula.com if you need assistance.", 400)
 	}
     _, err = t.db.Exec("DELETE FROM Meal WHERE Id = ?", meal_id)
