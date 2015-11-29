@@ -283,7 +283,8 @@ func (t *MealServlet) DeleteMeal(r *http.Request) *ApiResult {
 func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	title := r.Form.Get("title")
 	description := r.Form.Get("description")
-
+	log.Println(description)
+	// log.Println(strings.replace(description,))
 	// parse seats
 	seats_s := r.Form.Get("seats")
 	seats, err := strconv.ParseInt(seats_s, 10, 64)
