@@ -220,7 +220,7 @@ func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 	}
 	host_resp.Address = host.Address
 	host_resp.City = host.City
-	host_resp.State host.State
+	host_resp.State = host.State
 	host_resp.Bio = host.Bio
 	host_resp.Stripe_connect = !(host.Stripe_user_id == "")
 	host_resp.Stripe_url = fmt.Sprintf("https://connect.stripe.com/oauth/authorize?response_type=code&amp;" + 
