@@ -258,14 +258,14 @@ func GetFacebookPic(fb_id string) string {
 
 func GetHostByGuestId(db *sql.DB, guest_id int64) (*HostData, error) {
 	log.Println(guest_id)
-	row := db.QueryRow(`SELECT Id, Guest_id, Address,
+	row := db.QueryRow(`SELECT Id, Guest_id, Address, City, State,
 		Stripe_user_id, Stripe_access_token, Stripe_refresh_token, Bio 
 		FROM Host WHERE Guest_id = ?`, guest_id)
 	return readHostLine(row)
 }
 
 func GetHostById(db *sql.DB, id int64) (*HostData, error) {
-	row := db.QueryRow(`SELECT Id, Guest_id, Address, 
+	row := db.QueryRow(`SELECT Id, Guest_id, Address, City, State,
 		Stripe_user_id, Stripe_access_token, Stripe_refresh_token, Bio 
 		FROM Host WHERE Id = ?`, id)
 	return readHostLine(row)
@@ -689,10 +689,7 @@ func UpdateGuest(db *sql.DB, first_name string, last_name string, email string, 
 func UpdateHost(db *sql.DB, address string, city string, state string, bio string, host_id int64) error{
 	_, err := db.Exec(`
 		UPDATE Host
-		SET Address = ?, 
-		City = ?, 
-		State = ?, 
-		Bio = ?
+		SET Address = ?, City = ?, State = ?, Bio = ?
 		WHERE Id =?`,
 		address, 
 		city, 
@@ -833,6 +830,8 @@ func readHostLine(row *sql.Row) (*HostData, error) {
 		&host_data.Id,
 		&host_data.Guest_id,
 		&host_data.Address,
+		&host_data.City,
+		&host_data.State,
 		&host_data.Stripe_user_id,
 		&host_data.Stripe_access_token,
 		&host_data.Stripe_refresh_token,
