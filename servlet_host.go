@@ -138,6 +138,8 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 	email := r.Form.Get("email")
 	phone := r.Form.Get("phone")
 	bio := r.Form.Get("bio")
+	state := r.Form.Get("state")
+	city := r.Form.Get("city")
 	err = UpdateGuest(t.db, guest.First_name, guest.Last_name, email, phone, guest.Id)
 	if err != nil {
 		log.Println(err)
@@ -157,7 +159,7 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 		}
 	}
 	address := r.Form.Get("address")
-	err = UpdateHost(t.db, address, host.Id, bio)
+	err = UpdateHost(t.db, address, city, state, bio, host.Id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Failed to update host data", 500)
@@ -232,8 +234,8 @@ func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
         "stripe_user[first_name]=%s&amp;" +
         "stripe_user[last_name]=%s&amp;" +
         "stripe_user[street_address]=%s&amp;" +
-        "stripe_user[city]=Washington&amp;" +
-        "stripe_user[state]=DC&amp;" +
+        "stripe_user[city]=%s&amp;" +
+        "stripe_user[state]=%s&amp;" +
         "stripe_user[product_category]=food_and_restaurants&amp;" +
         "stripe_user[product_description]=Food&amp;" +
         "stripe_user[country]=US&amp;" +
@@ -244,7 +246,9 @@ func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 		guest.Phone,
 		guest.First_name,
 		guest.Last_name,
-		host.Address)
+		host.Address,
+		host.City,
+		host.State)
 	return APISuccess(host_resp)
 }
 // func (t *HostServlet) Pay(r *http.Request) *ApiResult {
