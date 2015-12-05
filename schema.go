@@ -191,6 +191,8 @@ type HostData struct {
 	Id             			int64
 	Guest_id       			int64
 	Address        			string
+	City 					string
+	State 					string
 	Stripe_user_id 			string
 	Stripe_access_token		string
 	Stripe_refresh_token	string
