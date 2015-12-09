@@ -405,9 +405,9 @@ func (t *MealServlet) process_pics(json_blob []byte, meal_id int64) error {
 	return t.create_pic_files(new_pics, meal_id)
 }
 
-func (t *MealServlet) create_pic_files(pics []Pic, meal_id int64) error {
+func (t *MealServlet) create_meal_pic_files(pics []Pic, meal_id int64) error {
 	for _, pic := range pics {
-		err := t.create_pic_file(pic, meal_id)
+		err := t.create_meal_pic_file(pic, meal_id)
 		if err != nil {
 			return err
 		}
@@ -415,38 +415,12 @@ func (t *MealServlet) create_pic_files(pics []Pic, meal_id int64) error {
 	return nil
 }
 
-func (t *MealServlet) create_pic_file(pic Pic, meal_id int64) error {
-	pic_s_split := strings.Split(string(pic.Name), "base64,")
-	data, err := base64.StdEncoding.DecodeString(pic_s_split[1])
+func (t *MealServlet) create_meal_pic_file(pic Pic, meal_id int64) error {
+	file_name, err := CreatePicFile(pic.Name)
 	if err != nil {
 		return err
 	}
-	// extract the file ending from the json encoded string data
-	file_ending := strings.Split(pic_s_split[0], "image/")[1]
-	file_ending = strings.Replace(file_ending, ";", "", 1) // drop the "images/"
-			// generate the file name and address
-	file_name := uuid.New() + "." + file_ending
-	file_address := "/var/www/prod/img/" + file_name
-	log.Println(file_name)
-	syscall.Umask(022)
-	err = ioutil.WriteFile(file_address, data, os.FileMode(int(0664)))
-	if err != nil {
-		return err
-	} else {
-		file, err := os.Open(file_address)
-     	if err != nil {
-         // handle the error here
-         return err
-     	}
-     	defer file.Close()
-	   stat, err := file.Stat()
-	   if err != nil {
-	       return err
-	   }
-	   log.Println(stat)
-	}
-	// add pic to DB
-	return SavePic(t.db, file_name, pic.Caption, meal_id)
+	return SaveMealPic(t.db, file_name, pic.Caption, meal_id)
 }
 
 // takes id of meal, array of picture file names
