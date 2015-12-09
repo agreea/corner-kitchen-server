@@ -7,6 +7,11 @@ import (
 	"time"
 	"log"
 	"errors"
+	"io/ioutil"
+	"encoding/base64"
+	"syscall"
+	"strings"
+	"code.google.com/p/go-uuid/uuid"
 )
 
 type SMS struct {
