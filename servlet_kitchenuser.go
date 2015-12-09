@@ -181,7 +181,7 @@ func (t *KitchenUserServlet) LoginEmail(r *http.Request) *ApiResult {
 	guest, err := GetGuestByEmail(t.db, email)
 	if err != nil {
 		log.Println(err)
-		return APIError("Invalid email. Please register this email by creating an account.")
+		return APIError("Invalid email. Please register this email by creating an account.", 400)
 	}
 	valid, err := t.verify_password_for_guest(guest.Id, password)
 	if err != nil {
@@ -189,7 +189,7 @@ func (t *KitchenUserServlet) LoginEmail(r *http.Request) *ApiResult {
 		return APIError("Could not authenticate user.", 500)		
 	}
 	if !valid {
-		return APIError("Invalid email or password.", 500)
+		return APIError("Invalid email or password.", 400)
 	}
 	token_expires := 60 * 60 * 24 * 60 // 60 days
 	guest.Session_token, err = t.session_manager.CreateSessionForGuest(guest.Id, token_expires)
@@ -205,7 +205,7 @@ func (t *KitchenUserServlet) CreateAccountEmail(r *http.Request) *ApiResult {
 	guest, err := GetGuestByEmail(t.db, email)
 	if guest != nil {
 		log.Println(fmt.Sprintf("Guest with email %s already exists", email))
-		return APIError("Email account is already registered")
+		return APIError("Email account is already registered", 400)
 	}
 	result, err := 
 		t.db.Exec(`INSERT INTO Guest
@@ -217,31 +217,31 @@ func (t *KitchenUserServlet) CreateAccountEmail(r *http.Request) *ApiResult {
 			email)
 	if err != nil {
 		log.Println(err)
-		return APIError("Could not create account")
+		return APIError("Could not create account", 500)
 	}
 	guest_id, err := result.LastInsertId()
 	if err != nil {
 		log.Println(err)
-		return APIError("Could not create account")
+		return APIError("Could not create account", 500)
 	}
 	guest, err = GetGuestById(t.db, guest_id)
 	if err != nil {
 		log.Println(err)
-		return APIError("Could not create account")
+		return APIError("Could not create account", 500)
 	}
 	// maybe do a transactional email thing??
 	password := r.Form.Get("password")
 	err = t.set_password_for_guest(guest.Id, password)
 	if err != nil {
 		log.Println(err)
-		return APIError("Could not create account")
+		return APIError("Could not create account", 500)
 	}
 	// if it all works out then send back a session
-	token_expires = 60 * 60 * 24 * 60 // 60 days
+	token_expires := 60 * 60 * 24 * 60 // 60 days
 	guest.Session_token, err = t.session_manager.CreateSessionForGuest(int64(guest_id), token_expires)
 	if err != nil {
 		log.Println(err)
-		return APIError("Could not create account")
+		return APIError("Could not create account", 500)
 	}
 	return APISuccess(guest)
 }
