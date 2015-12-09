@@ -141,25 +141,24 @@ func (t *KitchenUserServlet) LoginFb(r *http.Request) *ApiResult {
 	fbToken := r.Form.Get("fbToken")
 	resp, err := t.get_fb_data_for_token(fbToken)
 	if err != nil {
+		log.Println(err)
 		return APIError("Invalid Facebook Login", 400)
 	}
 	if resp.Id == "" {
 		return APIError("Error connecting to Facebook", 500)
 	}
-	fb_id := resp.Id
-	first_name := resp.First_name
-	last_name := resp.Last_name
-	fb_id_exists, err := t.fb_id_exists(fb_id)
+	fb_id_exists, err := t.fb_id_exists(resp.Id)
 	if err != nil {
 		return APIError("Could not find user", 500)
 	}
 	long_token, expires, err := t.get_fb_long_token(fbToken)
 	if err != nil || expires == 0 {
+		log.Println(err)
 		return APIError("Could not connect to Facebook", 500)
 	}
 	if fb_id_exists {
 		// update fb credentials for fb_id
-		guestData, err := t.process_login(fb_id, long_token, expires)
+		guestData, err := t.process_login(resp.Id, long_token, expires)
 		guestData.Facebook_long_token = "You wish :)";
 		if err != nil {
 			return APIError("Could not login", 500)
@@ -167,7 +166,7 @@ func (t *KitchenUserServlet) LoginFb(r *http.Request) *ApiResult {
 		return APISuccess(guestData)
 	} else {
 		// also include long token and expires
-		guestData, err := t.create_guest(first_name, last_name, fb_id, long_token, expires)
+		guestData, err := t.create_guest_fb(resp.First_name, resp.Last_name, resp.Id, long_token, expires)
 		if err != nil {
 			return APIError("Failed to create user", 500)
 		}
@@ -176,28 +175,28 @@ func (t *KitchenUserServlet) LoginFb(r *http.Request) *ApiResult {
 	}
 }
 
-func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
+func (t *KitchenUserServlet) LoginEmail(r *http.Request) *ApiResult {
 	email := r.Form.Get("email")
 	password := r.Form.Get("password")
 	guest, err := GetGuestByEmail(t.db, email)
 	if err != nil {
 		log.Println(err)
-		return ApiError("Invalid email. Please register this email by creating an account.")
+		return APIError("Invalid email. Please register this email by creating an account.")
 	}
 	valid, err := t.verify_password_for_guest(guest.Id, password)
 	if err != nil {
 		log.Println(err)
-		return ApiError("Could not authenticate user.")		
+		return APIError("Could not authenticate user.")		
 	}
 	if !valid {
-		return ApiError("Invalid email or password.")
+		return APIError("Invalid email or password.")
 	}
-	token_expires = 60 * 60 * 24 * 60 // 60 days
+	token_expires := 60 * 60 * 24 * 60 // 60 days
 	guest.Session_token, err = t.session_manager.CreateSessionForGuest(guest.Id, token_expires)
 	return APISuccess(guest)
 }
 
-func (t *KitchenUserServlet) CreateAccount(r *http.Request) *ApiResult {
+func (t *KitchenUserServlet) CreateAccountEmail(r *http.Request) *ApiResult {
 	// get first name
 	first_name := r.Form.Get("firstName")
 	last_name := r.Form.Get("lastName")
@@ -274,7 +273,7 @@ func (t *KitchenUserServlet) generate_password_hash(password, salt []byte) []byt
 
 // Verify a password for a username.
 // Returns whether or not the password was valid and whether an error occurred.
-func (t *UserServlet) verify_password_for_guest(guest_id int64, pass string) (bool, error) {
+func (t *KitchenUserServelt) verify_password_for_guest(guest_id int64, pass string) (bool, error) {
 	rows, err := t.db.Query("SELECT Password_hash, Password_salt FROM Guest WHERE Id = ?", guest_id)
 	if err != nil {
 		return false, err
