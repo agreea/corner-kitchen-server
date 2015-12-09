@@ -303,7 +303,7 @@ func (t *KitchenUserServlet) verify_password_for_guest(guest_id int64, pass stri
 	log.Println("Password hash:")	
 	log.Println(base64.StdEncoding.EncodeToString(generated_hash))
 	log.Println("Password salt:")
-	log.Println(base64.StdEncoding.EncodeToString(generated_hash))
+	log.Println(base64.StdEncoding.EncodeToString(password_salt))
 	// Verify the byte arrays for equality. bytes.Compare returns 0 if the two
 	// arrays are equivalent.
 	if bytes.Compare(generated_hash, password_hash) == 0 {
