@@ -1502,7 +1502,7 @@ func CreatePicFile(pic_as_string string) (string, error) {
 	pic_s_split := strings.Split(string(pic_as_string), "base64,")
 	data, err := base64.StdEncoding.DecodeString(pic_s_split[1])
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	// extract the file ending from the json encoded string data
 	file_ending := strings.Split(pic_s_split[0], "image/")[1]
@@ -1514,17 +1514,17 @@ func CreatePicFile(pic_as_string string) (string, error) {
 	syscall.Umask(022)
 	err = ioutil.WriteFile(file_address, data, os.FileMode(int(0664)))
 	if err != nil {
-		return nil, err
+		return "", err
 	} else {
 		file, err := os.Open(file_address)
      	if err != nil {
          // handle the error here
-         return nil, err
+         return "", err
      	}
      	defer file.Close()
 	   stat, err := file.Stat()
 	   if err != nil {
-	       return nil, err
+	       return "", err
 	   }
 	   log.Println(stat)
 	}
