@@ -424,7 +424,7 @@ func (t *KitchenUserServlet) UpdateProfPic(r *http.Request) *ApiResult {
 		return APIError("Session has expired. Please log in again", 200)
 	}
 	pic := r.Form.Get("pic")
-	file_name, err := CreatePicFile(t.db, pic)
+	file_name, err := CreatePicFile(pic)
 	if err != nil {
 		log.Println(err)
 	}
