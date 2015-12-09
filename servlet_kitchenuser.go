@@ -304,8 +304,10 @@ func (t *KitchenUserServlet) verify_password_for_guest(guest_id int64, pass stri
 	// Verify the byte arrays for equality. bytes.Compare returns 0 if the two
 	// arrays are equivalent.
 	if bytes.Compare(generated_hash, password_hash) == 0 {
+		log.Println("Password hash was valid")
 		return true, nil
 	} else {
+		log.Println("Password hash was invalid")
 		return false, nil
 	}
 }
