@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"strings"
 	"code.google.com/p/go-uuid/uuid"
+	"os"
 )
 
 type SMS struct {
