@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/json"
+	"encoding/base64"
 	_ "github.com/go-sql-driver/mysql"
 	"io/ioutil"
 	"log"
@@ -192,7 +193,7 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 		return ApiError("Invalid email or password.")
 	}
 	token_expires = 60 * 60 * 24 * 60 // 60 days
-	guest.Session_token, err := t.session_manager.CreateSessionForGuest(guest.Id, token_expires)
+	guest.Session_token, err = t.session_manager.CreateSessionForGuest(guest.Id, token_expires)
 	return APISuccess(guest)
 }
 
@@ -224,14 +225,14 @@ func (t *KitchenUserServlet) CreateAccount(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Could not create account")
 	}
-	guest, err := GetGuestById(t.db, guest_id)
+	guest, err = GetGuestById(t.db, guest_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Could not create account")
 	}
 	// maybe do a transactional email thing??
 	password := r.Form.Get("password")
-	err := t.set_password_for_guest(guest.Id, password)
+	err = t.set_password_for_guest(guest.Id, password)
 	if err != nil {
 		log.Println(err)
 		return APIError("Could not create account")
@@ -267,7 +268,7 @@ func (t *KitchenUserServlet) generate_random_bytestring(length int) []byte {
 }
 
 // Generate a PBKDF password hash. Use 4096 iterations and a 64 byte key.
-func (t *UserServlet) generate_password_hash(password, salt []byte) []byte {
+func (t *KitchenUserServlet) generate_password_hash(password, salt []byte) []byte {
 	return pbkdf2.Key(password, salt, 4096, 64, sha256.New)
 }
 

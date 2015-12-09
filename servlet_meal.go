@@ -3,18 +3,14 @@ package main
 import (
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
-	"code.google.com/p/go-uuid/uuid"
 	"log"
 	"net/http"
 	"net/url"
 	"strconv"
 	"time"
 	"strings"
-	"io/ioutil"
-	"encoding/base64"
 	"encoding/json"
 	"os"
-	"syscall"
 )
 
 type MealServlet struct {
