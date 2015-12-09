@@ -134,7 +134,7 @@ func (t *KitchenUserServlet) AddEmail(r *http.Request) *ApiResult {
 // Create a login session for a user.
 // Session tokens are stored in a local cache, as well as back to the DB to
 // support multi-server architecture. A cache miss will result in a DB read.
-func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
+func (t *KitchenUserServlet) LoginFb(r *http.Request) *ApiResult {
 	// if you don't have the fb in your guest table,
 	// create a long-lived access token from the short lived one
 	fbToken := r.Form.Get("fbToken")
@@ -172,6 +172,139 @@ func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
 		}
 		guestData.Facebook_long_token = "You wish :)";
 		return APISuccess(guestData)
+	}
+}
+
+func (t *KitchenUserServlet) Login(r *http.Request) *ApiResult {
+	email := r.Form.Get("email")
+	password := r.Form.Get("password")
+	guest, err := GetGuestByEmail(t.db, email)
+	if err != nil {
+		log.Println(err)
+		return ApiError("Invalid email. Please register this email by creating an account.")
+	}
+	valid, err := t.verify_password_for_guest(guest.Id, password)
+	if err != nil {
+		log.Println(err)
+		return ApiError("Could not authenticate user.")		
+	}
+	if !valid {
+		return ApiError("Invalid email or password.")
+	}
+	token_expires = 60 * 60 * 24 * 60 // 60 days
+	guest.Session_token, err := t.session_manager.CreateSessionForGuest(guest.Id, token_expires)
+	return APISuccess(guest)
+}
+
+func (t *KitchenUserServlet) CreateAccount(r *http.Request) *ApiResult {
+	// get first name
+	first_name := r.Form.Get("firstName")
+	last_name := r.Form.Get("lastName")
+	email := r.Form.Get("email")
+	// check to make sure you don't have that email already
+	guest, err := GetGuestByEmail(t.db, email)
+	if guest != nil {
+		log.Println(fmt.Sprintf("Guest with email %s already exists", email))
+		return APIError("Email account is already registered")
+	}
+	result, err := 
+		t.db.Exec(`INSERT INTO Guest
+			(First_name, Last_name, Email)
+			VALUES
+			(?, ?, ?)`,
+			first_name,
+			last_name,
+			email)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not create account")
+	}
+	guest_id, err := result.LastInsertId()
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not create account")
+	}
+	guest, err := GetGuestById(t.db, guest_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not create account")
+	}
+	// maybe do a transactional email thing??
+	password := r.Form.Get("password")
+	err := t.set_password_for_guest(guest.Id, password)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not create account")
+	}
+	// if it all works out then send back a session
+	token_expires = 60 * 60 * 24 * 60 // 60 days
+	guest.Session_token, err = t.session_manager.CreateSessionForGuest(int64(guest_id), token_expires)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not create account")
+	}
+	return APISuccess(guest)
+}
+
+func (t *KitchenUserServlet) set_password_for_guest(guest_id int64, pass string) error {
+	password_salt := t.generate_random_bytestring(64)
+	password_hash := t.generate_password_hash([]byte(pass), password_salt)
+	_, err := t.db.Exec("UPDATE Guest SET Password_hash = ?, Password_salt = ? WHERE Id = ?",
+		base64.StdEncoding.EncodeToString(password_hash),
+		base64.StdEncoding.EncodeToString(password_salt),
+		guest_id,
+	)
+	return err
+}
+
+// Create a random bytestring
+func (t *KitchenUserServlet) generate_random_bytestring(length int) []byte {
+	random_bytes := make([]byte, length)
+	for i := range random_bytes {
+		random_bytes[i] = byte(t.random.Int() & 0xff)
+	}
+	return random_bytes
+}
+
+// Generate a PBKDF password hash. Use 4096 iterations and a 64 byte key.
+func (t *UserServlet) generate_password_hash(password, salt []byte) []byte {
+	return pbkdf2.Key(password, salt, 4096, 64, sha256.New)
+}
+
+// Verify a password for a username.
+// Returns whether or not the password was valid and whether an error occurred.
+func (t *UserServlet) verify_password_for_guest(guest_id int64, pass string) (bool, error) {
+	rows, err := t.db.Query("SELECT Password_hash, Password_salt FROM Guest WHERE Id = ?", guest_id)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+	var password_hash_base64 string
+	var password_salt_base64 string
+	for rows.Next() {
+		if err := rows.Scan(&password_hash_base64, &password_salt_base64); err != nil {
+			return false, err
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return false, err
+	}
+	password_hash, err := base64.StdEncoding.DecodeString(password_hash_base64)
+	if err != nil {
+		return false, err
+	}
+	password_salt, err := base64.StdEncoding.DecodeString(password_salt_base64)
+	if err != nil {
+		return false, err
+	}
+	generated_hash := t.generate_password_hash([]byte(pass), []byte(password_salt))
+
+	// Verify the byte arrays for equality. bytes.Compare returns 0 if the two
+	// arrays are equivalent.
+	if bytes.Compare(generated_hash, password_hash) == 0 {
+		return true, nil
+	} else {
+		return false, nil
 	}
 }
 
@@ -278,9 +411,27 @@ func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 	return APISuccess("OK")
 }
 
+func (t *KitchenUserServlet) UpdateProfPic(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Internal Server Error", 500)
+	}
+	if !session_valid {
+		return APIError("Session has expired. Please log in again", 200)
+	}
+	pic := r.Form.Get("pic")
+	file_name, err := CreatePicFile(t.db, pic, session.Guest.id)
+	if err != nil {
+		log.Println(err)
+	}
+	return APISuccess("OK")
+}
+
 // Fetches a user's data and creates a session for them.
 // Returns a pointer to the userdata and an error.
-func (t *KitchenUserServlet) process_login(fb_id string, fb_long_token string, expires int) (*GuestData, error) {
+func (t *KitchenUserServlet) process_login_fb(fb_id string, fb_long_token string, expires int) (*GuestData, error) {
 	// update FB token
 	err := UpdateGuestFbToken(t.db, fb_id, fb_long_token)
 	if err != nil {
@@ -309,7 +460,7 @@ func (t *KitchenUserServlet) process_login(fb_id string, fb_long_token string, e
 }
 
 // Create a new user + session based off of the data returned from facebook and return a GuestData object
-func (t *KitchenUserServlet) create_guest(first_name string, last_name string, fb_id string, fb_long_token string, expires int) (*GuestData, error) {
+func (t *KitchenUserServlet) create_guest_fb(first_name string, last_name string, fb_id string, fb_long_token string, expires int) (*GuestData, error) {
 	// update FB token
 	_, err := t.db.Exec(`INSERT INTO Guest
 		(First_name, Last_name, Facebook_id, Facebook_long_token) VALUES (?, ?, ?, ?)`,
@@ -353,28 +504,4 @@ func (t *KitchenUserServlet) fb_id_exists(fb_id string) (bool, error) {
 	} else {
 		return false, nil
 	}
-}
-
-// Create a random bytestring
-func (t *KitchenUserServlet) generate_random_bytestring(length int) []byte {
-	random_bytes := make([]byte, length)
-	for i := range random_bytes {
-		random_bytes[i] = byte(t.random.Int() & 0xff)
-	}
-	return random_bytes
-}
-
-// Create a random alphanumeric string
-func (t *KitchenUserServlet) generate_random_alphanumeric(length int) []byte {
-	random_bytes := make([]byte, length)
-
-	for i := range random_bytes {
-		random_bytes[i] = alphanumerics[t.random.Int()%len(alphanumerics)]
-	}
-	return random_bytes
-}
-
-// Generate a PBKDF password hash. Use 4096 iterations and a 64 byte key.
-func (t *KitchenUserServlet) generate_password_hash(password, salt []byte) []byte {
-	return pbkdf2.Key(password, salt, 4096, 64, sha256.New)
 }

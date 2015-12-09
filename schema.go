@@ -150,6 +150,7 @@ type GuestData struct {
 	Facebook_id    		string
 	Facebook_long_token	string
 	Phone 				string
+	Prof_pic 			string
 	// Go fields
 	Session_token 		string
 }
@@ -240,18 +241,23 @@ func GetUserById(db *sql.DB, id int64) (*UserData, error) {
 
 func GetGuestByFbId(db *sql.DB, fb_id string) (*GuestData, error) {
 	row := db.QueryRow(`SELECT Id, Email, First_name, Last_name,
-		Facebook_id, Facebook_long_token, Phone
+		Facebook_id, Facebook_long_token, Phone, Prof_pic
 		FROM Guest WHERE Facebook_id = ?`, fb_id)
 	return readGuestLine(row)
 }
 
 func GetGuestById(db *sql.DB, id int64) (*GuestData, error) {
 	row := db.QueryRow(`SELECT Id, Email, First_name, Last_name,
-		Facebook_id, Facebook_long_token, Phone
+		Facebook_id, Facebook_long_token, Phone, Prof_pic
 		FROM Guest WHERE Id = ?`, id)
 	return readGuestLine(row)
 }
-
+func GetGuestByEmail(db *sql.DB, email string) (*GuestData, error) {
+	row := db.QueryRow(`SELECT Id, Email, First_name, Last_name,
+		Facebook_id, Facebook_long_token, Phone, Prof_pic
+		FROM Guest WHERE Email = ?`, email)
+	return readGuestLine(row)
+}
 func GetFacebookPic(fb_id string) string {
 	return "https://graph.facebook.com/" + fb_id + "/picture?width=200&height=200"
 }
@@ -700,6 +706,14 @@ func UpdateHost(db *sql.DB, address string, city string, state string, bio strin
 	return err
 }
 
+func SaveProfPic(db *sql.DB, file_name string, guest_id int64) error {
+	_, err := db.Exec(`
+		UPDATE Guest
+		SET Prof_pic = ?`,
+		file_name,
+	)
+	return err
+}
 
 func UpdateMealRequest(db *sql.DB, request_id int64, status int64) error {
 	_, err := db.Exec(`
@@ -805,6 +819,7 @@ func readGuestLine(row *sql.Row) (*GuestData, error) {
 		&guest_data.Facebook_id,
 		&guest_data.Facebook_long_token,
 		&guest_data.Phone,
+		&guest_data.Prof_pic,
 	); err != nil {
 		return nil, err
 	}
@@ -1270,7 +1285,7 @@ func SaveOrderToDB(db *sql.DB, order *Order) (int64, error) {
 	return order.Id, nil
 }
 
-func SavePic(db *sql.DB, pic_name string, caption string, meal_id int64) error {
+func SaveMealPic(db *sql.DB, pic_name string, caption string, meal_id int64) error {
 	result, err := db.Exec(
 		`INSERT INTO MealPic
 		(Name, Caption, Meal_id)
@@ -1473,4 +1488,40 @@ func SetOwnerForTruck(db *sql.DB, truck_id int64, user_id int64) error {
 		user_id, truck_id,
 	)
 	return err
+}
+
+
+// Global Utility Functions:
+
+func CreatePicFile(pic_as_string string) (string, error) {
+	pic_s_split := strings.Split(string(pic_as_string), "base64,")
+	data, err := base64.StdEncoding.DecodeString(pic_s_split[1])
+	if err != nil {
+		return nil, err
+	}
+	// extract the file ending from the json encoded string data
+	file_ending := strings.Split(pic_s_split[0], "image/")[1]
+	file_ending = strings.Replace(file_ending, ";", "", 1) // drop the "images/"
+			// generate the file name and address
+	file_name := uuid.New() + "." + file_ending
+	file_address := "/var/www/prod/img/" + file_name
+	log.Println(file_name)
+	syscall.Umask(022)
+	err = ioutil.WriteFile(file_address, data, os.FileMode(int(0664)))
+	if err != nil {
+		return nil, err
+	} else {
+		file, err := os.Open(file_address)
+     	if err != nil {
+         // handle the error here
+         return nil, err
+     	}
+     	defer file.Close()
+	   stat, err := file.Stat()
+	   if err != nil {
+	       return nil, err
+	   }
+	   log.Println(stat)
+	}
+	return file_name, nil
 }

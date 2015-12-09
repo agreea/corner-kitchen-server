@@ -80,12 +80,9 @@ func (t *SessionManager) CreateSessionForGuest(uid int64, token_expires int) (st
 	if err != nil {
 		return "getting guest by id", err
 	}
-	// Create the session object and put it in the local cache
 	GuestSession := new(KitchenSession)
 	GuestSession.Guest = guest_data
 	GuestSession.Expires = time.Now().Add(time.Duration(token_expires - 100) * time.Second)
-
-	// Store the token in the database
 	_, err = t.db.Exec(`INSERT INTO  GuestSession (
 		Token, Guest_id, Expires ) VALUES (?, ?, ?)`, session_uuid, uid, GuestSession.Expires)
 	if err != nil {
