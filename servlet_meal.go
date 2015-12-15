@@ -606,8 +606,8 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 		return	
 	}
 	log.Println(meal_req)
-	log.Println("Price in pennies: %d", int(GetMealPriceWithCommission * 100))
-	log.Println("Price in pennies time seats: %d", int(GetMealPriceWithCommission * 128) * int(meal_req.Seats))
+	log.Println("Price in pennies: %d", int(GetMealPriceWithCommission(meal.Price) * 100))
+	log.Println("Price in pennies time seats: %d", int(GetMealPriceWithCommission(meal.Price) * 128) * int(meal_req.Seats))
 	host, err := GetHostById(t.db, meal.Host_id)
 	if err != nil {
 		log.Println(err)
