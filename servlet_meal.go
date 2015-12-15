@@ -685,9 +685,20 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	meal_data.Id = meal.Id
 	meal_data.Title = meal.Title
 	meal_data.Description = meal.Description
-	meal_data.Price = meal.Price * 1.28
+	if(meal.Price <= 15) {
+		meal_data.Price = meal.Price * 1.28
+	} else if (meal.Price < 100) {
+		commission_percent := -0.152941(meal.Price) + 30.2941
+		meal_data.Price = meal.Price * (1 + commission_percent/100)
+	} else {
+		meal_data.Price = meal.Price * 1.15
+	}
 	meal_data.Host_name = host_as_guest.First_name
-	meal_data.Host_pic = GetFacebookPic(host_as_guest.Facebook_id)
+	if(host_as_guest.Prof_pic) {
+		meal_data.Host_pic = host_as_guest.Prof_pic;
+	} else {
+		meal_data.Host_pic = GetFacebookPic(host_as_guest.Facebook_id)
+	}
 	meal_data.Host_bio = host.Bio
 	meal_data.Starts = meal.Starts
 	meal_data.Rsvp_by = meal.Rsvp_by
