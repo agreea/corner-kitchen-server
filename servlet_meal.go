@@ -606,8 +606,8 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 		return	
 	}
 	log.Println(meal_req)
-	log.Println("Price in pennies: %d", int(meal.Price * 128))
-	log.Println("Price in pennies time seats: %d", int(meal.Price * 128) * int(meal_req.Seats))
+	log.Println("Price in pennies: %d", int(GetMealPriceWithCommission * 100))
+	log.Println("Price in pennies time seats: %d", int(GetMealPriceWithCommission * 128) * int(meal_req.Seats))
 	host, err := GetHostById(t.db, meal.Host_id)
 	if err != nil {
 		log.Println(err)
@@ -624,7 +624,7 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 		log.Println("Found the review. Heres the tip i'm casting: ", tip_percent)
 		tip_multiplier += tip_percent
 	}
-	host_pay_per_plate := price_pennies * multiplier
+	host_pay_per_plate := price_pennies * tip_multiplier
 	final_amount_float := price_plus_commission * seats * tip_multiplier
 	application_fee_float := final_amount_float - (host_pay_per_plate * seats)
 
