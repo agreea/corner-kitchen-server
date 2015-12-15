@@ -99,6 +99,16 @@ func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 	// return the array
 }
 
+func GetMealPriceWithCommission(price float64) float64 {
+	if(price <= 15) {
+		return price * 1.28
+	} else if (price < 100) {
+		commission_percent := (-0.152941 * price + 30.2941)/100
+		return price * (1 + commission_percent)
+	}
+	return price * 1.15
+}
+
 // curl --data "method=GetMealAttendees&mealId=3" https://qa.yaychakula.com/api/meal
 func (t *MealServlet) get_meal_attendees(meal_id int64) ([]*Attendee_read, error) {
 	attendees, err := GetAttendeesForMeal(t.db, meal_id)
@@ -604,31 +614,27 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 		return
 	}
 	price_pennies := meal.Price * 100
-	multiplier := 1.00
+	price_plus_commission := t.GetMealPriceWithCommission(meal.Price)
+	// calculate the tip
+	tip_multiplier := 1.00
 	seats := float64(meal_req.Seats)
-	// get the review if it's there to include the tip
 	review, err := GetReviewByGuestAndMealId(t.db, meal_req.Guest_id, meal_req.Meal_id)
 	if review != nil {
 		tip_percent := (float64(review.Tip_percent) / float64(100))
 		log.Println("Found the review. Heres the tip i'm casting: ", tip_percent)
-		multiplier += tip_percent
+		tip_multiplier += tip_percent
 	}
 	host_pay_per_plate := price_pennies * multiplier
-
-	final_amount_float := host_pay_per_plate * seats * 1.28
-	final_amount_int := int(final_amount_float)
-
+	final_amount_float := price_plus_commission * seats * tip_multiplier
 	application_fee_float := final_amount_float - (host_pay_per_plate * seats)
-	application_fee_int := int(application_fee_float)
 
-	log.Println(final_amount_int)
 	client := &http.Client{}
    	stripe_body := url.Values{
-		"amount": {strconv.Itoa(final_amount_int)},
+		"amount": {strconv.Itoa(int(final_amount_float))},
 		"currency": {"usd"},
 		"customer": {customer.Stripe_token},
 		"destination": {host.Stripe_user_id},
-		"application_fee": {strconv.Itoa(application_fee_int)},
+		"application_fee": {strconv.Itoa(int(application_fee_float))},
 	}
 	req, err := http.NewRequest(
 		"POST",
@@ -685,14 +691,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	meal_data.Id = meal.Id
 	meal_data.Title = meal.Title
 	meal_data.Description = meal.Description
-	if(meal.Price <= 15) {
-		meal_data.Price = meal.Price * 1.28
-	} else if (meal.Price < 100) {
-		commission_percent := -0.152941 * meal.Price + 30.2941
-		meal_data.Price = meal.Price * (1 + commission_percent/100)
-	} else {
-		meal_data.Price = meal.Price * 1.15
-	}
+	meal_data.Price = meal.Price * (1 + t.GetMealCommissionPercent(meal.Price))
 	meal_data.Host_name = host_as_guest.First_name
 	if(host_as_guest.Prof_pic != "") {
 		meal_data.Host_pic = "img/" + host_as_guest.Prof_pic
