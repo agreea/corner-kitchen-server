@@ -614,7 +614,7 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 		return
 	}
 	price_pennies := meal.Price * 100
-	price_plus_commission := t.GetMealPriceWithCommission(meal.Price)
+	price_plus_commission := GetMealPriceWithCommission(meal.Price)
 	// calculate the tip
 	tip_multiplier := 1.00
 	seats := float64(meal_req.Seats)
@@ -691,7 +691,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	meal_data.Id = meal.Id
 	meal_data.Title = meal.Title
 	meal_data.Description = meal.Description
-	meal_data.Price = meal.Price * (1 + t.GetMealCommissionPercent(meal.Price))
+	meal_data.Price = GetMealPriceWithCommission(meal.Price)
 	meal_data.Host_name = host_as_guest.First_name
 	if(host_as_guest.Prof_pic != "") {
 		meal_data.Host_pic = "img/" + host_as_guest.Prof_pic
