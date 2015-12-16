@@ -258,14 +258,31 @@ func GetGuestById(db *sql.DB, id int64) (*GuestData, error) {
 		FROM Guest WHERE Id = ?`, id)
 	return readGuestLine(row)
 }
+
 func GetGuestByEmail(db *sql.DB, email string) (*GuestData, error) {
 	row := db.QueryRow(`SELECT Id, Email, First_name, Last_name,
 		Facebook_id, Facebook_long_token, Phone, Prof_pic
 		FROM Guest WHERE Email = ?`, email)
 	return readGuestLine(row)
 }
+
 func GetFacebookPic(fb_id string) string {
 	return "https://graph.facebook.com/" + fb_id + "/picture?width=200&height=200"
+}
+
+func RecordFollowHost(db *sql.DB, guest_id, host_id int64) error {
+	_, err := db.Exec(`INSERT INTO HostFollowers
+			(Guest_id, Host_id)
+			VALUES
+			(?, ?)`,
+			guest_id, host_id,)
+	return err
+}
+
+func GetGuestFollowsHost(db *sql.DB, guest_id, host_id int64)(bool, error) {
+	id := 0
+	return !(err := db.QueryRow(`SELECT Id FROM HostFollowers WHERE Guest_id = ?, Host_id = ?`, 
+		guest_id, host_id).Scan(&id); err == nil)
 }
 
 func GetHostByGuestId(db *sql.DB, guest_id int64) (*HostData, error) {

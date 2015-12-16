@@ -38,6 +38,8 @@ type Meal_read struct {
 	Status 			string
 	Maps_url 		string
 	Has_email		bool
+	Follows_host 	bool
+	Cards 			[]int64
 	Attendees 		[]*Attendee_read
 	Starts			time.Time
 	Rsvp_by			time.Time
@@ -109,6 +111,11 @@ func GetMealPriceWithCommission(price float64) float64 {
 	return price * 1.15
 }
 
+func GetMealIdFromReq(r *http.Request) (int64, error) {
+	meal_id_s := r.Form.Get("mealId")
+	return strconv.ParseInt(meal_id_s, 10, 64)
+}
+
 // curl --data "method=GetMealAttendees&mealId=3" https://qa.yaychakula.com/api/meal
 func (t *MealServlet) get_meal_attendees(meal_id int64) ([]*Attendee_read, error) {
 	attendees, err := GetAttendeesForMeal(t.db, meal_id)
@@ -160,8 +167,7 @@ func (t* MealServlet) GetMealDraft(r *http.Request) *ApiResult {
 		return APIError("Could not locate host", 400)
 	}
 	// get meal id
-	meal_id_s := r.Form.Get("mealId")
-	meal_id, err := strconv.ParseInt(meal_id_s, 10, 64)
+	meal_id, err := GetMealIdFromReq(r)	
 	if err != nil {
 		log.Println(err)
 		return APIError("Malformed meal id", 400)
@@ -217,8 +223,7 @@ func (t *MealServlet) GetMealsForHost(r *http.Request) *ApiResult {
 // Currently can be called on a meal that has already been published
 func (t *MealServlet) PublishMeal(r *http.Request) *ApiResult {
 	// get meal
-	meal_id_s := r.Form.Get("mealId")
-	meal_id, err := strconv.ParseInt(meal_id_s, 10, 64)
+	meal_id, err := GetMealIdFromReq(r)
 	if err != nil {
 		log.Println(err)
 		return APIError("Malformed meal Id", 400)
@@ -254,8 +259,7 @@ func (t *MealServlet) PublishMeal(r *http.Request) *ApiResult {
 }
 
 func (t *MealServlet) DeleteMeal(r *http.Request) *ApiResult {
-	meal_id_s := r.Form.Get("mealId")
-	meal_id, err := strconv.ParseInt(meal_id_s, 10, 64)
+	meal_id, err := GetMealIdFromReq(r)
 	if err != nil {
 		log.Println(err)
 		return APIError("Malformed meal id", 400)
@@ -656,13 +660,19 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 }
 
 /*
+curl --data "method=bookMeal&mealId=4&session=" https://yaychakula.com/api/meal
+*/
+// func (t *MealServlet) BookMeal(r *http.Request) *ApiResult {
+// 	// LITERALLY the same exact call as request meal, with status preset 1, no communication involved.
+// }
+
+/*
 curl --data "method=getMeal&mealId=4&session=" https://yaychakula.com/api/meal
 */
 
 func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	// parse the meal id
-	meal_id_s := r.Form.Get("mealId")
-	meal_id, err := strconv.ParseInt(meal_id_s, 10, 64)
+	meal_id, err := GetMealIdFromReq(r)
 	if err != nil {
 		log.Println(err)
 		return APIError("Malformed meal ID", 400)
@@ -722,7 +732,10 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	}
 	meal_data.Pics = pics
 	meal_data.Address = "Address revealed upon purchase"
-	meal_data.Maps_url = "https://maps.googleapis.com/maps/api/staticmap?size=600x300&scale=2&zoom=14&center=" + host.Address + "Washington, DC"
+	meal_data.Maps_url = 
+		fmt.Sprintf("https://maps.googleapis.com/maps/api/staticmap?" + 
+			"size=600x300&scale=2&zoom=14&center=%s,%s,%s", 
+			host.Address, host.City, host.State)
 	// get the guest's session
 	session_id := r.Form.Get("session")
 	if session_id == "" {
@@ -735,6 +748,8 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 			log.Println(err)
 			return APIError("Could not process session", 500)
 		}
+		meal_data.Follows_host = GetGuestFollowsHost(t.db, session.Guest.Id, host.Id)
+		meal_data.Cards, err = GetLast4sForGuest(t.db, session.Guest.Id) 
 		meal_req, err := t.get_request_by_guest_and_meal_id(session.Guest.Id, meal_id)
 		if err != nil {
 			log.Println(err)
@@ -748,7 +763,10 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		}
 		if meal_data.Status == "ATTENDING" {
 			meal_data.Address = host.Address
-			meal_data.Maps_url = "https://maps.googleapis.com/maps/api/staticmap?size=600x300&scale=2&zoom=14&markers=color:red|" + host.Address + "Washington, DC"
+			meal_data.Maps_url = 
+				fmt.Sprintf("https://maps.googleapis.com/maps/api/staticmap?" + 
+					"size=600x300&scale=2&zoom=14&markers=color:red|%s,%s,%s", 
+					host.Address, host.City, host.State)
 		}
 		meal_data.Has_email = !(session.Guest.Email == "")
 		if !session_valid {
