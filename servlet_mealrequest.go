@@ -42,7 +42,7 @@ func NewMealRequestServlet(server_config *Config, session_manager *SessionManage
 //
 // 
 
-// curl --data "method=SendRequest&mealId=5&session=c8ac0df2-d17f-4ab3-853a-c91989ddf7d7&seats=1" https://yaychakula.com/api/mealrequest
+// curl --data "method=SendRequest&mealId=5&session=c8ac0df2-d17f-4ab3-853a-c91989ddf7d7&seats=1&last4=1234" https://yaychakula.com/api/mealrequest
 func (t *MealRequestServlet) SendRequest(r *http.Request) *ApiResult {
 	meal_id_s := r.Form.Get("mealId")
 	meal_id, err := strconv.ParseInt(meal_id_s, 10, 64)
