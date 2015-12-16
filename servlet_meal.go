@@ -87,7 +87,7 @@ func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 		meal_data.Id = meal.Id
 		meal_data.Title = meal.Title
 		meal_data.Description = meal.Description
-		meal_data.Price = meal.Price * 1.28
+		meal_data.Price = GetMealPriceWithCommission(meal.Price)
 		meal_data.Open_spots = meal.Capacity
 		meal_data.Starts = meal.Starts
 		meal_data.Rsvp_by = meal.Rsvp_by
