@@ -702,34 +702,33 @@ func contains(s []int64, e int64) bool {
     return false
 }
 
-func CreateHost(db *sql.DB, guest_id int64, bio string) error {
+func CreateHost(db *sql.DB, guest_id int64) error {
 	_, err := db.Exec(`INSERT INTO Host
-			(Guest_id, Bio)
+			(Guest_id)
 			VALUES
-			(?, ?)`,
-			guest_id, bio,)
+			(?)`,
+			guest_id,)
 	return err
 }
 
-func UpdateGuest(db *sql.DB, first_name string, last_name string, email string, phone string, guest_id int64) error{
+func UpdateGuest(db *sql.DB, first_name, last_name, email, phone, bio string, guest_id int64) error{
 	_, err := db.Exec(`
 		UPDATE Guest
-		SET First_name = ?, Last_name = ?, Email = ?, Phone = ?
+		SET First_name = ?, Last_name = ?, Email = ?, Phone = ?, Bio = ?
 		WHERE Id =?`,
-		first_name, last_name, email, phone, guest_id,
+		first_name, last_name, email, phone, bio, guest_id,
 	)
 	return err
 }
 
-func UpdateHost(db *sql.DB, address string, city string, state string, bio string, host_id int64) error{
+func UpdateHost(db *sql.DB, address, city, state string, host_id int64) error{
 	_, err := db.Exec(`
 		UPDATE Host
-		SET Address = ?, City = ?, State = ?, Bio = ?
+		SET Address = ?, City = ?, State = ?
 		WHERE Id =?`,
 		address, 
 		city, 
 		state, 
-		bio, 
 		host_id,
 	)
 	return err

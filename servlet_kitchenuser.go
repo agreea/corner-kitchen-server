@@ -432,8 +432,32 @@ func (t *KitchenUserServlet) UpdateProfPic(r *http.Request) *ApiResult {
 	file_name, err := CreatePicFile(pic)
 	if err != nil {
 		log.Println(err)
+		return APIError("Failed to save picture", 500)
 	}
 	err = SaveProfPic(t.db, file_name, session.Guest.Id)
+	return APISuccess("OK")
+}
+
+func (t *KitchenUserServlet) UpdateGuest(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Internal Server Error", 500)
+	}
+	if !session_valid {
+		return APIError("Session has expired. Please log in again", 200)
+	}
+	email := r.Form.Get("email")
+	phone := r.Form.Get("phone")
+	bio := r.Form.Get("bio")
+	firstName := r.Form.Get("firstName")
+	lastName := r.Form.Get("lastName")
+	err = UpdateGuest(t.db, firstName, lastName, email, phone, bio, session.Guest.Id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to update guest", 500)
+	}
 	return APISuccess("OK")
 }
 
