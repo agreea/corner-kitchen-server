@@ -448,11 +448,11 @@ func (t *KitchenUserServlet) UpdateGuest(r *http.Request) *ApiResult {
 	if !session_valid {
 		return APIError("Session has expired. Please log in again", 200)
 	}
-	email := r.Form.Get("email")
-	phone := r.Form.Get("phone")
-	bio := r.Form.Get("bio")
-	firstName := r.Form.Get("firstName")
-	lastName := r.Form.Get("lastName")
+	email := r.Form.Get("Email")
+	phone := r.Form.Get("Phone")
+	bio := r.Form.Get("Bio")
+	firstName := r.Form.Get("First_name")
+	lastName := r.Form.Get("Last_name")
 	err = UpdateGuest(t.db, firstName, lastName, email, phone, bio, session.Guest.Id)
 	if err != nil {
 		log.Println(err)
