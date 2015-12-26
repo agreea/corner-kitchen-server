@@ -131,20 +131,11 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 		return APIError("Invalid session", 400)
 	}
 	guest := session.Guest
-	// Update the guest data according to the form
-	email := r.Form.Get("email")
-	phone := r.Form.Get("phone")
-	bio := r.Form.Get("bio")
-	err = UpdateGuest(t.db, guest.First_name, guest.Last_name, email, phone, guest.Id)
-	if err != nil {
-		log.Println(err)
-		return APIError("Failed to update host data", 500)
-	}
 	host, err := GetHostByGuestId(t.db, guest.Id)
 	// create a host if there isn't one and then update their data
 	if err != nil {
 		log.Println(err)
-		err = CreateHost(t.db, guest.Id, bio)
+		err = CreateHost(t.db, guest.Id)
 		if err != nil {
 			return APIError("Failed to create host", 500)
 		}
@@ -156,7 +147,7 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 	address := r.Form.Get("address")
 	state := r.Form.Get("state")
 	city := r.Form.Get("city")
-	err = UpdateHost(t.db, address, city, state, bio, host.Id)
+	err = UpdateHost(t.db, address, city, state, host.Id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Failed to update host data", 500)
@@ -210,7 +201,7 @@ func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 	host, err := GetHostByGuestId(t.db, guest.Id)
 	if err != nil { // there wasn't a host with this guest id
 		log.Println(err)
-		err = CreateHost(t.db, guest.Id, "")
+		err = CreateHost(t.db, guest.Id)
 		if err != nil {
 			log.Println(err)
 			return APIError("Failed to create Host", 500)
