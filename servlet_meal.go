@@ -256,7 +256,7 @@ func (t *MealServlet) PublishMeal(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Failed to publish meal", 500)
 	}
-	return APISuccess("OK")
+	return APISuccess(meal_id)
 }
 
 func (t *MealServlet) DeleteMeal(r *http.Request) *ApiResult {
