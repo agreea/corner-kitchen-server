@@ -745,9 +745,12 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		log.Println("Made it to else...")
 		session_valid, session, err := t.session_manager.GetGuestSession(session_id)
 		if err != nil {
-			meal_data.Status = "NONE"
 			log.Println(err)
 			return APIError("Could not process session", 500)
+		}
+		if session != valid {
+			log.Println(err)
+			return APIError("Session was invalid.", 500)
 		}
 		meal_data.Follows_host = GetGuestFollowsHost(t.db, session.Guest.Id, host.Id)
 		meal_data.Cards, err = GetLast4sForGuest(t.db, session.Guest.Id) 
