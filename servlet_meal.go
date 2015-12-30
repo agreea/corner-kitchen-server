@@ -668,7 +668,7 @@ curl --data "method=bookMeal&mealId=4&session=" https://yaychakula.com/api/meal
 // }
 
 /*
-curl --data "method=getMeal&mealId=4&session=" https://yaychakula.com/api/meal
+curl --data "method=getMeal&mealId=4&session=ce5fddc6-7d81-4092-a996-9f157f99fafe" https://yaychakula.com/api/meal
 */
 
 func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
@@ -748,7 +748,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 			log.Println(err)
 			return APIError("Could not process session", 500)
 		}
-		if session != valid {
+		if !session_valid {
 			log.Println(err)
 			return APIError("Session was invalid.", 500)
 		}
