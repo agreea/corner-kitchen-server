@@ -160,6 +160,7 @@ type GuestData struct {
 	Bio 				string
 	// Go fields
 	Session_token 		string
+	Is_host 			bool
 }
 
 type FacebookResp struct {

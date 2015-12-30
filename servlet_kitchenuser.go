@@ -392,7 +392,39 @@ func (t *KitchenUserServlet) Get(r *http.Request) *ApiResult {
 	if key != "12q4lkjLK99JnfalsmfFDfdkd" {
 		session.Guest.Facebook_long_token = "nah b"
 	}
+	_, err = GetHostByGuestId(t.db, session.Guest.Id)
+	if err != nil {
+		session.Guest.Is_host = true
+	} else {
+		session.Guest.Is_host = false
+	}
 	return APISuccess(session.Guest)
+}
+
+/*
+curl --data "method=Get&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&hostId=42" https://qa.yaychakula.com/api/kitchenuser
+*/
+func (t *KitchenUserServlet) UserFollows(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Internal Server Error", 500)
+	}
+	if !session_valid {
+		return APIError("Session has expired. Please log in again", 200)
+	}
+	host_id_s := r.Form.Get("hostId")
+	host_id, err := strconv.ParseInt(host_id_s, 10, 64)
+	if err != nil {
+		return APIError("Malformed host ID", 400)
+	}
+	row := t.db.QueryRow("SELECT Id FROM HostFollowers WHERE Guest_id = ? AND Host_id = ?", session.Guest.Id, host_id)
+	follow_id := 0
+	if err := row.Scan(&follow_id,); err != nil {
+		return APISuccess(false)
+	}
+	return APISuccess(true)
 }
 
 func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
@@ -402,7 +434,7 @@ func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 		log.Println("Tried to delete user without key: " + session_id)
 		return APIError("Command failed", 500)
 	}
-	session_valid, session, err := t.session_manager.GetSession(session_id)
+	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Internal Server Error", 500)
@@ -410,7 +442,7 @@ func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 	if !session_valid {
 		return APIError("Session has expired. Please log in again", 200)
 	}
-	_, err = t.db.Exec("DELETE FROM User where Id = ?", session.User.Id)
+	_, err = t.db.Exec("DELETE FROM User where Id = ?", session.Guest.Id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Internal Server Error", 500)
