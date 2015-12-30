@@ -668,7 +668,7 @@ curl --data "method=bookMeal&mealId=4&session=" https://yaychakula.com/api/meal
 // }
 
 /*
-curl --data "method=getMeal&mealId=4&session=" https://yaychakula.com/api/meal
+curl --data "method=getMeal&mealId=4&session=c8ac0df2-d17f-4ab3-853a-c91989ddf7d7" https://yaychakula.com/api/meal
 */
 
 func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
