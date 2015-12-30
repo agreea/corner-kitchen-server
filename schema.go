@@ -283,7 +283,7 @@ func RecordFollowHost(db *sql.DB, guest_id, host_id int64) error {
 
 func GetGuestFollowsHost(db *sql.DB, guest_id, host_id int64)(bool) {
 	row := db.QueryRow("SELECT Id FROM HostFollowers WHERE Guest_id = ? AND Host_id = ?", 
-		session.Guest.Id, 
+		guest_id, 
 		host_id)
 	follow_id := 0
 	if err := row.Scan(&follow_id,); err != nil {
