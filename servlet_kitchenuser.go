@@ -402,7 +402,7 @@ func (t *KitchenUserServlet) Get(r *http.Request) *ApiResult {
 }
 
 /*
-curl --data "method=Get&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&hostId=42" https://qa.yaychakula.com/api/kitchenuser
+curl --data "method=UserFollows&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&hostId=42" https://yaychakula.com/api/kitchenuser
 */
 func (t *KitchenUserServlet) UserFollows(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
@@ -419,12 +419,8 @@ func (t *KitchenUserServlet) UserFollows(r *http.Request) *ApiResult {
 	if err != nil {
 		return APIError("Malformed host ID", 400)
 	}
-	row := t.db.QueryRow("SELECT Id FROM HostFollowers WHERE Guest_id = ? AND Host_id = ?", session.Guest.Id, host_id)
-	follow_id := 0
-	if err := row.Scan(&follow_id,); err != nil {
-		return APISuccess(false)
-	}
-	return APISuccess(true)
+
+	return APISuccess(GetGuestFollowsHost(t.db, session.Guest.Id, host_id))
 }
 
 func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
