@@ -668,7 +668,7 @@ curl --data "method=bookMeal&mealId=4&session=" https://yaychakula.com/api/meal
 // }
 
 /*
-curl --data "method=getMeal&mealId=4&session=ce5fddc6-7d81-4092-a996-9f157f99fafe" https://yaychakula.com/api/meal
+curl --data "method=getMeal&mealId=60&session=ce5fddc6-7d81-4092-a996-9f157f99fafe" https://yaychakula.com/api/meal
 */
 
 func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
@@ -709,7 +709,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	} else {
 		meal_data.Host_pic = GetFacebookPic(host_as_guest.Facebook_id)
 	}
-	meal_data.Host_bio = host.Bio
+	meal_data.Host_bio = host_as_guest.Bio
 	meal_data.Starts = meal.Starts
 	meal_data.Rsvp_by = meal.Rsvp_by
 	meal_data.Host_reviews = t.get_host_reviews(host.Id)
