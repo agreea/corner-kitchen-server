@@ -286,7 +286,7 @@ func GetGuestFollowsHost(db *sql.DB, guest_id, host_id int64)(bool) {
 		guest_id, 
 		host_id)
 	follow_id := 0
-	if err := row.Scan(&follow_id,); err != nil {
+	if err := row.Scan(&follow_id); err != nil {
 		return false
 	}
 	return true
