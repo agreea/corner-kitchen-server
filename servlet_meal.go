@@ -748,7 +748,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 			log.Println(err)
 			return APIError("Could not process session", 500)
 		}
-		meal_data.Follows_host = GetGuestFollowsHost(t.db, session.Guest.Id, host.Id)
+		meal_data.Follows_host = false // GetGuestFollowsHost(t.db, session.Guest.Id, host.Id)
 		meal_data.Cards, err = GetLast4sForGuest(t.db, session.Guest.Id) 
 		meal_req, err := t.get_request_by_guest_and_meal_id(session.Guest.Id, meal_id)
 		if err != nil {
