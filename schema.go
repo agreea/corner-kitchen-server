@@ -272,6 +272,17 @@ func GetFacebookPic(fb_id string) string {
 	return "https://graph.facebook.com/" + fb_id + "/picture?width=200&height=200"
 }
 
+func GetPhonePinForGuest(db *sql.DB, guest_id int64) (int64, error) {
+	pin := 0
+	row := db.QueryRow("SELECT Pin FROM GuestPhone WHERE Guest_id = ?", guest_id)
+	err := row.Scan(&pin)
+	return int64(pin), err
+}
+func VerifyPhoneForGuest(db *sql.DB, guest_id int64) (error) {
+	_, err := db.Exec(`UPDATE GuestPhone SET Verified = 1 WHERE Guest_id = ?` , guest_id)
+	return err
+}
+
 func RecordFollowHost(db *sql.DB, guest_id, host_id int64) error {
 	_, err := db.Exec(`INSERT INTO HostFollowers
 			(Guest_id, Host_id)
@@ -773,9 +784,16 @@ func UpdatePhoneForGuest(db *sql.DB, phone string, guest_id int64) error {
 		phone, guest_id,
 	)
 	return err
-
 }
-
+func UpdatePhone(db *sql.DB, phone string, pin, guest_id int64) error {
+	_, err := db.Exec(`
+		UPDATE GuestPhone
+		SET Phone = ?, Pin = ?
+		WHERE Guest_id = ?`,
+		phone, pin, guest_id,
+	)
+	return err
+}
 func UpdateEmailForGuest(db *sql.DB, email string, guest_id int64) error {
 	_, err := db.Exec(`
 		UPDATE Guest

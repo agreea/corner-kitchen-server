@@ -704,7 +704,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	meal_data.Description = meal.Description
 	meal_data.Price = GetMealPriceWithCommission(meal.Price)
 	meal_data.Host_name = host_as_guest.First_name
-	if(host_as_guest.Prof_pic != "") {
+	if host_as_guest.Prof_pic != "" {
 		meal_data.Host_pic = "img/" + host_as_guest.Prof_pic
 	} else {
 		meal_data.Host_pic = GetFacebookPic(host_as_guest.Facebook_id)

@@ -72,7 +72,7 @@ func init_server() {
 	api_handler.AddServlet("/user", NewUserServlet(&server_config, session_manager, twilio_messagequeue))
 	api_handler.AddServlet("/truck", NewTruckServlet(&server_config, session_manager, twilio_messagequeue))
 	api_handler.AddServlet("/kitchen", NewKitchenServlet(&server_config, session_manager))
-	api_handler.AddServlet("/kitchenuser", NewKitchenUserServlet(&server_config, session_manager))
+	api_handler.AddServlet("/kitchenuser", NewKitchenUserServlet(&server_config, session_manager, twilio_messagequeue))
 	api_handler.AddServlet("/mealrequest", NewMealRequestServlet(&server_config, session_manager, twilio_messagequeue))
 	api_handler.AddServlet("/host", NewHostServlet(&server_config, session_manager, twilio_messagequeue))
 	api_handler.AddServlet("/meal", NewMealServlet(&server_config, session_manager))
