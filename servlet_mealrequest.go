@@ -42,7 +42,7 @@ func NewMealRequestServlet(server_config *Config, session_manager *SessionManage
 //
 // 
 
-// curl --data "method=SendRequest&mealId=5&session=c8ac0df2-d17f-4ab3-853a-c91989ddf7d7&seats=1&last4=1234" https://yaychakula.com/api/mealrequest
+// curl --data "method=SendRequest&mealId=5&session=c8ac0df2-d17f-4ab3-853a-c91989ddf7d7&seats=1&last4=1234&follow=true" https://yaychakula.com/api/mealrequest
 func (t *MealRequestServlet) SendRequest(r *http.Request) *ApiResult {
 	meal_id_s := r.Form.Get("mealId")
 	meal_id, err := strconv.ParseInt(meal_id_s, 10, 64)
@@ -75,10 +75,11 @@ func (t *MealRequestServlet) SendRequest(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Malformed meal ID", 400)
 	}
+	if r.Form.Get("follow") == "true" {
+		RecordFollowHost(t.db, guest.Id, host.Id)
+	}
 	_, err = GetMealRequestByGuestIdAndMealId(t.db, guest.Id, meal.Id)
 	if err != nil { // error here (99%) means the request doesn't exist
-		// get last4 digits
-		// convert digits to int
 		return t.record_request(guest, host, meal, count, last4) // add last 4 as an arg in the request
 	}
 	return APIError("You've already requested to join this meal", 400)

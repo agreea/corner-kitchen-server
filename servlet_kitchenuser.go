@@ -23,12 +23,14 @@ type KitchenUserServlet struct {
 	random          *rand.Rand
 	server_config   *Config
 	session_manager *SessionManager
+	twilio_queue    chan *SMS
+
 }
 
-func NewKitchenUserServlet(server_config *Config, session_manager *SessionManager) *KitchenUserServlet {
+func NewKitchenUserServlet(server_config *Config, session_manager *SessionManager, twilio_queue chan *SMS) *KitchenUserServlet {
 	t := new(KitchenUserServlet)
 	t.random = rand.New(rand.NewSource(time.Now().UnixNano()))
-
+	t.twilio_queue = twilio_queue
 	t.session_manager = session_manager
 	t.server_config = server_config
 
@@ -465,7 +467,9 @@ func (t *KitchenUserServlet) UpdateProfPic(r *http.Request) *ApiResult {
 	err = SaveProfPic(t.db, file_name, session.Guest.Id)
 	return APISuccess("OK")
 }
-
+/*
+curl --data "method=UpdateGuest&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&bio='testing-testing-testing'&firstName=Agree&lastName=Ahmed" https://yaychakula.com/api/kitchenuser
+*/
 func (t *KitchenUserServlet) UpdateGuest(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
@@ -474,7 +478,7 @@ func (t *KitchenUserServlet) UpdateGuest(r *http.Request) *ApiResult {
 		return APIError("Internal Server Error", 500)
 	}
 	if !session_valid {
-		return APIError("Session has expired. Please log in again", 200)
+		return APIError("Session has expired. Please log in again", 400)
 	}
 	email := r.Form.Get("Email")
 	phone := r.Form.Get("Phone")
@@ -488,7 +492,69 @@ func (t *KitchenUserServlet) UpdateGuest(r *http.Request) *ApiResult {
 	}
 	return APISuccess("OK")
 }
-
+/*
+curl --data "method=UpdatePhone&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&phone=4438313923" https://yaychakula.com/api/kitchenuser
+*/
+func (t *KitchenUserServlet) UpdatePhone(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Internal Server Error", 500)
+	}
+	if !session_valid {
+		return APIError("Session has expired. Please log in again", 400)
+	}
+	phone := r.Form.Get("phone")
+	generated_pin := t.random.Int()%10000
+	if generated_pin < 1000 {
+		generated_pin = generated_pin * 10 + t.random.Int() % 10
+	}
+	err = UpdatePhone(t.db, phone, int64(generated_pin), session.Guest.Id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to update phone", 500)
+	}
+	msg := new(SMS)
+	msg.To = phone
+	msg.Message = fmt.Sprintf("Your Chakula PIN: %d", generated_pin)
+	t.twilio_queue <- msg
+	return APISuccess("OK")
+}
+/*
+curl --data "method=UserFollows&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&pin=1234" https://yaychakula.com/api/kitchenuser
+*/
+func (t *KitchenUserServlet) VerifyPhone(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Internal Server Error", 500)
+	}
+	if !session_valid {
+		return APIError("Session has expired. Please log in again", 400)
+	}
+	pin_s := r.Form.Get("pin")
+	sent_pin, err := strconv.ParseInt(pin_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed pin", 400)
+	}
+	pin, err := GetPhonePinForGuest(t.db, session.Guest.Id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to verify phone", 500)
+	}
+	if pin == sent_pin {
+		err = VerifyPhoneForGuest(t.db, session.Guest.Id)
+		if err != nil {
+			log.Println(err)
+			return APIError("Failed to verify phone", 500)
+		}
+		return APISuccess("OK")
+	}
+	return APIError("Incorrect PIN.", 400)
+}
 // Fetches a user's data and creates a session for them.
 // Returns a pointer to the userdata and an error.
 func (t *KitchenUserServlet) process_login_fb(fb_id string, fb_long_token string, expires int) (*GuestData, error) {
