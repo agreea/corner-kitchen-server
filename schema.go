@@ -804,7 +804,7 @@ func UpdatePhone(db *sql.DB, phone string, pin, guest_id int64) error {
 	)
 	if err != nil {
 		_, err := db.Exec(
-			`INSERT INTO Phone
+			`INSERT INTO GuestPhone
 			(Phone, Pin, Guest_id)
 			VALUES
 			(?, ?, ?)
