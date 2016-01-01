@@ -830,14 +830,14 @@ func UpdateEmailForGuest(db *sql.DB, email string, guest_id int64) error {
 func UpdateEmail(db *sql.DB, email, code string, guest_id int64) error {
 	_, err := db.Exec(`
 		UPDATE GuestEmail
-		SET Email = ?, Code = ?
+		SET Email = ?, Verify_code = ?
 		WHERE Guest_id = ?`,
 		email, code, guest_id,
 	)
 	if err != nil {
 		_, err := db.Exec(
 			`INSERT INTO GuestEmail
-			(Email, Code, Guest_id)
+			(Email, Verify_code, Guest_id)
 			VALUES
 			(?, ?, ?)
 			`,
