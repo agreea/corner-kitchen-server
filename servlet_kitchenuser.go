@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"encoding/base64"
 	_ "github.com/go-sql-driver/mysql"
+	"code.google.com/p/go-uuid/uuid"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -388,7 +389,7 @@ func (t *KitchenUserServlet) Get(r *http.Request) *ApiResult {
 		return APIError("Internal Server Error", 500)
 	}
 	if !session_valid {
-		return APIError("Session has expired. Please log in again", 200)
+		return APIError("Session has expired. Please log in again", 400)
 	}
 	key := r.Form.Get("key")
 	if key != "12q4lkjLK99JnfalsmfFDfdkd" {
@@ -414,7 +415,7 @@ func (t *KitchenUserServlet) UserFollows(r *http.Request) *ApiResult {
 		return APIError("Internal Server Error", 500)
 	}
 	if !session_valid {
-		return APIError("Session has expired. Please log in again", 200)
+		return APIError("Session has expired. Please log in again", 400)
 	}
 	host_id_s := r.Form.Get("hostId")
 	host_id, err := strconv.ParseInt(host_id_s, 10, 64)
@@ -438,7 +439,7 @@ func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 		return APIError("Internal Server Error", 500)
 	}
 	if !session_valid {
-		return APIError("Session has expired. Please log in again", 200)
+		return APIError("Session has expired. Please log in again", 400)
 	}
 	_, err = t.db.Exec("DELETE FROM User where Id = ?", session.Guest.Id)
 	if err != nil {
@@ -456,7 +457,7 @@ func (t *KitchenUserServlet) UpdateProfPic(r *http.Request) *ApiResult {
 		return APIError("Internal Server Error", 500)
 	}
 	if !session_valid {
-		return APIError("Session has expired. Please log in again", 200)
+		return APIError("Session has expired. Please log in again", 400)
 	}
 	pic := r.Form.Get("pic")
 	file_name, err := CreatePicFile(pic)
@@ -491,6 +492,70 @@ func (t *KitchenUserServlet) UpdateGuest(r *http.Request) *ApiResult {
 		return APIError("Failed to update guest", 500)
 	}
 	return APISuccess("OK")
+}
+func (t *KitchenUserServlet) UpdateEmail(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Internal Server Error", 500)
+	}
+	if !session_valid {
+		return APIError("Session has expired. Please log in again", 400)
+	}
+	email := r.Form.Get("email")
+	code := uuid.New()
+	err = UpdateEmail(t.db, email, code, session.Guest.Id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not update email", 500)
+	}
+	html := fmt.Sprintf("<p>Please click the link below to confirm the email you registered with Chakula</p>" +
+			"<a href='https://yaychakula.com/#/confirm_email?Id=%d&Code=%s'>Confirm your email</a>",
+			session.Guest.Id, code)
+	SendEmail(email, "Confirm your Chakula Email", html)
+	return APISuccess("OK")
+}
+func (t *KitchenUserServlet) UpdateBio(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Internal Server Error", 500)
+	}
+	if !session_valid {
+		return APIError("Session has expired. Please log in again", 400)
+	}
+	bio := r.Form.Get("bio")
+	err = UpdateBio(t.db, bio, session.Guest.Id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to update bio.", 500)
+	}
+	return APISuccess("OK")
+}
+func (t *KitchenUserServlet) VerifyEmail(r *http.Request) *ApiResult {
+	guest_id_s := r.Form.Get("Id")
+	guest_id, err := strconv.ParseInt(guest_id_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed Guest Id", 400)
+	}
+	sent_code := r.Form.Get("Code")
+	code, err := GetEmailCodeForGuest(t.db, guest_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to verify email", 500)
+	}
+	if code == sent_code {
+		err = VerifyEmailForGuest(t.db, guest_id)
+		if err != nil {
+			log.Println(err)
+			return APIError("Failed to verify email", 500)
+		}
+		return APISuccess("OK")
+	}
+	return APIError("Incorrect Email.", 400)
 }
 /*
 curl --data "method=UpdatePhone&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&phone=4438313923" https://yaychakula.com/api/kitchenuser
