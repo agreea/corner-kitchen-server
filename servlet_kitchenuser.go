@@ -493,6 +493,9 @@ func (t *KitchenUserServlet) UpdateGuest(r *http.Request) *ApiResult {
 	}
 	return APISuccess("OK")
 }
+/*
+curl --data "method=UpdateEmail&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&email=agree.ahmed@gmail.com" https://yaychakula.com/api/kitchenuser
+*/
 func (t *KitchenUserServlet) UpdateEmail(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
@@ -507,8 +510,11 @@ func (t *KitchenUserServlet) UpdateEmail(r *http.Request) *ApiResult {
 	code := uuid.New()
 	err = UpdateEmail(t.db, email, code, session.Guest.Id)
 	if err != nil {
-		log.Println(err)
-		return APIError("Could not update email", 500)
+		err = AddEmail(t.db, email, code, session.Guest.Id)
+		if err != nil {
+			log.Println(err)
+			return APIError("Could not update email", 500)
+		}
 	}
 	html := fmt.Sprintf("<p>Please click the link below to confirm the email you registered with Chakula</p>" +
 			"<a href='https://yaychakula.com/#/confirm_email?Id=%d&Code=%s'>Confirm your email</a>",
@@ -516,6 +522,7 @@ func (t *KitchenUserServlet) UpdateEmail(r *http.Request) *ApiResult {
 	SendEmail(email, "Confirm your Chakula Email", html)
 	return APISuccess("OK")
 }
+
 func (t *KitchenUserServlet) UpdateBio(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
@@ -534,6 +541,7 @@ func (t *KitchenUserServlet) UpdateBio(r *http.Request) *ApiResult {
 	}
 	return APISuccess("OK")
 }
+
 func (t *KitchenUserServlet) VerifyEmail(r *http.Request) *ApiResult {
 	guest_id_s := r.Form.Get("Id")
 	guest_id, err := strconv.ParseInt(guest_id_s, 10, 64)

@@ -802,6 +802,18 @@ func UpdatePhone(db *sql.DB, phone string, pin, guest_id int64) error {
 		WHERE Guest_id = ?`,
 		phone, pin, guest_id,
 	)
+	if err != nil {
+		_, err := db.Exec(
+			`INSERT INTO Phone
+			(Phone, Pin, Guest_id)
+			VALUES
+			(?, ?, ?)
+			`,
+			phone,
+			pin,
+			guest_id,
+		)
+	}
 	return err
 }
 func UpdateEmailForGuest(db *sql.DB, email string, guest_id int64) error {
@@ -813,6 +825,7 @@ func UpdateEmailForGuest(db *sql.DB, email string, guest_id int64) error {
 	)
 	return err
 }
+
 func UpdateEmail(db *sql.DB, email, code string, guest_id int64) error {
 	_, err := db.Exec(`
 		UPDATE GuestEmail
@@ -820,6 +833,18 @@ func UpdateEmail(db *sql.DB, email, code string, guest_id int64) error {
 		WHERE Guest_id = ?`,
 		email, code, guest_id,
 	)
+	if err != nil {
+		_, err := db.Exec(
+			`INSERT INTO GuestEmail
+			(Email, Code, Guest_id)
+			VALUES
+			(?, ?, ?)
+			`,
+			email,
+			code,
+			guest_id,
+		)
+	}
 	return err
 }
 func UpdateBio(db *sql.DB, bio string, guest_id int64) error {
