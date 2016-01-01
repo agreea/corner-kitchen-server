@@ -282,7 +282,17 @@ func VerifyPhoneForGuest(db *sql.DB, guest_id int64) (error) {
 	_, err := db.Exec(`UPDATE GuestPhone SET Verified = 1 WHERE Guest_id = ?` , guest_id)
 	return err
 }
+func GetEmailCodeForGuest(db *sql.DB, guest_id int64) (string, error) {
+	code := "0"
+	row := db.QueryRow("SELECT Code FROM GuestEmail WHERE Guest_id = ?", guest_id)
+	err := row.Scan(&code)
+	return code, err
+}
 
+func VerifyEmailForGuest(db *sql.DB, guest_id int64) (error) {
+	_, err := db.Exec(`UPDATE GuestEmail SET Verified = 1 WHERE Guest_id = ?` , guest_id)
+	return err
+}
 func RecordFollowHost(db *sql.DB, guest_id, host_id int64) error {
 	_, err := db.Exec(`INSERT INTO HostFollowers
 			(Guest_id, Host_id)
@@ -803,7 +813,24 @@ func UpdateEmailForGuest(db *sql.DB, email string, guest_id int64) error {
 	)
 	return err
 }
-
+func UpdateEmail(db *sql.DB, email, code string, guest_id int64) error {
+	_, err := db.Exec(`
+		UPDATE GuestEmail
+		SET Email = ?, Code = ?
+		WHERE Guest_id = ?`,
+		email, code, guest_id,
+	)
+	return err
+}
+func UpdateBio(db *sql.DB, bio string, guest_id int64) error {
+	_, err := db.Exec(`
+		UPDATE Guest
+		SET Bio = ?
+		WHERE Id = ?`,
+		bio, guest_id,
+	)
+	return err
+}
 func UpdateMeal(db *sql.DB, meal_draft *Meal) error {
 	_, err := db.Exec(
 		`UPDATE Meal
