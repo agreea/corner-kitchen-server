@@ -510,11 +510,8 @@ func (t *KitchenUserServlet) UpdateEmail(r *http.Request) *ApiResult {
 	code := uuid.New()
 	err = UpdateEmail(t.db, email, code, session.Guest.Id)
 	if err != nil {
-		err = AddEmail(t.db, email, code, session.Guest.Id)
-		if err != nil {
-			log.Println(err)
-			return APIError("Could not update email", 500)
-		}
+		log.Println(err)
+		return APIError("Could not update email", 500)
 	}
 	html := fmt.Sprintf("<p>Please click the link below to confirm the email you registered with Chakula</p>" +
 			"<a href='https://yaychakula.com/#/confirm_email?Id=%d&Code=%s'>Confirm your email</a>",
