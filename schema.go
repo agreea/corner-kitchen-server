@@ -813,6 +813,7 @@ func UpdatePhone(db *sql.DB, phone string, pin, guest_id int64) error {
 			pin,
 			guest_id,
 		)
+		return err
 	}
 	return err
 }
@@ -844,6 +845,7 @@ func UpdateEmail(db *sql.DB, email, code string, guest_id int64) error {
 			code,
 			guest_id,
 		)
+		return err
 	}
 	return err
 }
