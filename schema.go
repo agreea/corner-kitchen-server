@@ -267,7 +267,7 @@ func GetGuestById(db *sql.DB, id int64) (*GuestData, error) {
 func GetGuestByEmail(db *sql.DB, email string) (*GuestData, error) {
 	email_row := db.QueryRow(`SELECT Guest_id FROM GuestEmail WHERE Email = ?`, email)
 	guest_id := 0
-	err := email_row.Scan(&email)
+	err := email_row.Scan(&guest_id)
 	if err != nil {
 		return nil, err
 	}
