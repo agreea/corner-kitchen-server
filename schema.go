@@ -269,8 +269,10 @@ func GetGuestByEmail(db *sql.DB, email string) (*GuestData, error) {
 	guest_id := 0
 	err := email_row.Scan(&guest_id)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
+	log.Println(guest_id)
 	return GetGuestById(db, int64(guest_id))
 }
 
