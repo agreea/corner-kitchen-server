@@ -162,6 +162,8 @@ type GuestData struct {
 	Is_host 			bool
 	Phone 				string
 	Email          		string
+	Phone_verified 		bool
+	Email_verified 		bool
 }
 
 type FacebookResp struct {
@@ -269,7 +271,7 @@ func GetGuestByEmail(db *sql.DB, email string) (*GuestData, error) {
 	if err != nil {
 		return nil, err
 	}
-	return GetGuestById(row, guest_id)
+	return GetGuestById(db, int64(guest_id))
 }
 
 func GetFacebookPic(fb_id string) string {
@@ -283,11 +285,23 @@ func GetPhonePinForGuest(db *sql.DB, guest_id int64) (int64, error) {
 	return int64(pin), err
 }
 
+func GetPhoneForGuest(db *sql.DB, guest_id int64) (string, error) {
+	phone := "0"
+	row := db.QueryRow("SELECT Phone FROM GuestPhone WHERE Guest_id = ?", guest_id)
+	err := row.Scan(&phone)
+	return phone, err
+}
+
 func VerifyPhoneForGuest(db *sql.DB, guest_id int64) (error) {
 	_, err := db.Exec(`UPDATE GuestPhone SET Verified = 1 WHERE Guest_id = ?` , guest_id)
 	return err
 }
-
+func GetPhoneStatus(db *sql.DB, guest_id int64) (bool, error) {
+	verified := 0
+	row := db.QueryRow("SELECT Verified FROM GuestPhone WHERE Guest_id = ?", guest_id)
+	err := row.Scan(&verified)
+	return (verified == 1), err
+}
 func GetEmailForGuest(db *sql.DB, guest_id int64) (string, error) {
 	email := ""
 	row := db.QueryRow("SELECT Email FROM GuestEmail WHERE Guest_id = ?", guest_id)
@@ -301,7 +315,12 @@ func GetEmailCodeForGuest(db *sql.DB, guest_id int64) (string, error) {
 	err := row.Scan(&code)
 	return code, err
 }
-
+func GetEmailStatus(db *sql.DB, guest_id int64) (bool, error) {
+	verified := 0
+	row := db.QueryRow("SELECT Verified FROM GuestEmail WHERE Guest_id = ?", guest_id)
+	err := row.Scan(&verified)
+	return (verified == 1), err
+}
 func VerifyEmailForGuest(db *sql.DB, guest_id int64) (error) {
 	_, err := db.Exec(`UPDATE GuestEmail SET Verified = 1 WHERE Guest_id = ?` , guest_id)
 	return err
@@ -833,15 +852,6 @@ func UpdatePhone(db *sql.DB, phone string, pin, guest_id int64) error {
 	)
 	return err
 }
-func UpdateEmailForGuest(db *sql.DB, email string, guest_id int64) error {
-	_, err := db.Exec(`
-		UPDATE Guest
-		SET Email = ?
-		WHERE Id =?`,
-		email, guest_id,
-	)
-	return err
-}
 
 func UpdateEmail(db *sql.DB, email, code string, guest_id int64) error {
 	_, err := GetEmailCodeForGuest(db, guest_id)
@@ -856,7 +866,7 @@ func UpdateEmail(db *sql.DB, email, code string, guest_id int64) error {
 			code,
 			guest_id,
 		)
-		MailChimpRegister(email, false, t.db) // subscribe them to Mailchimp if they haven't already
+		MailChimpRegister(email, false, db) // subscribe them to Mailchimp if they haven't already
 		return err
 	}
 	_, err = db.Exec(`
@@ -1500,10 +1510,11 @@ func SaveMealRequest(db *sql.DB, meal_req *MealRequest) error {
 
 func SaveStripeToken(db *sql.DB, stripe_token string, last4 int64, guest_data *GuestData) error {
 	stripe.Key = "***REMOVED***"
-	guest_data.Email, err := GetEmailForGuest(db, guest_data.Id)
+	email, err := GetEmailForGuest(db, guest_data.Id)
 	if err != nil {
 		return err
 	}
+	guest_data.Email = email
 	customerParams := &stripe.CustomerParams{
 		Desc:  guest_data.First_name + " " + guest_data.Last_name,
 		Email: guest_data.Email,
