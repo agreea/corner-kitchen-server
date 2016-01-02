@@ -175,7 +175,7 @@ func (t *KitchenUserServlet) LoginFb(r *http.Request) *ApiResult {
 		if err != nil {
 			return APIError("Failed to create user", 500)
 		}
-		guestData.Facebook_long_token = "You wish :)";
+		guestData.Facebook_long_token = "NEW_GUEST";
 		return APISuccess(guestData)
 	}
 }
@@ -563,7 +563,7 @@ func (t *KitchenUserServlet) VerifyEmail(r *http.Request) *ApiResult {
 	return APIError("Incorrect Email.", 400)
 }
 /*
-curl --data "method=UpdatePhone&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&phone=4438313923" https://yaychakula.com/api/kitchenuser
+curl --data "method=UpdatePhone&session=be8cd866-4ac0-4552-be7c-4a7accadc69b&phone=4438313923" https://yaychakula.com/api/kitchenuser
 */
 func (t *KitchenUserServlet) UpdatePhone(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
@@ -592,7 +592,7 @@ func (t *KitchenUserServlet) UpdatePhone(r *http.Request) *ApiResult {
 	return APISuccess("OK")
 }
 /*
-curl --data "method=UserFollows&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&pin=1234" https://yaychakula.com/api/kitchenuser
+curl --data "method=VerifyPhone&session=be8cd866-4ac0-4552-be7c-4a7accadc69b&pin=6254" https://yaychakula.com/api/kitchenuser
 */
 func (t *KitchenUserServlet) VerifyPhone(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")

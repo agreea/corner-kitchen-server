@@ -802,8 +802,9 @@ func UpdatePhone(db *sql.DB, phone string, pin, guest_id int64) error {
 		WHERE Guest_id = ?`,
 		phone, pin, guest_id,
 	)
+	log.Println(err == nil)
 	if err != nil {
-		_, err := db.Exec(
+		r, err := db.Exec(
 			`INSERT INTO GuestPhone
 			(Phone, Pin, Guest_id)
 			VALUES
@@ -813,6 +814,8 @@ func UpdatePhone(db *sql.DB, phone string, pin, guest_id int64) error {
 			pin,
 			guest_id,
 		)
+		log.Println(err)
+		log.Println(r)
 		return err
 	}
 	return err
