@@ -259,7 +259,7 @@ func GetGuestByFbId(db *sql.DB, fb_id string) (*GuestData, error) {
 
 func GetGuestById(db *sql.DB, id int64) (*GuestData, error) {
 	row := db.QueryRow(`SELECT Id, First_name, Last_name,
-		Facebook_id, Facebook_long_token, Phone, Prof_pic, Bio
+		Facebook_id, Facebook_long_token, Prof_pic, Bio
 		FROM Guest WHERE Id = ?`, id)
 	return readGuestLine(row)
 }
