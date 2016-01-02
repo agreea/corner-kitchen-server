@@ -796,13 +796,7 @@ func UpdatePhoneForGuest(db *sql.DB, phone string, guest_id int64) error {
 	return err
 }
 func UpdatePhone(db *sql.DB, phone string, pin, guest_id int64) error {
-	_, err := db.Exec(`
-		UPDATE GuestPhone
-		SET Phone = ?, Pin = ?
-		WHERE Guest_id = ?`,
-		phone, pin, guest_id,
-	)
-	log.Println(err == nil)
+	_, err := GetPhonePinForGuest(db, guest_id)
 	if err != nil {
 		r, err := db.Exec(
 			`INSERT INTO GuestPhone
@@ -818,6 +812,12 @@ func UpdatePhone(db *sql.DB, phone string, pin, guest_id int64) error {
 		log.Println(r)
 		return err
 	}
+	_, err = db.Exec(`
+		UPDATE GuestPhone
+		SET Phone = ?, Pin = ?, Verified = 0
+		WHERE Guest_id = ?`,
+		phone, pin, guest_id,
+	)
 	return err
 }
 func UpdateEmailForGuest(db *sql.DB, email string, guest_id int64) error {
@@ -831,12 +831,7 @@ func UpdateEmailForGuest(db *sql.DB, email string, guest_id int64) error {
 }
 
 func UpdateEmail(db *sql.DB, email, code string, guest_id int64) error {
-	_, err := db.Exec(`
-		UPDATE GuestEmail
-		SET Email = ?, Verify_code = ?
-		WHERE Guest_id = ?`,
-		email, code, guest_id,
-	)
+	_, err := GetEmailCodeForGuest(db, guest_id)
 	if err != nil {
 		_, err := db.Exec(
 			`INSERT INTO GuestEmail
@@ -850,6 +845,12 @@ func UpdateEmail(db *sql.DB, email, code string, guest_id int64) error {
 		)
 		return err
 	}
+	_, err = db.Exec(`
+		UPDATE GuestEmail
+		SET Email = ?, Verify_code = ?
+		WHERE Guest_id = ?`,
+		email, code, guest_id,
+	)
 	return err
 }
 func UpdateBio(db *sql.DB, bio string, guest_id int64) error {
