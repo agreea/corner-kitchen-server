@@ -218,7 +218,7 @@ func (t *MealRequestServlet) email_guest(guest *GuestData, host *HostData, meal 
 	}
 	guest_email, err := GetEmailForGuest(t.db, guest.Id)
 	if err != nil {
-		log.Prinltn(err)
+		log.Println(err)
 		return err
 	}
 	if status == 1 {

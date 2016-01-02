@@ -201,14 +201,15 @@ func (t *KitchenUserServlet) CreateAccountEmail(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Could not create account", 500)
 	}
-	_, err := UpdateEmailForGuest(t.db, email, guest_id)
+	email_code := uuid.New()
+	err = UpdateEmail(t.db, email, email_code, guest_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Could not create account", 500)
 	}
 	html := fmt.Sprintf("<p>Please click the link below to confirm the email you registered with Chakula</p>" +
 			"<a href='https://yaychakula.com/#/confirm_email?Id=%d&Code=%s'>Confirm your email</a>",
-			session.Guest.Id, code)
+			guest_id, email_code)
 	SendEmail(email, "Confirm your Chakula Email", html)
 	guest, err = GetGuestById(t.db, guest_id)
 	if err != nil {
@@ -391,6 +392,33 @@ Get phone,
 Get email,
 Send that shit
 */
+func (t *KitchenUserServlet) GetForEdit(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Internal Server Error", 500)
+	}
+	if !session_valid {
+		return APIError("Session has expired. Please log in again", 400)
+	}
+	key := r.Form.Get("key")
+	if key != "12q4lkjLK99JnfalsmfFDfdkd" {
+		session.Guest.Facebook_long_token = "nah b"
+	}
+	_, err = GetHostByGuestId(t.db, session.Guest.Id)
+	if err != nil {
+		session.Guest.Is_host = true
+	} else {
+		session.Guest.Is_host = false
+	}
+	// error checking here doesn't matter
+	session.Guest.Email, err = GetEmailForGuest(t.db, session.Guest.Id)
+	session.Guest.Phone, err = GetPhoneForGuest(t.db, session.Guest.Id)
+	session.Guest.Phone_verified, err = GetPhoneStatus(t.db, session.Guest.Id)
+	session.Guest.Email_verified, err = GetEmailStatus(t.db, session.Guest.Id)
+	return APISuccess(session.Guest)
+}
 /*
 curl --data "method=UserFollows&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&hostId=42" https://yaychakula.com/api/kitchenuser
 */
