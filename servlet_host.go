@@ -193,15 +193,29 @@ func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 	if !valid {
 		return APIError("Invalid session", 400)
 	}
-	guest := session.Guest
+	host_as_guest := session.Guest
+	host_as_guest.Email, err = GetEmailForGuest(t.db, host_as_guest.Id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not locate your email. " + 
+			"Please make sure you have registered an email with " +
+			"Chakula before creating your host account", 400)
+	}
+	host_as_guest.Phone, err = GetPhoneForGuest(t.db, host_as_guest.Id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not locate your phone number. " + 
+			"Please make sure you have registered a phone number with " +
+			"Chakula before creating your host account", 400)
+	}
 	host_resp := new(HostResponse)
-	host_resp.Email = guest.Email
-	host_resp.Phone = guest.Phone
-	host_resp.Prof_pic = GetFacebookPic(guest.Facebook_id)
-	host, err := GetHostByGuestId(t.db, guest.Id)
+	host_resp.Email = host_as_guest.Email
+	host_resp.Phone = host_as_guest.Phone
+	host_resp.Prof_pic = GetFacebookPic(host_as_guest.Facebook_id)
+	host, err := GetHostByGuestId(t.db, host_as_guest.Id)
 	if err != nil { // there wasn't a host with this guest id
 		log.Println(err)
-		err = CreateHost(t.db, guest.Id)
+		err = CreateHost(t.db, host_as_guest.Id)
 		if err != nil {
 			log.Println(err)
 			return APIError("Failed to create Host", 500)
@@ -230,12 +244,12 @@ func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
         "stripe_user[product_description]=Food&amp;" +
         "stripe_user[country]=US&amp;" +
 		"stripe_user[currency]=usd",
-		guest.Email,
-		host.Id,
-		guest.First_name,
-		guest.Phone,
-		guest.First_name,
-		guest.Last_name,
+		host_as_guest.Email,
+		host_as_guest.Id,
+		host_as_guest.First_name,
+		host_as_guest.Phone,
+		host_as_guest.First_name,
+		host_as_guest.Last_name,
 		host.Address,
 		host.City,
 		host.State)
