@@ -107,6 +107,7 @@ func (t *ReviewServlet) nudge_attendees(requests []*MealRequest) error {
 					meal.Id)
 				t.twilio_queue <- msg
 			} else { // email them
+				attendee.Email, err = GetEmailForGuest(t.db, attendee.Id)
 				subject := fmt.Sprintf("%s, Please Review %s's Meal", attendee.First_name, host_as_guest.First_name)
 				if request.Nudge_count > 1 {
 					subject = "Reminder: " + subject

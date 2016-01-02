@@ -38,7 +38,6 @@ type Meal_read struct {
 	Price			float64
 	Status 			string
 	Maps_url 		string
-	Has_email		bool
 	Follows_host 	bool
 	Cards 			[]int64
 	Attendees 		[]*Attendee_read
@@ -526,6 +525,11 @@ func (t *MealServlet) process_meal_charges(){
 			log.Println(err)
 			continue
 		}
+		host_as_guest.Email, err = GetEmailForGuest(t.db, host_as_guest.Id)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
 		subject := "Chakula has Processed Your Payments"
 		html := "<p>Chakula processed the payments for the meal you recently held.</p>" +
 				"<p>Please be advised that <b>Stripe still has to clear the payments</b> before the funds are transferred to your account." +
@@ -772,7 +776,6 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 					"size=600x300&scale=2&zoom=14&markers=color:red|%s,%s,%s", 
 					host.Address, host.City, host.State)
 		}
-		meal_data.Has_email = !(session.Guest.Email == "")
 		if !session_valid {
 			meal_data.Status = "NONE"
 			log.Println(session_valid)

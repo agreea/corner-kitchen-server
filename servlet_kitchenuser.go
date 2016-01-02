@@ -108,34 +108,6 @@ func (t *KitchenUserServlet) AddPhone(r *http.Request) *ApiResult {
 
 // TODO: 	List management -- unsubscribe previous emails and subscribe the next next emails
 // 			Subscribe -- check if the person wants to receive weekly emails (eventually make this by market)
-/*
-curl --data "method=AddEmail&session=f1caa66a-3351-48db-bcb3-d76bdc644634&email=aka61@georgetown.edu" https://qa.yaychakula.com/api/kitchenuser
-*/
-
-func (t *KitchenUserServlet) AddEmail(r *http.Request) *ApiResult {
-	session_id := r.Form.Get("session")
-	email := r.Form.Get("email")
-	// subscribe := r.Form.Get("subscribe")
-	// TODO: update all associated stripe customer objects 
-	session_exists, session, err := t.session_manager.GetGuestSession(session_id)
-	if err != nil {
-		log.Println(err)
-		return APIError("Could not locate user", 400)
-	}
-	if !session_exists {
-		return APIError("Invalid session", 400)
-	}
-	// if session.Guest.Email != nil {
-	// 	// unsubscribe old email
-	// }
-	err = UpdateEmailForGuest(t.db, email, session.Guest.Id)
-	if err != nil {
-		log.Println(err)
-		return APIError("Failed to update email. Please try again", 500)
-	}
-	MailChimpRegister(email, false, t.db)
-	return APISuccess("OK")
-}
 
 // Create a login session for a user.
 // Session tokens are stored in a local cache, as well as back to the DB to
@@ -161,6 +133,7 @@ func (t *KitchenUserServlet) LoginFb(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Could not connect to Facebook", 500)
 	}
+	// TODO: Add logic for existing customer linking up FB
 	if fb_id_exists {
 		// update fb credentials for fb_id
 		guestData, err := t.process_login_fb(resp.Id, long_token, expires)
@@ -214,12 +187,11 @@ func (t *KitchenUserServlet) CreateAccountEmail(r *http.Request) *ApiResult {
 	}
 	result, err := 
 		t.db.Exec(`INSERT INTO Guest
-			(First_name, Last_name, Email)
+			(First_name, Last_name)
 			VALUES
-			(?, ?, ?)`,
+			(?, ?)`,
 			first_name,
-			last_name,
-			email)
+			last_name)
 	if err != nil {
 		log.Println(err)
 		return APIError("Could not create account", 500)
@@ -229,6 +201,15 @@ func (t *KitchenUserServlet) CreateAccountEmail(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Could not create account", 500)
 	}
+	_, err := UpdateEmailForGuest(t.db, email, guest_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not create account", 500)
+	}
+	html := fmt.Sprintf("<p>Please click the link below to confirm the email you registered with Chakula</p>" +
+			"<a href='https://yaychakula.com/#/confirm_email?Id=%d&Code=%s'>Confirm your email</a>",
+			session.Guest.Id, code)
+	SendEmail(email, "Confirm your Chakula Email", html)
 	guest, err = GetGuestById(t.db, guest_id)
 	if err != nil {
 		log.Println(err)
@@ -403,7 +384,13 @@ func (t *KitchenUserServlet) Get(r *http.Request) *ApiResult {
 	}
 	return APISuccess(session.Guest)
 }
-
+/*
+Get guest for edit
+Get GuestData, which is first, last name, fb id, and bio tbh
+Get phone,
+Get email,
+Send that shit
+*/
 /*
 curl --data "method=UserFollows&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&hostId=42" https://yaychakula.com/api/kitchenuser
 */

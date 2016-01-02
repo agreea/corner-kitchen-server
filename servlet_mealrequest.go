@@ -216,6 +216,11 @@ func (t *MealRequestServlet) email_guest(guest *GuestData, host *HostData, meal 
 		return err
 
 	}
+	guest_email, err := GetEmailForGuest(t.db, guest.Id)
+	if err != nil {
+		log.Prinltn(err)
+		return err
+	}
 	if status == 1 {
 		subject := fmt.Sprintf("%s Welcomed You to Their Chakula Meal!", host_as_guest.First_name)
 		html :=fmt.Sprintf("<p>Get excited!</p><p>The dinner is at %s, %s</p>" + 
@@ -228,7 +233,7 @@ func (t *MealRequestServlet) email_guest(guest *GuestData, host *HostData, meal 
 							host.Address, 
 							BuildTime(meal.Starts), 
 							meal.Id)
-		SendEmail(guest.Email, subject, html)
+		SendEmail(guest_email, subject, html)
 	} else {
 		subject := fmt.Sprintf("%s Couldn't Welcome You to their Chakula Meal", host_as_guest.First_name)
 		html :=fmt.Sprintf("<p>Bummer.</p><p>There's always hope...</p>" + 
@@ -236,7 +241,7 @@ func (t *MealRequestServlet) email_guest(guest *GuestData, host *HostData, meal 
 							"<p>His coach probably didn't expect him to ball with Bugs Bunny in" +
 							" the 1996 blockbuster, <i>Space Jam</i></p>" +
 							"<p>Love,</p><p>Chakula</p>")
-		SendEmail(guest.Email, subject, html)
+		SendEmail(guest_email, subject, html)
 	}
 	return nil
 }
