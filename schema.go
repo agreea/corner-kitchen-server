@@ -768,12 +768,12 @@ func CreateHost(db *sql.DB, guest_id int64) error {
 	return err
 }
 
-func UpdateGuest(db *sql.DB, first_name, last_name, email, phone, bio string, guest_id int64) error{
+func UpdateGuest(db *sql.DB, first_name, last_name, bio string, guest_id int64) error{
 	_, err := db.Exec(`
 		UPDATE Guest
-		SET First_name = ?, Last_name = ?, Email = ?, Phone = ?, Bio = ?
+		SET First_name = ?, Last_name = ?, Bio = ?
 		WHERE Id =?`,
-		first_name, last_name, email, phone, bio, guest_id,
+		first_name, last_name, bio, guest_id,
 	)
 	return err
 }

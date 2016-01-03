@@ -201,16 +201,11 @@ func (t *KitchenUserServlet) CreateAccountEmail(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Could not create account", 500)
 	}
-	email_code := uuid.New()
-	err = UpdateEmail(t.db, email, email_code, guest_id)
+	err = t.update_email(email, guest_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Could not create account", 500)
 	}
-	html := fmt.Sprintf("<p>Please click the link below to confirm the email you registered with Chakula</p>" +
-			"<a href='https://yaychakula.com/#/confirm_email?Id=%d&Code=%s'>Confirm your email</a>",
-			guest_id, email_code)
-	SendEmail(email, "Confirm your Chakula Email", html)
 	guest, err = GetGuestById(t.db, guest_id)
 	if err != nil {
 		log.Println(err)
@@ -391,7 +386,9 @@ Get GuestData, which is first, last name, fb id, and bio tbh
 Get phone,
 Get email,
 Send that shit
+curl --data "method=GetForEdit&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf" https://yaychakula.com/api/kitchenuser
 */
+
 func (t *KitchenUserServlet) GetForEdit(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
@@ -440,11 +437,13 @@ func (t *KitchenUserServlet) UserFollows(r *http.Request) *ApiResult {
 
 	return APISuccess(GetGuestFollowsHost(t.db, session.Guest.Id, host_id))
 }
-
+/*
+curl --data "method=Delete&session=02714aee-abc9-446f-99d9-cd839cfba540&key=67lk1j2345.,lkjd4jSA.NL.KAasdfnlAJml" https://yaychakula.com/api/kitchenuser
+*/
 func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	private_key := r.Form.Get("key")
-	if private_key != "67lk1j2345lkjd4jSAAA=o030924ffdVNLKAasdfnlAJmlj1rln,.as" {
+	if private_key != "***REMOVED***" {
 		log.Println("Tried to delete user without key: " + session_id)
 		return APIError("Command failed", 500)
 	}
@@ -456,7 +455,9 @@ func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 	if !session_valid {
 		return APIError("Session has expired. Please log in again", 400)
 	}
-	_, err = t.db.Exec("DELETE FROM User where Id = ?", session.Guest.Id)
+	_, err = t.db.Exec("DELETE FROM Guest WHERE Id = ?", session.Guest.Id)
+	_, err = t.db.Exec("DELETE FROM GuestEmail WHERE Guest_id = ?", session.Guest.Id)
+	_, err = t.db.Exec("DELETE FROM GuestPhone WHERE Guest_id = ?", session.Guest.Id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Internal Server Error", 500)
@@ -496,15 +497,22 @@ func (t *KitchenUserServlet) UpdateGuest(r *http.Request) *ApiResult {
 	if !session_valid {
 		return APIError("Session has expired. Please log in again", 400)
 	}
-	email := r.Form.Get("Email")
-	phone := r.Form.Get("Phone")
+	sent_email := r.Form.Get("Email")
 	bio := r.Form.Get("Bio")
 	firstName := r.Form.Get("First_name")
 	lastName := r.Form.Get("Last_name")
-	err = UpdateGuest(t.db, firstName, lastName, email, phone, bio, session.Guest.Id)
+	err = UpdateGuest(t.db, firstName, lastName, bio, session.Guest.Id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Failed to update guest", 500)
+	}
+	saved_email, err := GetEmailForGuest(t.db, session.Guest.Id)
+	if (err != nil || saved_email != sent_email) {
+		err = t.update_email(sent_email, session.Guest.Id)
+		if err != nil {
+			log.Println(err)
+			return APIError("Failed to update guest", 500)
+		}
 	}
 	return APISuccess("OK")
 }
@@ -522,19 +530,26 @@ func (t *KitchenUserServlet) UpdateEmail(r *http.Request) *ApiResult {
 		return APIError("Session has expired. Please log in again", 400)
 	}
 	email := r.Form.Get("email")
-	code := uuid.New()
-	err = UpdateEmail(t.db, email, code, session.Guest.Id)
+	err = t.update_email(email, session.Guest.Id)
 	if err != nil {
 		log.Println(err)
-		return APIError("Could not update email", 500)
+		return APIError("Failed to update guest", 500)
 	}
-	html := fmt.Sprintf("<p>Please click the link below to confirm the email you registered with Chakula</p>" +
-			"<a href='https://yaychakula.com/#/confirm_email?Id=%d&Code=%s'>Confirm your email</a>",
-			session.Guest.Id, code)
-	SendEmail(email, "Confirm your Chakula Email", html)
 	return APISuccess("OK")
 }
 
+func (t *KitchenUserServlet) update_email(email string, guest_id int64) error {
+	code := uuid.New()
+	err := UpdateEmail(t.db, email, code, guest_id)
+	if err != nil {
+		return err
+	}
+	html := fmt.Sprintf("<p>Please click the link below to confirm the email you registered with Chakula</p>" +
+			"<a href='https://yaychakula.com/#/confirm_email?Id=%d&Code=%s'>Confirm your email</a>",
+			guest_id, code)
+	SendEmail(email, "Confirm your Chakula Email", html)
+	return nil
+} 
 func (t *KitchenUserServlet) UpdateBio(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
