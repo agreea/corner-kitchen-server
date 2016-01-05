@@ -464,7 +464,7 @@ func (t *KitchenUserServlet) UserFollows(r *http.Request) *ApiResult {
 }
 
 /*
-curl --data "method=Delete&session=c730bfb0-9173-44f8-af72-830bdb5f949f&key=***REMOVED***" https://yaychakula.com/api/kitchenuser
+curl --data "method=Delete&session=e126b62b-e23a-4189-9227-81da6f93f706&key=***REMOVED***" https://yaychakula.com/api/kitchenuser
 */
 func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
@@ -508,7 +508,7 @@ func (t *KitchenUserServlet) UpdateProfPic(r *http.Request) *ApiResult {
 		return APIError("Failed to save picture", 500)
 	}
 	err = SaveProfPic(t.db, file_name, session.Guest.Id)
-	return APISuccess("img/" + file_name)
+	return APISuccess("https://yaychakula.com/img/" + file_name)
 }
 /*
 curl --data "method=UpdateGuest&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&bio='testing-testing-testing'&firstName=Agree&lastName=Ahmed" https://yaychakula.com/api/kitchenuser
