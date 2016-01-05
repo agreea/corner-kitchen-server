@@ -820,15 +820,7 @@ func UpdateGuestFbToken(db *sql.DB, fb_id string, fb_token string) error {
 	return err
 }
 
-func UpdatePhoneForGuest(db *sql.DB, phone string, guest_id int64) error {
-	_, err := db.Exec(`
-		UPDATE Guest
-		SET Phone = ?
-		WHERE Id =?`,
-		phone, guest_id,
-	)
-	return err
-}
+
 func UpdatePhone(db *sql.DB, phone string, pin, guest_id int64) error {
 	_, err := GetPhonePinForGuest(db, guest_id)
 	if err != nil {
@@ -879,12 +871,22 @@ func UpdateEmail(db *sql.DB, email, code string, guest_id int64) error {
 	)
 	return err
 }
+
 func UpdateBio(db *sql.DB, bio string, guest_id int64) error {
 	_, err := db.Exec(`
 		UPDATE Guest
 		SET Bio = ?
 		WHERE Id = ?`,
 		bio, guest_id,
+	)
+	return err
+}
+func UpdateFb(db *sql.DB, token string, fb_id, guest_id int64) error {
+	_, err := db.Exec(`
+		UPDATE Guest
+		SET Facebook_long_token = ?, Facebook_id = ?
+		WHERE Id = ?`,
+		token, fb_id, guest_id,
 	)
 	return err
 }

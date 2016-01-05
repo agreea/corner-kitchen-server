@@ -153,6 +153,46 @@ func (t *KitchenUserServlet) LoginFb(r *http.Request) *ApiResult {
 	}
 }
 
+func (t *KitchenUserServlet) FbConnect(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	session_exists, session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not locate user", 400)
+	}
+	if !session_exists {
+		return APIError("Invalid session", 400)
+	}
+	fbToken := r.Form.Get("fbToken")
+	resp, err := t.get_fb_data_for_token(fbToken)
+	if err != nil {
+		log.Println(err)
+		return APIError("Invalid Facebook Login", 400)
+	}
+	if resp.Id == "" {
+		return APIError("Error connecting to Facebook", 500)
+	}
+	fb_id_exists, err := t.fb_id_exists(resp.Id)
+	if err != nil {
+		return APIError("Could not find user", 500)
+	}
+	long_token, expires, err := t.get_fb_long_token(fbToken)
+	if err != nil || expires == 0 {
+		log.Println(err)
+		return APIError("Could not connect to Facebook", 500)
+	}
+	// TODO: Add logic for existing customer linking up FB
+	// update guest data
+	// also include long token and expires
+	err = UpdateFb(t.db, long_token, resp.Id, session.Guest.Id)
+	if err != nil {
+		return APIError("Failed to connect to Facebook", 500)
+	}
+	session.Guest, err = GetGuestById(t.db, session.Guest.Id)
+	guestData.Facebook_long_token = "NEW_GUEST";
+	return APISuccess(guestData)
+}
+
 func (t *KitchenUserServlet) LoginEmail(r *http.Request) *ApiResult {
 	email := r.Form.Get("email")
 	password := r.Form.Get("password")
@@ -322,7 +362,6 @@ func (t *KitchenUserServlet) get_fb_data_for_token(fb_token string) (fbresponse 
 
 // get the longterm access token
 // store it with the user
-// 
 func (t *KitchenUserServlet) get_fb_long_token(fb_token string) (long_token string, expires int, err error) {
 	resp, err := http.Get("https://graph.facebook.com/oauth/access_token?" +
 							"grant_type=fb_exchange_token&client_id=828767043907424" +
@@ -380,6 +419,7 @@ func (t *KitchenUserServlet) Get(r *http.Request) *ApiResult {
 	}
 	return APISuccess(session.Guest)
 }
+
 /*
 Get guest for edit
 Get GuestData, which is first, last name, fb id, and bio tbh
@@ -416,6 +456,7 @@ func (t *KitchenUserServlet) GetForEdit(r *http.Request) *ApiResult {
 	session.Guest.Email_verified, err = GetEmailStatus(t.db, session.Guest.Id)
 	return APISuccess(session.Guest)
 }
+
 /*
 curl --data "method=UserFollows&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&hostId=42" https://yaychakula.com/api/kitchenuser
 */
@@ -437,8 +478,9 @@ func (t *KitchenUserServlet) UserFollows(r *http.Request) *ApiResult {
 
 	return APISuccess(GetGuestFollowsHost(t.db, session.Guest.Id, host_id))
 }
+
 /*
-curl --data "method=Delete&session=02714aee-abc9-446f-99d9-cd839cfba540&key=67lk1j2345.,lkjd4jSA.NL.KAasdfnlAJml" https://yaychakula.com/api/kitchenuser
+curl --data "method=Delete&session=f6317aff-e8b2-462d-ba44-343946c943f6&key=***REMOVED***" https://yaychakula.com/api/kitchenuser
 */
 func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
