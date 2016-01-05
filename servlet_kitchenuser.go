@@ -508,7 +508,7 @@ func (t *KitchenUserServlet) UpdateProfPic(r *http.Request) *ApiResult {
 		return APIError("Failed to save picture", 500)
 	}
 	err = SaveProfPic(t.db, file_name, session.Guest.Id)
-	return APISuccess("OK")
+	return APISuccess("img/" + file_name)
 }
 /*
 curl --data "method=UpdateGuest&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&bio='testing-testing-testing'&firstName=Agree&lastName=Ahmed" https://yaychakula.com/api/kitchenuser
