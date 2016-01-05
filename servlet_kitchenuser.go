@@ -88,23 +88,6 @@ func (t *KitchenUserServlet) GetLast4s(r *http.Request) *ApiResult {
 	}
 	return APISuccess(last4s)
 }
-/*
-curl --data "method=AddPhone&session=f1caa66a-3351-48db-bcb3-d76bdc644634&phone=1234567890" https://qa.yaychakula.com/api/kitchenuser
-*/
-func (t *KitchenUserServlet) AddPhone(r *http.Request) *ApiResult {
-	session_id := r.Form.Get("session")
-	phone := r.Form.Get("phone")
-	session_exists, session, err := t.session_manager.GetGuestSession(session_id)
-	if err != nil {
-		log.Println(err)
-		return APIError("Could not locate user", 400)
-	}
-	if !session_exists {
-		return APIError("Invalid session", 400)
-	}
-	err = UpdatePhoneForGuest(t.db, phone, session.Guest.Id)
-	return APISuccess("OK")
-}
 
 // TODO: 	List management -- unsubscribe previous emails and subscribe the next next emails
 // 			Subscribe -- check if the person wants to receive weekly emails (eventually make this by market)
@@ -172,10 +155,6 @@ func (t *KitchenUserServlet) FbConnect(r *http.Request) *ApiResult {
 	if resp.Id == "" {
 		return APIError("Error connecting to Facebook", 500)
 	}
-	fb_id_exists, err := t.fb_id_exists(resp.Id)
-	if err != nil {
-		return APIError("Could not find user", 500)
-	}
 	long_token, expires, err := t.get_fb_long_token(fbToken)
 	if err != nil || expires == 0 {
 		log.Println(err)
@@ -184,13 +163,18 @@ func (t *KitchenUserServlet) FbConnect(r *http.Request) *ApiResult {
 	// TODO: Add logic for existing customer linking up FB
 	// update guest data
 	// also include long token and expires
-	err = UpdateFb(t.db, long_token, resp.Id, session.Guest.Id)
+	fb_id, err := strconv.ParseInt(resp.Id, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not connect to Facebook", 500)
+	}
+	err = UpdateFb(t.db, long_token, fb_id, session.Guest.Id)
 	if err != nil {
 		return APIError("Failed to connect to Facebook", 500)
 	}
 	session.Guest, err = GetGuestById(t.db, session.Guest.Id)
-	guestData.Facebook_long_token = "NEW_GUEST";
-	return APISuccess(guestData)
+	session.Guest.Facebook_long_token = "NEW_GUEST";
+	return APISuccess(session.Guest)
 }
 
 func (t *KitchenUserServlet) LoginEmail(r *http.Request) *ApiResult {
@@ -480,7 +464,7 @@ func (t *KitchenUserServlet) UserFollows(r *http.Request) *ApiResult {
 }
 
 /*
-curl --data "method=Delete&session=f6317aff-e8b2-462d-ba44-343946c943f6&key=***REMOVED***" https://yaychakula.com/api/kitchenuser
+curl --data "method=Delete&session=c730bfb0-9173-44f8-af72-830bdb5f949f&key=***REMOVED***" https://yaychakula.com/api/kitchenuser
 */
 func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
