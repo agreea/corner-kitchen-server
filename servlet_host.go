@@ -211,6 +211,13 @@ func (t *HostServlet) GetProfile(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Failed to get meals for host", 500)
 	}
+	for _, meal := range host_prof.Meals {
+		meal.Pics, err = GetMealPics(t.db, meal.Id)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+	}
 	return APISuccess(host_prof)
 	// get host id. use to get:
 	// guest object (bio, profile pic, etc)
