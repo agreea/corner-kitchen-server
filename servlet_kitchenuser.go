@@ -464,7 +464,7 @@ func (t *KitchenUserServlet) UserFollows(r *http.Request) *ApiResult {
 }
 
 /*
-curl --data "method=Delete&session=e126b62b-e23a-4189-9227-81da6f93f706&key=***REMOVED***" https://yaychakula.com/api/kitchenuser
+curl --data "method=Delete&session=afcc638e-de3f-489f-a4f1-ad7c9c0d3e25&key=***REMOVED***" https://yaychakula.com/api/kitchenuser
 */
 func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")

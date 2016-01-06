@@ -276,6 +276,17 @@ func GetGuestByEmail(db *sql.DB, email string) (*GuestData, error) {
 	return GetGuestById(db, int64(guest_id))
 }
 
+func GetGuestByHostId(db *sql.DB, host_id int64) (*GuestData, error) {
+	guest_id_in_host_table := db.QueryRow(`SELECT Guest_id FROM Host WHERE Id = ?`, host_id)
+	guest_id := 0
+	err := guest_id_in_host_table.Scan(&guest_id)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	return GetGuestById(db, int64(guest_id))
+}
+
 func GetFacebookPic(fb_id string) string {
 	return "https://graph.facebook.com/" + fb_id + "/picture?width=200&height=200"
 }
