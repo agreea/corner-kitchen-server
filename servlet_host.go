@@ -164,6 +164,7 @@ type HostProfile struct {
 	Prof_pic		string
 	Bio 			string
 	Meals 			[]*Meal
+	Reviews 		[]*Review
 	Follows 		bool
 }
 
@@ -196,7 +197,7 @@ func (t *HostServlet) GetProfile(r *http.Request) *ApiResult {
 	host_as_guest, err := GetGuestByHostId(t.db, host_id)
 	if err != nil {
 		log.Println(err)
-		return APIError("Failed to locate host", 500)
+		return APIError("Failed to locate chef", 500)
 	}
 	host_prof.Name = host_as_guest.First_name
 	host_prof.Bio = host_as_guest.Bio
@@ -209,7 +210,7 @@ func (t *HostServlet) GetProfile(r *http.Request) *ApiResult {
 	host_prof.Meals, err = GetMealsForHost(t.db, host_id)
 	if err != nil {
 		log.Println(err)
-		return APIError("Failed to get meals for host", 500)
+		return APIError("Failed to get meals for chef", 500)
 	}
 	for _, meal := range host_prof.Meals {
 		meal.Pics, err = GetMealPics(t.db, meal.Id)
@@ -217,6 +218,11 @@ func (t *HostServlet) GetProfile(r *http.Request) *ApiResult {
 			log.Println(err)
 			continue
 		}
+	}
+	host_prof.Reviews, err = GetReviewsForHost(t.db, host_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to get reviews for chef", 500)
 	}
 	return APISuccess(host_prof)
 	// get host id. use to get:
@@ -227,6 +233,7 @@ func (t *HostServlet) GetProfile(r *http.Request) *ApiResult {
 	// else check if the user follows the chef and set that accordingly
 	// play it as such
 }
+
 func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
 	resp, err := http.PostForm("https://connect.stripe.com/oauth/token",
 		url.Values{"client_secret": {"***REMOVED***"},
