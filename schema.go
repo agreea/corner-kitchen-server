@@ -453,6 +453,7 @@ func read_meal_rows(rows *sql.Rows) ([]*Meal, error) {
 		); err != nil {
 			return nil, err
 		}
+		meal.Price = GetMealPriceWithCommission(meal.Price)
 		meals = append(meals, meal)
 	}
 	return meals, nil
