@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"fmt"
+	"strconv"
 )
 
 type HostServlet struct {
@@ -29,6 +30,7 @@ type HostResponse struct {
 	Stripe_url 		string
 	Stripe_connect	bool
 }
+
 
 func NewHostServlet(server_config *Config, session_manager *SessionManager, twilio_queue chan *SMS) *HostServlet {
 	t := new(HostServlet)
@@ -155,6 +157,63 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 	return t.GetHost(r)
 }
 
+type HostProfile struct {
+	Name 			string
+	City 			string
+	State 			string
+	Prof_pic		string
+	Bio 			string
+	Meals 			[]*Meal
+	Follows 		bool
+}
+
+func (t *HostServlet) GetProfile(r *http.Request) *ApiResult {
+	// new HostProfile
+	host_prof := new(HostProfile)
+	host_id_s := r.Form.Get("hostId")
+	host_id, err := strconv.ParseInt(host_id_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed host ID", 400)
+	}
+	host, err := GetHostById(t.db, host_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Invalid host id", 400)
+	}
+	session_id := r.Form.Get("session")
+	if (session_id == "") {
+		host_prof.Follows = false
+	}
+	valid, session, err := t.session_manager.GetGuestSession(session_id)
+	if (err != nil || !valid) {
+		host_prof.Follows = false	
+	} else {
+		host_prof.Follows = GetGuestFollowsHost(t.db, session.Guest.Id, host_id)
+	}
+	host_prof.City = host.City
+	host_prof.State = host.State
+	host_as_guest, err := GetGuestByHostId(t.db, host_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to locate host", 500)
+	}
+	host_prof.Name = host_as_guest.First_name
+	host_prof.Bio = host_as_guest.Bio
+	host_prof.Meals, err = GetMealsForHost(t.db, host_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to get meals for host", 500)
+	}
+	return APISuccess(host_prof)
+	// get host id. use to get:
+	// guest object (bio, profile pic, etc)
+	// past meals
+	// upcoming meals
+	// if there isn't one, set follows to false
+	// else check if the user follows the chef and set that accordingly
+	// play it as such
+}
 func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
 	resp, err := http.PostForm("https://connect.stripe.com/oauth/token",
 		url.Values{"client_secret": {"***REMOVED***"},
