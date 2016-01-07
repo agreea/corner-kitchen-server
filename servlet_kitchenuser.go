@@ -401,6 +401,7 @@ func (t *KitchenUserServlet) Get(r *http.Request) *ApiResult {
 	} else {
 		session.Guest.Is_host = false
 	}
+	session.Guest.Prof_pic = "https://yaychakula.com/img/" + session.Guest.Prof_pic
 	return APISuccess(session.Guest)
 }
 
