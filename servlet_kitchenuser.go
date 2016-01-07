@@ -401,7 +401,11 @@ func (t *KitchenUserServlet) Get(r *http.Request) *ApiResult {
 	} else {
 		session.Guest.Is_host = false
 	}
-	session.Guest.Prof_pic = "https://yaychakula.com/img/" + session.Guest.Prof_pic
+	if session.Guest.Prof_pic != "" {
+		session.Guest.Prof_pic = "https://yaychakula.com/img/" + session.Guest.Prof_pic
+	} else if session.Guest.Facebook_id != "" {
+		session.Guest.Prof_pic = GetFacebookPic(session.Guest.Facebook_id)
+	}
 	return APISuccess(session.Guest)
 }
 
