@@ -395,12 +395,8 @@ func (t *KitchenUserServlet) Get(r *http.Request) *ApiResult {
 	if key != "12q4lkjLK99JnfalsmfFDfdkd" {
 		session.Guest.Facebook_long_token = "nah b"
 	}
-	_, err = GetHostByGuestId(t.db, session.Guest.Id)
-	if err != nil {
-		session.Guest.Is_host = true
-	} else {
-		session.Guest.Is_host = false
-	}
+	host, err := GetHostByGuestId(t.db, session.Guest.Id)
+	session.Guest.Is_host = (host != nil)
 	if session.Guest.Prof_pic != "" {
 		session.Guest.Prof_pic = "https://yaychakula.com/img/" + session.Guest.Prof_pic
 	} else if session.Guest.Facebook_id != "" {
@@ -432,12 +428,8 @@ func (t *KitchenUserServlet) GetForEdit(r *http.Request) *ApiResult {
 	if key != "12q4lkjLK99JnfalsmfFDfdkd" {
 		session.Guest.Facebook_long_token = "nah b"
 	}
-	_, err = GetHostByGuestId(t.db, session.Guest.Id)
-	if err != nil {
-		session.Guest.Is_host = true
-	} else {
-		session.Guest.Is_host = false
-	}
+	host, err := GetHostByGuestId(t.db, session.Guest.Id)
+	session.Guest.Is_host = (host != nil)
 	// error checking here doesn't matter
 	session.Guest.Email, err = GetEmailForGuest(t.db, session.Guest.Id)
 	session.Guest.Phone, err = GetPhoneForGuest(t.db, session.Guest.Id)
