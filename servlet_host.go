@@ -202,7 +202,7 @@ func (t *HostServlet) GetProfile(r *http.Request) *ApiResult {
 	host_prof.Name = host_as_guest.First_name
 	host_prof.Bio = host_as_guest.Bio
 	if host_as_guest.Prof_pic != "" {
-		host_prof.Prof_pic = "https://yaychakula.com/" + host_as_guest.Prof_pic
+		host_prof.Prof_pic = "https://yaychakula.com/img/" + host_as_guest.Prof_pic
 	} else if host_as_guest.Facebook_id != "" {
 		host_prof.Prof_pic = GetFacebookPic(host_as_guest.Facebook_id)
 	}
