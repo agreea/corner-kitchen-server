@@ -391,17 +391,20 @@ func (t *KitchenUserServlet) Get(r *http.Request) *ApiResult {
 	if !session_valid {
 		return APIError("Session has expired. Please log in again", 400)
 	}
+	guest := session.Guest
 	key := r.Form.Get("key")
 	if key != "12q4lkjLK99JnfalsmfFDfdkd" {
-		session.Guest.Facebook_long_token = "nah b"
+		guest.Facebook_long_token = "nah b"
 	}
-	host, err := GetHostByGuestId(t.db, session.Guest.Id)
-	session.Guest.Is_host = (host != nil)
-	if session.Guest.Prof_pic != "" {
-		session.Guest.Prof_pic = "https://yaychakula.com/img/" + session.Guest.Prof_pic
+	host, err := GetHostByGuestId(t.db, guest.Id)
+	guest.Is_host = (host != nil)
+	if guest.Prof_pic != "" {
+		guest.Prof_pic = "https://yaychakula.com/img/" + guest.Prof_pic
 	} else if session.Guest.Facebook_id != "" {
-		session.Guest.Prof_pic = GetFacebookPic(session.Guest.Facebook_id)
+		guest.Prof_pic = GetFacebookPic(guest.Facebook_id)
 	}
+	guest.Phone, err = GetPhoneForGuest(t.db, guest.Id)
+	guest.Email, err = GetEmailForGuest(t.db, guest.Id)
 	return APISuccess(session.Guest)
 }
 
