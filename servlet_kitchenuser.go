@@ -403,8 +403,11 @@ func (t *KitchenUserServlet) Get(r *http.Request) *ApiResult {
 	} else if session.Guest.Facebook_id != "" {
 		guest.Prof_pic = GetFacebookPic(guest.Facebook_id)
 	}
+	// no error checking here because these fields are optional and will be checked client side anyway
 	guest.Phone, err = GetPhoneForGuest(t.db, guest.Id)
+	guest.Phone_verified, err = GetPhoneStatus(t.db, guest.Id)
 	guest.Email, err = GetEmailForGuest(t.db, guest.Id)
+	guest.Email_verified, err = GetEmailStatus(t.db, guest.Id)
 	return APISuccess(session.Guest)
 }
 
