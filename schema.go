@@ -806,7 +806,7 @@ func UpdateHost(db *sql.DB, address, city, state string, host_id int64) error{
 func SaveProfPic(db *sql.DB, file_name string, guest_id int64) error {
 	_, err := db.Exec(`
 		UPDATE Guest
-		SET Prof_pic = ? WHERE Guest_id = ?`,
+		SET Prof_pic = ? WHERE Id = ?`,
 		file_name,
 		guest_id,
 	)
