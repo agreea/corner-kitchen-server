@@ -508,6 +508,10 @@ func (t *KitchenUserServlet) UpdateProfPic(r *http.Request) *ApiResult {
 		return APIError("Failed to save picture", 500)
 	}
 	err = SaveProfPic(t.db, file_name, session.Guest.Id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not update profile pic", 500)
+	}
 	return APISuccess("https://yaychakula.com/img/" + file_name)
 }
 /*
