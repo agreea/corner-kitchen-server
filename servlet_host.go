@@ -167,7 +167,7 @@ type HostProfile struct {
 	Reviews 		[]*Review
 	Follows 		bool
 }
-
+// called when viewing a chef's profile, eg /chef/1
 func (t *HostServlet) GetProfile(r *http.Request) *ApiResult {
 	// new HostProfile
 	host_prof := new(HostProfile)
