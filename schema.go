@@ -1050,6 +1050,7 @@ func readPicLines(rows *sql.Rows) ([]*Pic, error) {
 			log.Println(err)
 			return nil, err
 		}
+		pic.Name = "https://yaychakula.com/img/" + pic.Name
 		pics = append(pics, pic)
 	}
 	return pics, nil
