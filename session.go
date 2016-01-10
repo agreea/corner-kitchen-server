@@ -30,7 +30,7 @@ func NewSessionManager(server_config *Config) *SessionManager {
 // Goroutine that scans the database for expired tokens and drops them
 func (t *SessionManager) stale_session_worker() {
 	for {
-		_, err := t.db.Exec("DELETE FROM GuestSession WHERE Expire_time < CURRENT_TIMESTAMP")
+		_, err := t.db.Exec("DELETE FROM GuestSession WHERE Expires < CURRENT_TIMESTAMP")
 		if err != nil {
 			log.Println("stale_session_worker", err)
 		}
