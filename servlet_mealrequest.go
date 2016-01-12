@@ -114,7 +114,7 @@ func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
 	return APISuccess(request_read)
 }
 
-// curl --data "method=Respond&requestId=93&response=1" https://qa.yaychakula.com/api/mealrequest
+// curl --data "method=Respond&requestId=96&response=1" https://qa.yaychakula.com/api/mealrequest
 func (t *MealRequestServlet) Respond(r *http.Request) *ApiResult {
 	request_id_s := r.Form.Get("requestId")
 	request_id, err := strconv.ParseInt(request_id_s, 10, 64)
@@ -295,10 +295,16 @@ func (t *MealRequestServlet) record_request(guest *GuestData, host *HostData, me
 		log.Println(err)
 		return APIError("Couldn't record meal request. Please try again", 500)
 	}
-	_, err = GetMealRequestByGuestIdAndMealId(t.db, guest.Id, meal.Id)
+	saved_req, err = GetMealRequestByGuestIdAndMealId(t.db, guest.Id, meal.Id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Couldn't process meal request. Please try again", 500)
+	}
+	// Notifies guest that they're attending the meal, with all relevant info
+	err = t.notify_guest(saved_req)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to notify guest", 500)
 	}
 	// guest_as_host, err := GetGuestById(t.db, host.Guest_id)
 	// if err != nil {
