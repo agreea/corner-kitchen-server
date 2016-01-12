@@ -199,11 +199,13 @@ func (t *MealRequestServlet) text_guest(phone string, host *HostData, meal *Meal
 	// Good news - {HOST} welcomed you to {DINNER}! It's at {ADDRESS} at {TIME}. See you there! :) 
 	if status == 1 {
 		// get just the hour, convert it to 12 hour format
-		msg.Message = fmt.Sprintf("Good news - %s welcomed you to %s! It's at %s at %s. See you there! :)",
+		msg.Message = fmt.Sprintf("Good news - %s welcomed you to %s! It's at %s at %s, %s, %s. See you there! :)",
 			host_as_guest.First_name, 
 			meal.Title,
 			BuildTime(meal.Starts),
-			host.Address)
+			host.Address,
+			host.City,
+			host.State)
 	} else if status == -1 {
 	// Bummer... {HOST} could not welcome you to {DINNER}. I'm sorry :/
 		msg.Message = fmt.Sprintf("Bummer... %s could not welcome you to %s! I'm sorry :/",
