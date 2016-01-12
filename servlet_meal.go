@@ -738,7 +738,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		meal_data.Open_spots = meal.Capacity
 	}
 	meal_data.Pics = pics
-	meal_data.Address = "Address revealed upon purchase"
+	meal_data.Address = fmt.Sprintf("%s, %s", host.City, host.State)
 	meal_data.Maps_url = 
 		fmt.Sprintf("https://maps.googleapis.com/maps/api/staticmap?" + 
 			"size=600x300&scale=2&zoom=14&center=%s,%s,%s", 
