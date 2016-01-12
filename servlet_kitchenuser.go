@@ -578,7 +578,7 @@ func (t *KitchenUserServlet) update_email(email string, guest_id int64) error {
 		return err
 	}
 	html := fmt.Sprintf("<p>Please click the link below to confirm the email you registered with Chakula</p>" +
-			"<a href='https://yaychakula.com/#/confirm_email?Id=%d&Code=%s'>Confirm your email</a>",
+			"<a href='https://yaychakula.com/confirm_email?Id=%d&Code=%s'>Confirm your email</a>",
 			guest_id, code)
 	SendEmail(email, "Confirm your Chakula Email", html)
 	return nil
