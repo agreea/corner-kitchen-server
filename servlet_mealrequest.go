@@ -295,7 +295,7 @@ func (t *MealRequestServlet) record_request(guest *GuestData, host *HostData, me
 		log.Println(err)
 		return APIError("Couldn't record meal request. Please try again", 500)
 	}
-	saved_req, err = GetMealRequestByGuestIdAndMealId(t.db, guest.Id, meal.Id)
+	saved_req, err := GetMealRequestByGuestIdAndMealId(t.db, guest.Id, meal.Id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Couldn't process meal request. Please try again", 500)
