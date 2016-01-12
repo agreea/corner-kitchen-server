@@ -39,6 +39,7 @@ type Meal_read struct {
 	Status 			string
 	Maps_url 		string
 	Follows_host 	bool
+	Host_id 		int64
 	Cards 			[]int64
 	Attendees 		[]*Attendee_read
 	Starts			time.Time
@@ -713,6 +714,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	} else {
 		meal_data.Host_pic = GetFacebookPic(host_as_guest.Facebook_id)
 	}
+	meal_data.Host_id = host.Id
 	meal_data.Host_bio = host_as_guest.Bio
 	meal_data.Starts = meal.Starts
 	meal_data.Rsvp_by = meal.Rsvp_by
