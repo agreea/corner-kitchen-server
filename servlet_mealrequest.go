@@ -114,7 +114,7 @@ func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
 	return APISuccess(request_read)
 }
 
-// curl --data "method=Respond&requestId=93&response=1" https://yaychakula.com/api/mealrequest
+// curl --data "method=Respond&requestId=93&response=1" https://qa.yaychakula.com/api/mealrequest
 func (t *MealRequestServlet) Respond(r *http.Request) *ApiResult {
 	request_id_s := r.Form.Get("requestId")
 	request_id, err := strconv.ParseInt(request_id_s, 10, 64)
@@ -168,8 +168,12 @@ func (t *MealRequestServlet) notify_guest(updated_request *MealRequest) (error) 
 		log.Println(err)
 		return err
 	}
-	if guest.Phone != "" {
-		err := t.text_guest(guest, host, meal, updated_request.Status)
+	phone, err := GetPhoneForGuest(t.db, guest.Id)
+	if err != nil {
+		log.Println(err)
+	}
+	if phone != "" {
+		err := t.text_guest(phone, host, meal, updated_request.Status)
 		if err != nil {
 			log.Println(err)
 		}
@@ -183,14 +187,14 @@ func (t *MealRequestServlet) notify_guest(updated_request *MealRequest) (error) 
 }
 
 // Called to let them know if they made it
-func (t *MealRequestServlet) text_guest(guest *GuestData, host *HostData, meal *Meal, status int64) (error) {
+func (t *MealRequestServlet) text_guest(phone string, host *HostData, meal *Meal, status int64) (error) {
 	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
 	msg := new(SMS)
-	msg.To = guest.Phone
+	msg.To = phone
 	// Mon Jan 2 15:04:05 -0700 MST 2006
 	// Good news - {HOST} welcomed you to {DINNER}! It's at {ADDRESS} at {TIME}. See you there! :) 
 	if status == 1 {
