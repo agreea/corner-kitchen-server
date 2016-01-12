@@ -114,6 +114,7 @@ func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
 	return APISuccess(request_read)
 }
 
+// curl --data "method=Respond&requestId=93&response=1" https://yaychakula.com/api/mealrequest
 func (t *MealRequestServlet) Respond(r *http.Request) *ApiResult {
 	request_id_s := r.Form.Get("requestId")
 	request_id, err := strconv.ParseInt(request_id_s, 10, 64)
@@ -223,15 +224,16 @@ func (t *MealRequestServlet) email_guest(guest *GuestData, host *HostData, meal 
 	}
 	if status == 1 {
 		subject := fmt.Sprintf("%s Welcomed You to Their Chakula Meal!", host_as_guest.First_name)
-		html :=fmt.Sprintf("<p>Get excited!</p><p>The dinner is at %s, %s</p>" + 
+		html :=fmt.Sprintf("<p>Get excited!</p><p>The dinner is at %s, %s, %s, %s</p>" + 
 							"<p>Please reply to this email if you need any help.</p>" +
-							"<p>View the meal again <a href=https://yaychakula.com/meal.html?Id=%d" + 
+							"<p>View the meal again <a href=https://yaychakula.com/meal/%d" + 
 							">here</a> " +
 							"<p>Peace, love and full stomachs,</p>" +
 							"<p>Chakula</p>", 
-							host_as_guest.First_name, 
-							host.Address, 
 							BuildTime(meal.Starts), 
+							host.Address, 
+							host.City,
+							host.State, 
 							meal.Id)
 		SendEmail(guest_email, subject, html)
 	} else {
@@ -275,6 +277,7 @@ func (t *MealRequestServlet) get_guest_host_meal(meal_id int64, session_id strin
 }
 
 // Called if the meal request doesn't exist. Generate and save it
+// NOTE: infrastructure currently auto-accepts every attendee
 func (t *MealRequestServlet) record_request(guest *GuestData, host *HostData, meal *Meal, count int64, last4 int64) *ApiResult {
 	meal_req := new(MealRequest)
 	meal_req.Guest_id = guest.Id
@@ -286,23 +289,23 @@ func (t *MealRequestServlet) record_request(guest *GuestData, host *HostData, me
 		log.Println(err)
 		return APIError("Couldn't record meal request. Please try again", 500)
 	}
-	saved_request, err := GetMealRequestByGuestIdAndMealId(t.db, guest.Id, meal.Id)
+	_, err = GetMealRequestByGuestIdAndMealId(t.db, guest.Id, meal.Id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Couldn't process meal request. Please try again", 500)
 	}
-	guest_as_host, err := GetGuestById(t.db, host.Guest_id)
-	if err != nil {
-		log.Println(err)
-		return APIError("Couldn't locate host.", 500)
-	}
-	// Text the host "<session.Guest.Name> wants to join <meal.Title>. Please respond here: https://yaychakula.com/req/<reqId> "
-	msg := new(SMS)
-	msg.To = guest_as_host.Phone
-	msg.Message = fmt.Sprintf("Yo! %s wants to join %s. Please respond: https://yaychakula.com/request.html?Id=%d",
-		guest.First_name, meal.Title,
-		saved_request.Id)
-	t.twilio_queue <- msg
+	// guest_as_host, err := GetGuestById(t.db, host.Guest_id)
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return APIError("Couldn't locate host.", 500)
+	// }
+	// // Text the host "<session.Guest.Name> wants to join <meal.Title>. Please respond here: https://yaychakula.com/req/<reqId> "
+	// msg := new(SMS)
+	// msg.To = guest_as_host.Phone
+	// msg.Message = fmt.Sprintf("Yo! %s wants to join %s. Please respond: https://yaychakula.com/request.html?Id=%d",
+	// 	guest.First_name, meal.Title,
+	// 	saved_request.Id)
+	// t.twilio_queue <- msg
 	return APISuccess(meal_req)
 }
 

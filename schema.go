@@ -1520,7 +1520,7 @@ func SaveMealRequest(db *sql.DB, meal_req *MealRequest) error {
 		meal_req.Guest_id,
 		meal_req.Meal_id,
 		meal_req.Seats,
-		0,
+		1,
 		meal_req.Last4,
 	)
 	return err

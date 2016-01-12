@@ -310,7 +310,7 @@ func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 	host_resp.Stripe_url = fmt.Sprintf("https://connect.stripe.com/oauth/authorize?response_type=code&amp;" + 
         "client_id=ca_6n8She3UUNpFgbv1sYtB28b6Db7sTLY6&amp;scope=read_write&amp;" +
         "stripe_user[email]=%s&amp;" +
-    	"stripe_user[url]=https://yaychakula.com/host?Id=%d&amp;" +
+    	"stripe_user[url]=https://yaychakula.com/chef/%d&amp;" +
         "stripe_user[business_name]=%s_on_Chakula&amp;" +
         "stripe_user[business_type]=sole_prop&amp;" +
         "stripe_user[phone_number]=%s&amp;" +
