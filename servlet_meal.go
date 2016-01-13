@@ -382,6 +382,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	}
 	pics := r.Form.Get("Pics")
 	jsonBlob := []byte(pics)
+	log.Println(pics)
 	err = t.process_pics(jsonBlob, id)
 	if err != nil {
 		log.Println(err)
