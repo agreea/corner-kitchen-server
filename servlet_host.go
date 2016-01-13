@@ -207,7 +207,18 @@ func (t *HostServlet) GetProfile(r *http.Request) *ApiResult {
 		host_prof.Prof_pic = GetFacebookPic(host_as_guest.Facebook_id)
 	}
 	// else: set default
-	host_prof.Meals, err = GetMealsForHost(t.db, host_id)
+	all_meals, err := GetMealsForHost(t.db, host_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Error loading host profile", 500)
+	}
+	public_meals := make([]*Meal, 0)
+	for _, meal := range all_meals {
+		if meal.Published == 1 {
+			public_meals = append(public_meals, meal)
+		}
+	}
+	host_prof.Meals = public_meals
 	if err != nil {
 		log.Println(err)
 		return APIError("Failed to get meals for chef", 500)
@@ -225,13 +236,6 @@ func (t *HostServlet) GetProfile(r *http.Request) *ApiResult {
 		return APIError("Failed to get reviews for chef", 500)
 	}
 	return APISuccess(host_prof)
-	// get host id. use to get:
-	// guest object (bio, profile pic, etc)
-	// past meals
-	// upcoming meals
-	// if there isn't one, set follows to false
-	// else check if the user follows the chef and set that accordingly
-	// play it as such
 }
 
 func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
