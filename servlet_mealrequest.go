@@ -114,7 +114,9 @@ func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
 	return APISuccess(request_read)
 }
 
-// curl --data "method=Respond&requestId=93&response=1" https://qa.yaychakula.com/api/mealrequest
+/* 
+curl --data "method=Respond&requestId=93&response=1" https://qa.yaychakula.com/api/mealrequest
+*/
 func (t *MealRequestServlet) Respond(r *http.Request) *ApiResult {
 	request_id_s := r.Form.Get("requestId")
 	request_id, err := strconv.ParseInt(request_id_s, 10, 64)
@@ -168,17 +170,17 @@ func (t *MealRequestServlet) notify_guest(updated_request *MealRequest) (error) 
 		log.Println(err)
 		return err
 	}
-	// phone, err := GetPhoneForGuest(t.db, guest.Id)
-	// if err != nil {
-	// 	log.Println(err)
-	// }
-	// if phone != "" {
-	// 	err := t.text_guest(phone, host, meal, updated_request.Status)
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 		return err
-	// 	}
-	// } 
+	phone, err := GetPhoneForGuest(t.db, guest.Id)
+	if err != nil {
+		log.Println(err)
+	}
+	if phone != "" {
+		err := t.text_guest(phone, host, meal, updated_request.Status)
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+	} 
 	err = t.email_guest(guest, host, meal, updated_request.Status)
 	if err != nil {
 		log.Println(err)
