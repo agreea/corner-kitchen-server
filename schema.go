@@ -923,7 +923,6 @@ func UpdateMeal(db *sql.DB, meal_draft *Meal) error {
 		meal_draft.Starts,
 		meal_draft.Rsvp_by,
 		meal_draft.Address,
-		meal_draft.Address,
 		meal_draft.City,
 		meal_draft.State,
 		meal_draft.Id,
