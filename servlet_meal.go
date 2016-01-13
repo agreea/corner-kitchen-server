@@ -34,6 +34,8 @@ type Meal_read struct {
 	Host_pic		string
 	Host_bio		string
 	Address 		string
+	City 			string
+	State 			string
 	Open_spots 		int64
 	Price			float64
 	Status 			string
@@ -737,11 +739,13 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		meal_data.Open_spots = meal.Capacity
 	}
 	meal_data.Pics = pics
-	meal_data.Address = fmt.Sprintf("%s, %s", host.City, host.State)
 	meal_data.Maps_url = 
 		fmt.Sprintf("https://maps.googleapis.com/maps/api/staticmap?" + 
 			"size=600x300&scale=2&zoom=14&center=%s,%s,%s", 
 			host.Address, host.City, host.State)
+	meal_data.City = meal.City
+	meal_data.State = meal.State
+
 	// get the guest's session
 	session_id := r.Form.Get("session")
 	if session_id == "" {
@@ -771,11 +775,11 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 			meal_data.Status = "DECLINED"
 		}
 		if meal_data.Status == "ATTENDING" {
-			meal_data.Address = host.Address
+			meal_data.Address = meal.Address
 			meal_data.Maps_url = 
 				fmt.Sprintf("https://maps.googleapis.com/maps/api/staticmap?" + 
 					"size=600x300&scale=2&zoom=14&markers=color:red|%s,%s,%s", 
-					host.Address, host.City, host.State)
+					meal.Address, meal.City, meal.State)
 		}
 		if !session_valid {
 			meal_data.Status = "NONE"

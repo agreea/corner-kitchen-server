@@ -185,6 +185,9 @@ type Meal struct {
 	Title   		string
 	Description		string
 	Capacity		int64
+	Address 		string
+	City 			string
+	State 			string
 	Starts			time.Time
 	Rsvp_by			time.Time
 	Processed 		int64
@@ -403,7 +406,9 @@ func GetUserByPhone(db *sql.DB, phone string) (*UserData, error) {
 }
 
 func GetMealById(db *sql.DB, id int64) (*Meal, error) {
-	row := db.QueryRow(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by, Processed, Published
+	row := db.QueryRow(`SELECT Id, Host_id, Price, Title, 
+		Description, Capacity, Starts, Rsvp_by, Processed, 
+		Address, City, State, Published,
         FROM Meal 
         WHERE Id = ?`, id)
 	return readMealLine(row)
@@ -1015,6 +1020,9 @@ func readMealLine(row *sql.Row) (*Meal, error) {
 		&meal.Starts,
 		&meal.Rsvp_by,
 		&meal.Processed,
+		&meal.Address,
+		&meal.City,
+		&meal.State,
 		&meal.Published, 
 	); err != nil {
 		return nil, err
