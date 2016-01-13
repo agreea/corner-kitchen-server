@@ -295,9 +295,6 @@ func (t *MealServlet) DeleteMeal(r *http.Request) *ApiResult {
 
 // Maybe add safeguard that prevents hosts from updating starts or price on already published meals
 func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
-	title := r.Form.Get("Title")
-	description := r.Form.Get("Description")
-	log.Println(description)
 	// parse seats
 	seats_s := r.Form.Get("Capacity")
 	seats, err := strconv.ParseInt(seats_s, 10, 64)
@@ -343,12 +340,15 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	// create the meal draft 
 	meal_draft := new(Meal)
 	meal_draft.Host_id = host.Id
-	meal_draft.Title = title
-	meal_draft.Description = description
+	meal_draft.Title = r.Form.Get("Title")
+	meal_draft.Description = r.Form.Get("Description")
 	meal_draft.Capacity = seats
 	meal_draft.Price = price
 	meal_draft.Starts = starts
 	meal_draft.Rsvp_by = rsvp_by
+	meal_draft.Address = r.Form.Get("Address")
+	meal_draft.City = r.Form.Get("City")
+	meal_draft.State = r.Form.Get("State")
 	// if there's no id, create a new meal
 	// if there is an id, update an existing meal
 	id_s := r.Form.Get("Meal_id")
