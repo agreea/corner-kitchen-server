@@ -378,7 +378,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 			return APIError("Failed to update meal", 500)
 		}
 	}
-	pics := r.Form.Get("pics")
+	pics := r.Form.Get("Pics")
 	jsonBlob := []byte(pics)
 	err = t.process_pics(jsonBlob, id)
 	if err != nil {
