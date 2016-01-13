@@ -168,10 +168,10 @@ func (t *MealRequestServlet) notify_guest(updated_request *MealRequest) (error) 
 		log.Println(err)
 		return err
 	}
-	phone, err := GetPhoneForGuest(t.db, guest.Id)
-	if err != nil {
-		log.Println(err)
-	}
+	// phone, err := GetPhoneForGuest(t.db, guest.Id)
+	// if err != nil {
+	// 	log.Println(err)
+	// }
 	// if phone != "" {
 	// 	err := t.text_guest(phone, host, meal, updated_request.Status)
 	// 	if err != nil {
