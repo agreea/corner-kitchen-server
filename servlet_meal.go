@@ -293,12 +293,11 @@ func (t *MealServlet) DeleteMeal(r *http.Request) *ApiResult {
 
 // Maybe add safeguard that prevents hosts from updating starts or price on already published meals
 func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
-	title := r.Form.Get("title")
-	description := r.Form.Get("description")
+	title := r.Form.Get("Title")
+	description := r.Form.Get("Description")
 	log.Println(description)
-	// log.Println(strings.replace(description,))
 	// parse seats
-	seats_s := r.Form.Get("seats")
+	seats_s := r.Form.Get("Capacity")
 	seats, err := strconv.ParseInt(seats_s, 10, 64)
 	if err != nil {
 		log.Println(err)
@@ -306,7 +305,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	}
 
 	// and price
-	price_s := r.Form.Get("price")
+	price_s := r.Form.Get("Price")
 	price, err := strconv.ParseFloat(price_s, 64)
 	if err != nil {
 		log.Println(err)
@@ -314,7 +313,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	}
 
 	// and start time
-	starts_s := r.Form.Get("starts")
+	starts_s := r.Form.Get("Starts")
 	starts_int, err := strconv.ParseInt(starts_s, 10, 64)
 	if err != nil {
 		log.Println(err)
@@ -323,7 +322,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	starts := time.Unix(starts_int, 0)
 
 	// and rsvp by time
-	rsvp_by_s := r.Form.Get("rsvpBy")
+	rsvp_by_s := r.Form.Get("Rsvp_by")
 	rsvp_by_int, err := strconv.ParseInt(rsvp_by_s, 10, 64)
 	if err != nil {
 		log.Println(err)
@@ -332,7 +331,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	rsvp_by := time.Unix(rsvp_by_int, 0)
 
 	// get the host data based on the session
-	session_id := r.Form.Get("session")
+	session_id := r.Form.Get("Session")
 	host, err := GetHostBySession(t.db, t.session_manager, session_id)
 	if err != nil {
 		log.Println(err)
@@ -350,7 +349,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	meal_draft.Rsvp_by = rsvp_by
 	// if there's no id, create a new meal
 	// if there is an id, update an existing meal
-	id_s := r.Form.Get("mealId")
+	id_s := r.Form.Get("Meal_id")
 	var id int64
 	if id_s == "" { // there's no ufckin meal
 		// create a meal
