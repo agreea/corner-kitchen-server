@@ -911,7 +911,8 @@ func UpdateFb(db *sql.DB, token string, fb_id, guest_id int64) error {
 func UpdateMeal(db *sql.DB, meal_draft *Meal) error {
 	_, err := db.Exec(
 		`UPDATE Meal
-		SET Host_id = ?, Price = ?, Title = ?, Description = ?, Capacity = ?, Starts = ?, Rsvp_by = ?
+		SET Host_id = ?, Price = ?, Title = ?, Description = ?, Capacity = ?, 
+			Starts = ?, Rsvp_by = ?, Address = ?, City = ?, State = ?
 		WHERE Id = ?
 		`,
 		meal_draft.Host_id,
@@ -921,6 +922,10 @@ func UpdateMeal(db *sql.DB, meal_draft *Meal) error {
 		meal_draft.Capacity,
 		meal_draft.Starts,
 		meal_draft.Rsvp_by,
+		meal_draft.Address,
+		meal_draft.Address,
+		meal_draft.City,
+		meal_draft.State,
 		meal_draft.Id,
 	)
 	return err
