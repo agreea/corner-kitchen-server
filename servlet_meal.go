@@ -90,11 +90,6 @@ func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 		meal_data.Title = meal.Title
 		meal_data.Description = meal.Description
 		meal_data.Price = GetMealPriceWithCommission(meal.Price)
-		attendees, err := GetAttendeesForMeal(t.db, meal.Id)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
 		meal_data.Open_spots, err = t.getOpenspotsForMeal(meal.Id)
 		if err != nil {
 			log.Println(err)
@@ -114,7 +109,7 @@ func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 }
 
 func (t *MealServlet) getOpenspotsForMeal(meal_id int64) (int64, error) {
-	meal, err := GetMeal(t.db, meal_id)
+	meal, err := GetMealById(t.db, meal_id)
 	if err != nil {
 		return 0, err
 	}
