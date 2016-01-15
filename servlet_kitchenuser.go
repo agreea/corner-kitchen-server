@@ -622,6 +622,9 @@ func (t *KitchenUserServlet) VerifyEmail(r *http.Request) *ApiResult {
 			return APIError("Failed to verify email", 500)
 		}
 		return APISuccess("OK")
+	} else {
+		log.Println("Code: " + code)
+		log.Println("Sent code: " + sent_code)
 	}
 	return APIError("Incorrect Email.", 400)
 }
