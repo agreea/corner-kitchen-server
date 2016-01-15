@@ -90,7 +90,13 @@ func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 		meal_data.Title = meal.Title
 		meal_data.Description = meal.Description
 		meal_data.Price = GetMealPriceWithCommission(meal.Price)
-		meal_data.Open_spots = meal.Capacity
+		attendees, err := GetAttendeesForMeal(t.db, meal.Id)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+
+		meal_data.Open_spots = meal.Capacity - int64(len(attendees))
 		meal_data.Starts = meal.Starts
 		meal_data.Rsvp_by = meal.Rsvp_by
 		meal_data.Pics, err = GetAllPicsForMeal(t.db, meal.Id)
