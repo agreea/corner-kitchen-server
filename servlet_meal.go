@@ -95,8 +95,11 @@ func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 			log.Println(err)
 			continue
 		}
-
-		meal_data.Open_spots = meal.Capacity - int64(len(attendees))
+		meal_data.Open_spots, err = t.getOpenspotsForMeal(meal.Id)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
 		meal_data.Starts = meal.Starts
 		meal_data.Rsvp_by = meal.Rsvp_by
 		meal_data.Pics, err = GetAllPicsForMeal(t.db, meal.Id)
@@ -108,6 +111,22 @@ func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 	return APISuccess(meal_datas)
 	// get all the meals where RSVP time > now
 	// return the array
+}
+
+func (t *MealServlet) getOpenspotsForMeal(meal_id int64) (int64, error) {
+	meal, err := GetMeal(t.db, meal_id)
+	if err != nil {
+		return 0, err
+	}
+	open_spots := meal.Capacity
+	attendees, err := GetAttendeesForMeal(t.db, meal_id)
+	if err != nil {
+		return 0, err
+	}
+	for _, attendee := range attendees {
+		open_spots -= attendee.Seats
+	}
+	return open_spots, nil
 }
 
 func GetMealPriceWithCommission(price float64) float64 {
