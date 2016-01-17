@@ -8,16 +8,21 @@ import (
 	"net/url"
 	"strconv"
 	"time"
+	"math/rand"
+	"math"
 	"strings"
 	"encoding/json"
 	"os"
 	"fmt"
+	"io/ioutil"
+	"errors"
 )
 
 type MealServlet struct {
 	db              *sql.DB
 	server_config   *Config
 	session_manager *SessionManager
+	random          *rand.Rand
 }
 
 type Attendee_read struct {
@@ -68,6 +73,8 @@ func NewMealServlet(server_config *Config, session_manager *SessionManager) *Mea
 	if err != nil {
 		log.Fatal("NewMealRequestServlet", "Failed to open database:", err)
 	}
+	t.random = rand.New(rand.NewSource(time.Now().UnixNano()))
+
 	t.db = db
 	t.session_manager = session_manager
 	go t.process_meal_charge_worker()
@@ -369,6 +376,12 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	meal_draft.Address = r.Form.Get("Address")
 	meal_draft.City = r.Form.Get("City")
 	meal_draft.State = r.Form.Get("State")
+	full_address := 
+		fmt.Sprintf("%s, %s %s", 
+			meal_draft.Address, 
+			meal_draft.City, 
+			meal_draft.State)
+	t.geocode_location(full_address)	
 	// if there's no id, create a new meal
 	// if there is an id, update an existing meal
 	id_s := r.Form.Get("Meal_id")
@@ -506,6 +519,182 @@ func (t *MealServlet) sync_with_submitted_pics(existing_pics []Pic, db_pic *Pic)
 	}
     return keep_db_pic, nil
 }
+
+type Location struct {
+	Full_address 	string
+	Lat 			float64
+	Lon 			float64
+	Poly_code	 	string
+}
+
+// takes an address in 123 Easy Street, Springfield, MA format
+// (TODO) checks for it in the location table...
+// if it's not there, geocodes it and stores it in the db
+func (t *MealServlet) geocode_location(full_address string) error {
+	// location, err := GetLocationByAddress(t.db, full_address)
+	// if err == sql.ErrNoRows {
+	// 	err = t.geocode_new_location(full_address)
+	// }
+	// return err
+	return nil
+}
+
+func (t *MealServlet) Geocode(r *http.Request) *ApiResult {
+	lat, err := strconv.ParseFloat(r.Form.Get("lat"), 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed lat", 400)
+	}
+	lng, err := strconv.ParseFloat(r.Form.Get("lng"), 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed lng", 400)
+	}
+	return APISuccess(t.generate_polyline_code(lat,lng))
+}
+
+// takes an address in 123 Easy Street, Springfield, MA format
+// gets the lat + lon from the google maps API 
+// generates the polyline code for the circle around a fuzzied nearby center pt
+// and stores it in DB
+// NOT LIVE YET
+func (t *MealServlet) geocode_new_location(full_address string) error {
+	url_address := strings.Replace(full_address, " ", "+", -1)
+	resp, err := 
+		http.Get("https://maps.googleapis.com/maps/api/geocode/json?" + 
+			"address=" + url_address + 
+			"&key=AIzaSyDejzDPKNoMHqIuD33_5e53SEXT0zPJ6ww")
+	if err != nil {
+		return err
+	}
+	b, err := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		return err
+	}
+	var f interface{}
+	err = json.Unmarshal(b, &f)
+	if err != nil {
+		return err
+	}
+	response := f.(map[string]interface{})
+	// check status
+	if (response["status"] != "OK") {
+		return errors.New(response["status"].(string))
+	}
+	results := response["results"].([]interface{})[0]
+	geometry := results.(map[string]interface{})["geometry"]
+	location_type := geometry.(map[string]interface{})["location_type"]
+	// make sure it's an exact address
+	if (location_type != "ROOFTOP") {
+		return errors.New("Could not locate address")
+	}
+	// get and store location
+	location := geometry.(map[string]interface{})["location"]
+	lat := location.(map[string]interface{})["lat"].(float64)
+	lon := location.(map[string]interface{})["lng"].(float64)
+	t.get_polycode_for_location(lat, lon)
+	return nil
+	// return StoreLocation(t.db, lat, lon, poly_code)
+}
+
+// takes lat and lon
+// fuzzes a new center < 500m from location
+// generates the 360 pts of a circle around fuzzed center
+// encodes it using the polyline encoding algorthim
+// returns polyline encoded string
+func (t *MealServlet) get_polycode_for_location(lat, lng float64) string {
+	fuzz_lat, fuzz_lng := t.get_fuzzied_center(lat, lng)
+	return t.generate_polyline_code(fuzz_lat, fuzz_lng)
+}
+
+// takes lat and lng
+// returns new coordinate < 250m N/S, & <250m E/W of the lat and lng 
+// from: http://stackoverflow.com/questions/7477003/calculating-new-longtitude-latitude-from-old-n-meters
+func (t *MealServlet) get_fuzzied_center(lat, lng float64) (new_lat, new_lng float64) {
+	r_earth := 6378000
+	dy := t.random.Int() % 250
+	dx := t.random.Int() % 250
+	if (rand.Int() % 1 == 0) {
+		dy *= -1
+	}
+	if (rand.Int() % 1 == 0) {
+		dx *= -1
+	}
+	fuzz_lat := float64(dy) / float64(r_earth) * float64(180 / math.Pi)
+	fuzz_lng := float64(dx) / float64(r_earth) * float64(180 / math.Pi) / math.Cos(lat * math.Pi/180)
+	new_lat = lat + fuzz_lat
+	new_lng = lng + fuzz_lng
+	return new_lat, new_lng
+}
+type Point struct {
+	Lat 	float64
+	Lng 	float64
+}
+// from: http://stackoverflow.com/questions/7316963/drawing-a-circle-google-static-maps
+func (t *MealServlet) generate_polyline_code(lat, lng float64) string {
+	r_earth := 6371000
+ 	pi := math.Pi
+
+ 	lat = (lat * pi) / 180
+ 	lng = (lng * pi) / 180
+ 	d := float64(250) / float64(r_earth) // diameter of circle
+
+ 	points := make([]*Point, 0)
+ 	// generate the points. Adjust granularity using the incrementor 
+	for i := 0; i <= 360; i ++ {
+	   brng := float64(i) * pi / float64(180)
+	   log.Println(i)
+	   p_lat := math.Asin(math.Sin(lat) * math.Cos(d) + math.Cos(lat) * math.Sin(d) * math.Cos(brng))
+	   p_lng := ((lng + math.Atan2(math.Sin(brng) * math.Sin(d) * math.Cos(lat), 
+	   						math.Cos(d) - math.Sin(lat) * math.Sin(p_lat))) * 180) / pi
+	   p_lat = (p_lat * 180) / pi
+	   point := new(Point)
+	   point.Lat = p_lat
+	   point.Lng = p_lng
+	   log.Println(p_lat)
+	   log.Println(p_lng)
+	   points = append(points, point)
+	}
+	return EncodePolyline(points)
+}
+
+func EncodePolyline(coordinates []*Point) string {
+	if len(coordinates) == 0 {
+		return ""
+	}
+
+	factor := math.Pow(10, 5)
+	output := encode(coordinates[0].Lat, factor) + encode(coordinates[0].Lng, factor)
+
+	for i := 1; i < len(coordinates); i++ {
+		a := coordinates[i]
+		b := coordinates[i-1]
+		output += encode(a.Lat-b.Lat, factor)
+		output += encode(a.Lng-b.Lng, factor)
+	}
+	log.Println(output)
+	return output
+}
+
+func encode(oldCoordinate float64, factor float64) string {
+	coordinate := int(math.Floor(oldCoordinate*factor + 0.5))
+	coordinate = coordinate << 1
+
+	if coordinate < 0 {
+		coordinate = ^coordinate
+	}
+	output := ""
+	for coordinate >= 0x20 {
+		runeC := string((0x20 | (coordinate & 0x1f)) + 63)
+		output = output + runeC
+		coordinate >>= 5
+	}
+	runeC := string(coordinate + 63)
+	output = output + runeC
+	return output
+}
+
 
 func (t *MealServlet) process_meal_charge_worker() {
 	// get all meals that happened 7 - 8 days ago
