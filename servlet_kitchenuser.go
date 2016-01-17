@@ -728,16 +728,16 @@ func (t *KitchenUserServlet) create_guest_fb(first_name string, last_name string
 		(First_name, Last_name, Facebook_id, Facebook_long_token) VALUES (?, ?, ?, ?)`,
 		first_name, last_name, fb_id, fb_long_token)
 	if err != nil {
-		log.Println("Create guest", err)
+		log.Println(err)
 	}
 	guestData, err := GetGuestByFbId(t.db, fb_id)
 	if err != nil {
-		log.Println("Create guest", err)
+		log.Println(err)
 		return nil, err
 	}
 	guestData.Session_token, err = t.session_manager.CreateSessionForGuest(int64(guestData.Id), expires)
 	if err != nil {
-		log.Println("Create guest", err)
+		log.Println(err)
 		return nil, err
 	}
 	return guestData, nil
