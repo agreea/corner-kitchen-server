@@ -685,6 +685,42 @@ func GetReviewByGuestAndMealId(db *sql.DB, guest_id int64, meal_id int64) (*Revi
 	)
 	return readMealReviewLine(row)
 }
+
+func StoreLocation(db *sql.DB, lat, lng float64, full_address, polyline string) error {
+	_, err := db.Exec(`INSERT INTO Location
+			(Address, Lat, Lng, Polyline)
+			VALUES
+			(?, ?, ?, ?)`,
+			full_address, lat, lng, polyline)
+	return err
+}
+
+func GetLocationByAddress(db *sql.DB, full_address string) (*Location, error) {
+	location := new(Location)
+	row := db.QueryRow(`
+		SELECT Lat, Lng, Polyline FROM Location WHERE Address = ?`, full_address)
+	if err := row.Scan(&location.Lat, &location.Lng, &location.Polyline); err != nil {
+		return nil, err
+	}
+	return location, nil
+}
+
+func GetStaticMapsUrlForMeal(db *sql.DB, meal *Meal) (string, error) {
+	full_address := meal.Address + ", " + meal.City + ", " + meal.State
+	log.Println(full_address)
+	row := db.QueryRow(`
+		SELECT Polyline FROM Location WHERE Address = ?`, full_address)
+	polyline := ""
+	if err := row.Scan(&polyline,); err != nil {
+		return "", err
+	}
+	maps_url := 
+		"https://maps.googleapis.com/maps/api/staticmap?" +
+		"size=600x400&zoom=14&path=fillcolor:0x5BC0DEa9|enc:" +
+		polyline
+	return maps_url, nil
+}
+
 // Returns all of the pics and the pics associated with the host
 // Use only for published meals
 func GetAllPicsForMeal(db *sql.DB, meal_id int64) ([]*Pic, error) {
@@ -842,7 +878,7 @@ func UpdateGuestFbToken(db *sql.DB, fb_id string, fb_token string) error {
 func UpdatePhone(db *sql.DB, phone string, pin, guest_id int64) error {
 	_, err := GetPhonePinForGuest(db, guest_id)
 	if err != nil {
-		r, err := db.Exec(
+		_, err := db.Exec(
 			`INSERT INTO GuestPhone
 			(Phone, Pin, Guest_id)
 			VALUES
@@ -852,8 +888,6 @@ func UpdatePhone(db *sql.DB, phone string, pin, guest_id int64) error {
 			pin,
 			guest_id,
 		)
-		log.Println(err)
-		log.Println(r)
 		return err
 	}
 	_, err = db.Exec(`
