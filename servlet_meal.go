@@ -321,6 +321,7 @@ func (t *MealServlet) DeleteMeal(r *http.Request) *ApiResult {
 }
 
 // Maybe add safeguard that prevents hosts from updating starts or price on already published meals
+
 func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	// parse seats
 	seats_s := r.Form.Get("Capacity")
@@ -381,24 +382,22 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 			meal_draft.Address, 
 			meal_draft.City, 
 			meal_draft.State)
-	t.geocode_location(full_address)	
+	err = t.geocode_location(full_address)	
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not confirm your address. Please check it and try again", 400)
+	}
 	// if there's no id, create a new meal
 	// if there is an id, update an existing meal
 	id_s := r.Form.Get("Meal_id")
 	var id int64
-	if id_s == "" { // there's no ufckin meal
+	if id_s == "" {
 		// create a meal
-		result, err := CreateMeal(t.db, meal_draft)
+		id, err = t.create_meal_draft(meal_draft)
 		if err != nil {
-			log.Println(err)
-			return APIError("Failed to create meal draft", 500)
-		}
-		id, err = result.LastInsertId()
-		if err != nil {
-			log.Println(err)
-			return APIError("Please try to save your meal again!", 500)
-		}
-	} else { // there's really an ufckin meal
+			return APIError("Failed to create meal", 400)
+		} 
+	} else { 
 		id, err = strconv.ParseInt(id_s, 10, 64)
 		if err != nil {
 			log.Println(err)
@@ -422,6 +421,18 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 		return APIError("Failed to load pictures. Please try again.", 500)
 	}
 	return APISuccess(id)
+}
+
+func (t *MealServlet) create_meal_draft(meal_draft *Meal) (int64, error) {
+	result, err := CreateMeal(t.db, meal_draft)
+	if err != nil {
+		return 0, err
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
 }
 
 // Takes json blob of pic data and meal id
@@ -523,20 +534,19 @@ func (t *MealServlet) sync_with_submitted_pics(existing_pics []Pic, db_pic *Pic)
 type Location struct {
 	Full_address 	string
 	Lat 			float64
-	Lon 			float64
-	Poly_code	 	string
+	Lng 			float64
+	Polyline	 	string
 }
 
 // takes an address in 123 Easy Street, Springfield, MA format
 // (TODO) checks for it in the location table...
 // if it's not there, geocodes it and stores it in the db
 func (t *MealServlet) geocode_location(full_address string) error {
-	// location, err := GetLocationByAddress(t.db, full_address)
-	// if err == sql.ErrNoRows {
-	// 	err = t.geocode_new_location(full_address)
-	// }
-	// return err
-	return nil
+	_, err := GetLocationByAddress(t.db, full_address)
+	if err == sql.ErrNoRows {
+		err = t.geocode_new_location(full_address)
+	}
+	return err
 }
 
 func (t *MealServlet) Geocode(r *http.Request) *ApiResult {
@@ -592,10 +602,9 @@ func (t *MealServlet) geocode_new_location(full_address string) error {
 	// get and store location
 	location := geometry.(map[string]interface{})["location"]
 	lat := location.(map[string]interface{})["lat"].(float64)
-	lon := location.(map[string]interface{})["lng"].(float64)
-	t.get_polycode_for_location(lat, lon)
-	return nil
-	// return StoreLocation(t.db, lat, lon, poly_code)
+	lng := location.(map[string]interface{})["lng"].(float64)
+	polyline := t.get_polycode_for_location(lat, lng)
+	return StoreLocation(t.db, lat, lng, full_address, polyline)
 }
 
 // takes lat and lon
@@ -627,10 +636,12 @@ func (t *MealServlet) get_fuzzied_center(lat, lng float64) (new_lat, new_lng flo
 	new_lng = lng + fuzz_lng
 	return new_lat, new_lng
 }
+
 type Point struct {
 	Lat 	float64
 	Lng 	float64
 }
+
 // from: http://stackoverflow.com/questions/7316963/drawing-a-circle-google-static-maps
 func (t *MealServlet) generate_polyline_code(lat, lng float64) string {
 	r_earth := 6371000
@@ -949,13 +960,12 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		meal_data.Open_spots = meal.Capacity
 	}
 	meal_data.Pics = pics
-	meal_data.Maps_url = 
-		fmt.Sprintf("https://maps.googleapis.com/maps/api/staticmap?" + 
-			"size=600x300&scale=2&zoom=14&center=%s,%s,%s", 
-			host.Address, host.City, host.State)
+	meal_data.Maps_url, err = GetStaticMapsUrlForMeal(t.db, meal)
+	if err != nil {
+		log.Println(err)
+	}
 	meal_data.City = meal.City
 	meal_data.State = meal.State
-
 	// get the guest's session
 	session_id := r.Form.Get("session")
 	if session_id == "" {
@@ -997,8 +1007,6 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 			return APISuccess(meal_data)
 		}
 	}
-	// get the request, if there is one. Show this in the status
-	// if 
 	log.Println(meal_data.Maps_url)
 	return APISuccess(meal_data)
 }
