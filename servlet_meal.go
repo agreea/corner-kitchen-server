@@ -25,11 +25,6 @@ type MealServlet struct {
 	random          *rand.Rand
 }
 
-type Attendee_read struct {
-	First_name 		string
-	Prof_pic_url	string
-	Seats 			int64
-}
 
 type Meal_read struct {
 	Id 				int64
@@ -146,6 +141,12 @@ func GetMealIdFromReq(r *http.Request) (int64, error) {
 	return strconv.ParseInt(meal_id_s, 10, 64)
 }
 
+type Attendee_read struct {
+	First_name 		string
+	Prof_pic_url	string
+	Seats 			int64
+}
+
 // curl --data "method=GetMealAttendees&mealId=3" https://qa.yaychakula.com/api/meal
 func (t *MealServlet) get_meal_attendees(meal_id int64) ([]*Attendee_read, error) {
 	attendees, err := GetAttendeesForMeal(t.db, meal_id)
@@ -155,9 +156,14 @@ func (t *MealServlet) get_meal_attendees(meal_id int64) ([]*Attendee_read, error
 	}
 	attendee_reads := make([]*Attendee_read, 0)
 	for _, attendee := range attendees {
+		as_guest := attendee.Guest
 		attendee_read := new(Attendee_read)
-    	attendee_read.First_name = attendee.Guest.First_name
-    	attendee_read.Prof_pic_url = GetFacebookPic(attendee.Guest.Facebook_id)
+    	attendee_read.First_name = as_guest.First_name
+    	if as_guest.Prof_pic != "" {
+    		attendee_read.Prof_pic_url = "https://yaychakula.com/img/" + as_guest.Prof_pic
+    	} else if as_guest.Facebook_id != "" {
+    		attendee_read.Prof_pic_url = GetFacebookPic(attendee.Guest.Facebook_id)
+    	}
     	attendee_read.Seats = attendee.Seats
     	attendee_reads = append(attendee_reads, attendee_read)
 	}
@@ -984,8 +990,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		meal_data.Follows_host = GetGuestFollowsHost(t.db, session.Guest.Id, host.Id)
 		meal_data.Cards, err = GetLast4sForGuest(t.db, session.Guest.Id) 
 		meal_req, err := t.get_request_by_guest_and_meal_id(session.Guest.Id, meal_id)
-		if err != nil {
-			log.Println(err)
+		if err == sql.ErrNoRows {
 			meal_data.Status = "NONE"
 		} else if meal_req.Status == 0 {
 			meal_data.Status = "PENDING"
