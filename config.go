@@ -47,7 +47,7 @@ type Config struct {
 		V string
 	}
 }
-
+// MAKE SURE TO CHANGE THIS WHEN MIGRATING TO POSTGRES
 func (kc Config) GetSqlURI() string {
 	mysql_auth_strings := []string{kc.Mysql.MysqlUser,
 		":",

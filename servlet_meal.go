@@ -109,7 +109,6 @@ func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 	// get all the meals where RSVP time > now
 	// return the array
 }
-
 func (t *MealServlet) getOpenspotsForMeal(meal_id int64) (int64, error) {
 	meal, err := GetMealById(t.db, meal_id)
 	if err != nil {
@@ -711,7 +710,6 @@ func encode(oldCoordinate float64, factor float64) string {
 	output = output + runeC
 	return output
 }
-
 
 func (t *MealServlet) process_meal_charge_worker() {
 	// get all meals that happened 7 - 8 days ago

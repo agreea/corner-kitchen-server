@@ -43,6 +43,33 @@ func NewKitchenUserServlet(server_config *Config, session_manager *SessionManage
 	return t
 }
 
+// called by web page when the app fails to load
+func (t *KitchenUserServlet) AlertAgree(r *http.Request) *ApiResult {
+	msg := new(SMS)
+	msg.To = "4438313923"
+	msg.Message = "ALERT ALERT PROD IS BROKEN. HURRY SEND ALL DA KINGZ MEN!!!!!!"
+	session_id := r.Form.Get("session")
+	if session_id != "" {
+		session_exists, session, err := t.session_manager.GetGuestSession(session_id)
+		if err != nil {
+			log.Println(err)
+			t.twilio_queue <- msg
+			return APIError("Couldn't locate guest", 400)
+		}
+		if !session_exists {
+			t.twilio_queue <- msg
+			return APIError("Invalid Session", 400)
+		}
+		email, err := GetEmailForGuest(t.db, session.Guest.Id)
+		if err != nil {
+			log.Println(err)
+			return APIError("Invalid Session", 400)
+		}
+		msg.Message = fmt.Sprintf("ALERT ALERT PROD IS BROKEN. Apologize to:", email)
+	}
+	t.twilio_queue <- msg
+	return APISuccess("OK")
+}
 // TODO: Implement
 /*
 curl --data "method=AddStripe&session=f1caa66a-3351-48db-bcb3-d76bdc644634&stripeToken=blablabla&last4=1234" https://yaychakula.com/api/kitchenuser
