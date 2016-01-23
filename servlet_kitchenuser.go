@@ -45,30 +45,36 @@ func NewKitchenUserServlet(server_config *Config, session_manager *SessionManage
 
 // called by web page when the app fails to load
 func (t *KitchenUserServlet) AlertAgree(r *http.Request) *ApiResult {
+	if server_config.Version.V == "qa" || server_config.Version.V == "local" { // only run this routine on prod
+		return APISuccess("Don't worry it's not prod! ;)")
+	}
 	msg := new(SMS)
 	msg.To = "4438313923"
-	msg.Message = "ALERT ALERT PROD IS BROKEN. HURRY SEND ALL DA KINGZ MEN!!!!!!"
 	session_id := r.Form.Get("session")
+	msg.Message = t.get_panic_message(session_id)
+	t.twilio_queue <- msg
+	return APISuccess("OK")
+}
+
+func (t *KitchenUserServlet) get_panic_message(session_id string) string {
+	default_message := "ALERT ALERT PROD IS BROKEN. HURRY SEND ALL DA KINGZ MEN!!!!!!"
 	if session_id != "" {
 		session_exists, session, err := t.session_manager.GetGuestSession(session_id)
 		if err != nil {
 			log.Println(err)
-			t.twilio_queue <- msg
-			return APIError("Couldn't locate guest", 400)
+			return default_message
 		}
 		if !session_exists {
-			t.twilio_queue <- msg
-			return APIError("Invalid Session", 400)
+			return default_message
 		}
 		email, err := GetEmailForGuest(t.db, session.Guest.Id)
 		if err != nil {
 			log.Println(err)
-			return APIError("Invalid Session", 400)
+			return default_message
 		}
-		msg.Message = fmt.Sprintf("ALERT ALERT PROD IS BROKEN. Apologize to:", email)
+		return fmt.Sprintf("ALERT ALERT PROD IS BROKEN. Apologize to: ", email)
 	}
-	t.twilio_queue <- msg
-	return APISuccess("OK")
+	return default_message
 }
 // TODO: Implement
 /*
