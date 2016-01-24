@@ -575,7 +575,7 @@ func GetAttendeesForMeal(db *sql.DB, meal_id int64) ([]*AttendeeData, error) {
 
 func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal, error) {
 	rows, err := db.Query(`
-		SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
+		SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by, City, State
 		FROM Meal
 		WHERE Rsvp_by > ? AND Id > 0 AND Published = 1`,
 		time.Now(),
@@ -597,6 +597,8 @@ func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal, error) {
 			&meal.Capacity,
 			&meal.Starts,
 			&meal.Rsvp_by,
+			&meal.City,
+			&meal.State,
 		); err != nil {
 			log.Println(err)
 			return nil, err

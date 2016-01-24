@@ -103,6 +103,8 @@ func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 		if err != nil{ 
 			log.Println(err)
 		}
+		meal_data.City = meal.City
+		meal_data.State = meal.State
 		meal_datas = append(meal_datas, meal_data)
 	}
 	return APISuccess(meal_datas)
