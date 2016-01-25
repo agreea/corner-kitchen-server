@@ -51,13 +51,14 @@ func (t *KitchenUserServlet) AlertAgree(r *http.Request) *ApiResult {
 	msg := new(SMS)
 	msg.To = "4438313923"
 	session_id := r.Form.Get("session")
-	msg.Message = t.get_panic_message(session_id)
+	url := r.Form.Get("url")
+	msg.Message = t.get_panic_message(session_id, url)
 	t.twilio_queue <- msg
 	return APISuccess("OK")
 }
 
-func (t *KitchenUserServlet) get_panic_message(session_id string) string {
-	default_message := "ALERT ALERT PROD IS BROKEN. HURRY SEND ALL DA KINGZ MEN!!!!!!"
+func (t *KitchenUserServlet) get_panic_message(session_id, url string) string {
+	default_message := "ALERT ALERT PROD IS BROKEN!! Url: " + url
 	if session_id != "" {
 		session_exists, session, err := t.session_manager.GetGuestSession(session_id)
 		if err != nil {
@@ -72,7 +73,7 @@ func (t *KitchenUserServlet) get_panic_message(session_id string) string {
 			log.Println(err)
 			return default_message
 		}
-		return fmt.Sprintf("ALERT ALERT PROD IS BROKEN. Apologize to: ", email)
+		return fmt.Sprintf("ALERT ALERT PROD IS BROKEN. Url: %s. Apologize to: %s", url, email)
 	}
 	return default_message
 }
