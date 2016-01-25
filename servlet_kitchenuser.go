@@ -52,6 +52,7 @@ func (t *KitchenUserServlet) AlertAgree(r *http.Request) *ApiResult {
 	msg.To = "4438313923"
 	session_id := r.Form.Get("session")
 	url := r.Form.Get("url")
+	log.Println(url)
 	msg.Message = t.get_panic_message(session_id, url)
 	t.twilio_queue <- msg
 	return APISuccess("OK")
