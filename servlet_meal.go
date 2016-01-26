@@ -48,7 +48,8 @@ type Meal_read struct {
 	Rsvp_by			time.Time
 	Pics 			[]*Pic
 	Meal_reviews	[]*Review
-	Host_reviews 	[]*Review_read		
+	Host_reviews 	[]*Review_read	
+	Upcoming_meals 	[]*Meal	
 }
 
 type Review_read struct {
@@ -972,6 +973,10 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	}
 	meal_data.City = meal.City
 	meal_data.State = meal.State
+	meal_data.Upcoming_meals, err = GetUpcomingMealsFromDB(t.db)
+	if err != nil {
+		log.Println(err)
+	}
 	// get the guest's session
 	session_id := r.Form.Get("session")
 	if session_id == "" {
