@@ -600,7 +600,10 @@ func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal, error) {
 			&meal.City,
 			&meal.State,
 		); err != nil {
-			log.Println(err)
+			return nil, err
+		}
+		meal.Pics, err = GetMealPics(db, meal.Id)
+		if err != nil {
 			return nil, err
 		}
 		meals = append(meals, meal)
