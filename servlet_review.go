@@ -138,6 +138,7 @@ func (t *ReviewServlet) nudge_attendees(requests []*MealRequest) error {
 	}
 	return nil
 }
+
 /*
 SENDGRID API KEY: ***REMOVED***
 SENDGRID PASSWORD: ***REMOVED***
@@ -279,6 +280,38 @@ func (t *ReviewServlet) LeaveReview(r *http.Request) *ApiResult {
 	return APISuccess("OK")
 }
 
+func (t *ReviewServlet) Get(r *http.Request) *ApiResult {
+	id_s := r.Form.Get("id")
+	id, err := strconv.ParseInt(id_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed id", 400)
+	}
+	review, err := GetReviewById(t.db, id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to get review", 400)
+	}
+	review_read := new(Review_read)
+	guest, err := GetGuestById(t.db, review.Guest_id)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	meal, err := GetMealById(t.db, review.Meal_id)
+	if err != nil {
+		log.Println(err)
+		return nil
+	}
+	review_read.First_name = guest.First_name
+	review_read.Prof_pic_url = GetFacebookPic(guest.Facebook_id)
+	review_read.Rating = review.Rating
+	review_read.Comment = review.Comment
+	review_read.Date = review.Date
+	review_read.Meal_id = review.Meal_id
+	review_read.Meal_title = meal.Title
+	return APISuccess(review_read)
+}
 /*
 Get averag
 

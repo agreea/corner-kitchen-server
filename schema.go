@@ -602,6 +602,7 @@ func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal, error) {
 		); err != nil {
 			return nil, err
 		}
+		meal.Price = GetMealPriceWithCommission(meal.Price)
 		meal.Pics, err = GetMealPics(db, meal.Id)
 		if err != nil {
 			return nil, err
@@ -611,6 +612,16 @@ func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal, error) {
 	return meals, nil
 }
 
+func GetReviewById(db *sql.DB, review_id int64) (*Review, error) {
+	row := db.QueryRow(`SELECT Id, Guest_id, Rating, Comment, Meal_id, Date, Tip_percent
+        FROM HostReview
+        WHERE Id = ?`, review_id)
+	meal_review, err := readMealReviewLine(row)
+	if err != nil {
+		return nil, err
+	}
+	return meal_review, nil
+}
 func GetReviewsForHost(db *sql.DB, host_id int64) ([]*Review, error) {
 	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
         FROM Meal 
