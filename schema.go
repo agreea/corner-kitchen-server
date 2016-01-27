@@ -573,9 +573,9 @@ func GetAttendeesForMeal(db *sql.DB, meal_id int64) ([]*AttendeeData, error) {
 	return attendees, nil
 }
 
-func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal, error) {
+func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal_read, error) {
 	rows, err := db.Query(`
-		SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by, City, State
+		SELECT Id
 		FROM Meal
 		WHERE Rsvp_by > ? AND Id > 0 AND Published = 1`,
 		time.Now(),
@@ -584,32 +584,70 @@ func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	meals := make([]*Meal, 0)
+	meal_reads := make([]*Meal_read, 0)
 	// get the guest for each guest id and add them to the slice of guests
 	for rows.Next() {
-		meal := new(Meal)
+		meal_id := 0
 		if err := rows.Scan(
-			&meal.Id,
-			&meal.Host_id,
-			&meal.Price,
-			&meal.Title,
-			&meal.Description,
-			&meal.Capacity,
-			&meal.Starts,
-			&meal.Rsvp_by,
-			&meal.City,
-			&meal.State,
+			&meal_id,
 		); err != nil {
 			return nil, err
 		}
-		meal.Price = GetMealPriceWithCommission(meal.Price)
-		meal.Pics, err = GetMealPics(db, meal.Id)
+		meal_read, err := GetMealCardDataById(db, int64(meal_id))
 		if err != nil {
-			return nil, err
+			log.Println(err)
+			continue
 		}
-		meals = append(meals, meal)
+		meal_reads = append(meal_reads, meal_read)
 	}
-	return meals, nil
+	return meal_reads, nil
+}
+
+// Returns meal objects with all fields necessary for display in a meal card
+func GetMealCardDataById(db *sql.DB, meal_id int64) (*Meal_read, error) {
+	meal, err := GetMealById(db, meal_id)
+	if err != nil {
+		return nil, err
+	}
+	meal_data := new(Meal_read)
+	meal_data.Id = meal.Id
+	meal_data.Title = meal.Title
+	meal_data.Description = meal.Description
+	meal_data.Price = GetMealPriceWithCommission(meal.Price)
+	attendees, err := GetAttendeesForMeal(db, meal.Id)
+	if err != nil {
+		return nil, err
+	}
+	taken_seats := int64(0)
+	for _, attendee := range attendees {
+		taken_seats += attendee.Seats
+	}
+	meal_data.Open_spots = meal.Capacity - taken_seats
+	meal_data.Starts = meal.Starts
+	meal_data.Rsvp_by = meal.Rsvp_by
+	meal_data.Pics, err = GetAllPicsForMeal(db, meal.Id)
+	if err != nil{ 
+		return nil, err
+	}
+	meal_data.City = meal.City
+	meal_data.State = meal.State
+	host, err := GetHostById(db, meal.Host_id)
+	if err != nil {
+		return nil, err
+	}
+	host_as_guest, err := GetGuestById(db, host.Guest_id)
+	if err != nil {
+		return nil, err
+	}
+	meal_data.Host_name = host_as_guest.First_name
+	if host_as_guest.Prof_pic != "" {
+		meal_data.Host_pic = "https://yaychakula.com/img/" + host_as_guest.Prof_pic
+	} else {
+		meal_data.Host_pic = GetFacebookPic(host_as_guest.Facebook_id)
+	}
+	meal_data.Host_id = host.Id
+	meal_data.Host_bio = host_as_guest.Bio
+	return meal_data, nil
 }
 
 func GetReviewById(db *sql.DB, review_id int64) (*Review, error) {
