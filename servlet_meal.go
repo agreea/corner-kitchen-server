@@ -49,7 +49,7 @@ type Meal_read struct {
 	Pics 			[]*Pic
 	Meal_reviews	[]*Review
 	Host_reviews 	[]*Review_read	
-	Upcoming_meals 	[]*Meal	
+	Upcoming_meals 	[]*Meal_read	
 }
 
 type Review_read struct {
@@ -81,52 +81,17 @@ func NewMealServlet(server_config *Config, session_manager *SessionManager) *Mea
 curl --data "method=getUpcomingMeals" https://yaychakula.com/api/meal
 */
 func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
-	meals, err := GetUpcomingMealsFromDB(t.db)
+	upcoming_meals, err := GetUpcomingMealsFromDB(t.db)
 	if err != nil {
 		log.Println(err)
 		return APIError("Failed to retrieve meals", 500)
 	}
-	meal_datas := make([]*Meal_read, 0)
-	for _, meal := range meals {
-		meal_data := new(Meal_read)
-		meal_data.Id = meal.Id
-		meal_data.Title = meal.Title
-		meal_data.Description = meal.Description
-		meal_data.Price = GetMealPriceWithCommission(meal.Price)
-		meal_data.Open_spots, err = t.getOpenspotsForMeal(meal.Id)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		meal_data.Starts = meal.Starts
-		meal_data.Rsvp_by = meal.Rsvp_by
-		meal_data.Pics, err = GetAllPicsForMeal(t.db, meal.Id)
-		if err != nil{ 
-			log.Println(err)
-		}
-		meal_data.City = meal.City
-		meal_data.State = meal.State
-		meal_datas = append(meal_datas, meal_data)
-	}
-	return APISuccess(meal_datas)
+	return APISuccess(upcoming_meals)
 	// get all the meals where RSVP time > now
 	// return the array
 }
-func (t *MealServlet) getOpenspotsForMeal(meal_id int64) (int64, error) {
-	meal, err := GetMealById(t.db, meal_id)
-	if err != nil {
-		return 0, err
-	}
-	open_spots := meal.Capacity
-	attendees, err := GetAttendeesForMeal(t.db, meal_id)
-	if err != nil {
-		return 0, err
-	}
-	for _, attendee := range attendees {
-		open_spots -= attendee.Seats
-	}
-	return open_spots, nil
-}
+
+// returns the data required to construct a meal card for a given meal
 
 func GetMealPriceWithCommission(price float64) float64 {
 	if(price <= 15) {
@@ -912,7 +877,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		log.Println(err)
 		return APIError("Malformed meal ID", 400)
 	}
-	// get the meal
+	// check if the meal is published
 	meal, err := GetMealById(t.db, meal_id)
 	if err != nil {
 		log.Println(err)
@@ -921,58 +886,21 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	if meal.Published != 1 {
 		return APIError("Invalid meal ID", 400)
 	}
-	// use host to get guest
-	host, err := GetHostById(t.db, meal.Host_id)
-	if err != nil {
+	// get the data from the db and populate the fields required for a listing
+	meal_data, err := GetMealCardDataById(t.db, meal.Id)
+	meal_data.Attendees, err = t.get_meal_attendees(meal.Id)
+	if err != nil && err != sql.ErrNoRows {
 		log.Println(err)
-		return APIError("There was an error. Please try again", 500)
+		return APIError("Failed to load attendees", 500)
 	}
-	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
-	if err != nil {
-		log.Println(err)
-		return APIError("Server error", 500)
-	}
-	meal_data := new(Meal_read)
-	meal_data.Id = meal.Id
-	meal_data.Title = meal.Title
-	meal_data.Description = meal.Description
-	meal_data.Price = GetMealPriceWithCommission(meal.Price)
-	meal_data.Host_name = host_as_guest.First_name
-	if host_as_guest.Prof_pic != "" {
-		meal_data.Host_pic = "https://yaychakula.com/img/" + host_as_guest.Prof_pic
-	} else {
-		meal_data.Host_pic = GetFacebookPic(host_as_guest.Facebook_id)
-	}
-	meal_data.Host_id = host.Id
-	meal_data.Host_bio = host_as_guest.Bio
-	meal_data.Starts = meal.Starts
-	meal_data.Rsvp_by = meal.Rsvp_by
-	meal_data.Host_reviews = t.get_host_reviews(host.Id)
+	meal_data.Host_reviews = t.get_host_reviews(meal_data.Host_id)
 	if err != nil {
 		log.Println(err)
 	}
-	pics, err := GetAllPicsForMeal(t.db, meal.Id)
-	if err != nil {
-		log.Println(err)
-	}
-	attendees, err := t.get_meal_attendees(meal.Id)
-	if err == nil {
-		taken_seats := int64(0)
-		for _, attendee := range attendees {
-			taken_seats += attendee.Seats
-		}
-		meal_data.Attendees = attendees
-		meal_data.Open_spots = meal.Capacity - taken_seats
-	} else {
-		meal_data.Open_spots = meal.Capacity
-	}
-	meal_data.Pics = pics
 	meal_data.Maps_url, err = GetStaticMapsUrlForMeal(t.db, meal)
 	if err != nil {
 		log.Println(err)
 	}
-	meal_data.City = meal.City
-	meal_data.State = meal.State
 	meal_data.Upcoming_meals, err = GetUpcomingMealsFromDB(t.db)
 	if err != nil {
 		log.Println(err)
@@ -982,43 +910,48 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	if session_id == "" {
 		meal_data.Status = "NONE"
 	} else {
-		log.Println("Made it to else...")
-		session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+		meal_data, err = t.getMealWithGuestInfo(meal_data, meal, session_id)
 		if err != nil {
 			log.Println(err)
-			return APIError("Could not process session", 500)
-		}
-		if !session_valid {
-			log.Println(err)
-			return APIError("Session was invalid.", 500)
-		}
-		meal_data.Follows_host = GetGuestFollowsHost(t.db, session.Guest.Id, host.Id)
-		meal_data.Cards, err = GetLast4sForGuest(t.db, session.Guest.Id) 
-		meal_req, err := t.get_request_by_guest_and_meal_id(session.Guest.Id, meal_id)
-		if err == sql.ErrNoRows {
-			meal_data.Status = "NONE"
-		} else if meal_req.Status == 0 {
-			meal_data.Status = "PENDING"
-		} else if meal_req.Status == 1 {
-			meal_data.Status = "ATTENDING"
-		} else if meal_req.Status == -1 {
-			meal_data.Status = "DECLINED"
-		}
-		if meal_data.Status == "ATTENDING" {
-			meal_data.Address = meal.Address
-			meal_data.Maps_url = 
-				fmt.Sprintf("https://maps.googleapis.com/maps/api/staticmap?" + 
-					"size=600x300&scale=2&zoom=14&markers=color:red|%s,%s,%s", 
-					meal.Address, meal.City, meal.State)
-		}
-		if !session_valid {
-			meal_data.Status = "NONE"
-			log.Println(session_valid)
-			return APISuccess(meal_data)
+			return APIError("Could not load meal", 400)
 		}
 	}
-	log.Println(meal_data.Maps_url)
 	return APISuccess(meal_data)
+}
+
+func (t *MealServlet) getMealWithGuestInfo(meal_data *Meal_read, meal *Meal, session_id string) (*Meal_read, error) {
+	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		return nil, err
+	}
+	if !session_valid {
+		return nil, err
+	}
+	meal_data.Follows_host = GetGuestFollowsHost(t.db, session.Guest.Id, meal_data.Host_id)
+	meal_data.Cards, err = GetLast4sForGuest(t.db, session.Guest.Id) 
+	meal_req, err := t.get_request_by_guest_and_meal_id(session.Guest.Id, meal_data.Id)
+	if err == sql.ErrNoRows {
+		meal_data.Status = "NONE"
+	} else if meal_req.Status == 0 {
+		meal_data.Status = "PENDING"
+	} else if meal_req.Status == 1 {
+		meal_data.Status = "ATTENDING"
+	} else if meal_req.Status == -1 {
+		meal_data.Status = "DECLINED"
+	}
+	if meal_data.Status == "ATTENDING" {
+		meal_data.Address = meal.Address
+		meal_data.Maps_url = 
+			fmt.Sprintf("https://maps.googleapis.com/maps/api/staticmap?" + 
+				"size=600x300&scale=2&zoom=14&markers=color:red|%s,%s,%s", 
+				meal.Address, meal.City, meal.State)
+	}
+	if !session_valid {
+		meal_data.Status = "NONE"
+		log.Println(session_valid)
+		return nil, err
+	}
+	return meal_data, nil
 }
 
 /*
