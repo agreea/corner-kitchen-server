@@ -52,31 +52,35 @@ func (t *KitchenUserServlet) AlertAgree(r *http.Request) *ApiResult {
 	msg.To = "4438313923"
 	session_id := r.Form.Get("session")
 	url := r.Form.Get("url")
+	client_prof := r.Form.Get("client")
 	log.Println(url)
-	msg.Message = t.get_panic_message(session_id, url)
+	msg.Message = t.get_panic_message(session_id, url, client_prof)
 	t.twilio_queue <- msg
 	return APISuccess("OK")
 }
 
-func (t *KitchenUserServlet) get_panic_message(session_id, url string) string {
-	default_message := "ALERT ALERT PROD IS BROKEN!! Url: " + url
+func (t *KitchenUserServlet) get_panic_message(session_id, url, client_prof string) string {
+	message := "ALERT ALERT PROD IS BROKEN!! Url: " + url
+	log.Println("ALERT: Prod failed to load. Client profile: " + client_prof)
+	log.Println("Url: " + url)
 	if session_id != "" {
 		session_exists, session, err := t.session_manager.GetGuestSession(session_id)
 		if err != nil {
 			log.Println(err)
-			return default_message
+			return message
 		}
 		if !session_exists {
-			return default_message
+			return message
 		}
+		log.Println(fmt.Sprintf("Guest_id: %d", session.Guest.Id))
 		email, err := GetEmailForGuest(t.db, session.Guest.Id)
 		if err != nil {
 			log.Println(err)
-			return default_message
+			return message
 		}
 		return fmt.Sprintf("ALERT ALERT PROD IS BROKEN. Url: %s. Apologize to: %s", url, email)
 	}
-	return default_message
+	return message
 }
 // TODO: Implement
 /*
