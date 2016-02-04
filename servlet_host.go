@@ -146,9 +146,9 @@ func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
 			return APIError("Failed to locate host", 500)
 		}
 	}
-	address := r.Form.Get("address")
-	state := r.Form.Get("state")
-	city := r.Form.Get("city")
+	address := r.Form.Get("Address")
+	state := r.Form.Get("State")
+	city := r.Form.Get("City")
 	err = UpdateHost(t.db, address, city, state, host.Id)
 	if err != nil {
 		log.Println(err)
