@@ -351,7 +351,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	meal_draft.City = r.Form.Get("City")
 	meal_draft.State = r.Form.Get("State")
 	full_address := 
-		fmt.Sprintf("%s, %s %s", 
+		fmt.Sprintf("%s, %s, %s", 
 			meal_draft.Address, 
 			meal_draft.City, 
 			meal_draft.State)
