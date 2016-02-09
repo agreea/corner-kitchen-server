@@ -38,10 +38,6 @@ func NewMealRequestServlet(server_config *Config, session_manager *SessionManage
 	return t
 }
 
-
-//
-// 
-
 // curl --data "method=SendRequest&mealId=70&session=cf31660b-1554-4547-959a-3ef67d834076&seats=1&last4=5154&follow=true" https://yaychakula.com/api/mealrequest
 func (t *MealRequestServlet) SendRequest(r *http.Request) *ApiResult {
 	meal_id_s := r.Form.Get("mealId")

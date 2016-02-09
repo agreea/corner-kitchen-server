@@ -614,6 +614,7 @@ func GetMealCardDataById(db *sql.DB, meal_id int64) (*Meal_read, error) {
 	meal_data.Title = meal.Title
 	meal_data.Description = meal.Description
 	meal_data.Price = GetMealPriceWithCommission(meal.Price)
+	log.Println(meal_data.Price)
 	attendees, err := GetAttendeesForMeal(db, meal.Id)
 	if err != nil {
 		return nil, err
