@@ -243,6 +243,7 @@ func (t *MealServlet) PublishMeal(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Could not locate host", 400)
 	}
+	// recache homepage
 	// check that the host is the author of this meal draft
 	if meal_draft.Host_id != host.Id {
 		return APIError("You are not the author of this meal", 400)
@@ -379,6 +380,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 		meal_draft.Id = id
 		// Safeguard against hosts updating price or start time of a published meal
 		err = UpdateMeal(t.db, meal_draft)
+		// TODO: check if meal is published, recache it
 		if err != nil {
 			// assume there is no rows, create
 			log.Println(err)
