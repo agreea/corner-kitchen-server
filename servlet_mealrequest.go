@@ -232,7 +232,7 @@ func (t *MealRequestServlet) email_guest(guest *GuestData, host *HostData, meal 
 							"<p>Please reply to this email if you need any help.</p>" +
 							"<p>View the meal again <a href=https://yaychakula.com/meal/%d" + 
 							">here</a> " +
-							"<p>Your card will be charged %d</p>" + 
+							"<p>Your card will be charged %f</p>" + 
 							"<p>Peace, love and full stomachs,</p>" +
 							"<p>Chakula</p>", 
 							BuildTime(meal.Starts), 
