@@ -239,7 +239,8 @@ func (t *MealRequestServlet) email_guest(guest *GuestData, host *HostData, meal 
 							meal.Address, 
 							meal.City,
 							meal.State, 
-							meal.Id)
+							meal.Id,
+							GetMealPriceWithCommission(meal.Price))
 		SendEmail(guest_email, subject, html)
 	} else {
 		subject := fmt.Sprintf("%s Couldn't Welcome You to their Chakula Meal", host_as_guest.First_name)
