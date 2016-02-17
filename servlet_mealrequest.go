@@ -39,31 +39,73 @@ func NewMealRequestServlet(server_config *Config, session_manager *SessionManage
 }
 
 // curl --data "method=SendRequest&mealId=70&session=cf31660b-1554-4547-959a-3ef67d834076&seats=1&last4=5154&follow=true" https://yaychakula.com/api/mealrequest
-func (t *MealRequestServlet) SendRequest(r *http.Request) *ApiResult {
-	meal_id_s := r.Form.Get("mealId")
-	meal_id, err := strconv.ParseInt(meal_id_s, 10, 64)
+// func (t *MealRequestServlet) SendRequest(r *http.Request) *ApiResult {
+// 	meal_id_s := r.Form.Get("mealId")
+// 	meal_id, err := strconv.ParseInt(meal_id_s, 10, 64)
+// 	if err != nil {
+// 		return APIError("Malformed meal ID", 400)
+// 	}
+// 	session_id := r.Form.Get("session")
+// 	guest, host, meal, err := t.get_guest_host_meal(meal_id, session_id)
+// 	if guest == nil {
+// 		return APIError("Couldn't process guest", 400)
+// 	}
+// 	if meal == nil {
+// 		return APIError("Couldn't process meal", 400)
+// 	}
+// 	if host == nil {
+// 		return APIError("Couldn't process host", 400)
+// 	}
+// 	if err != nil {
+// 		return APIError("Couldn't process request", 400)
+// 	}
+// 	last4_s := r.Form.Get("last4")
+// 	last4, err := strconv.ParseInt(last4_s, 10, 64)
+// 	if err != nil {
+// 		log.Println(err)
+// 		return APIError("Malformed meal ID", 400)
+// 	}
+// 	count_s := r.Form.Get("seats")
+// 	count, err := strconv.ParseInt(count_s, 10, 64)
+// 	if err != nil {
+// 		log.Println(err)
+// 		return APIError("Malformed meal ID", 400)
+// 	}
+// 	if r.Form.Get("follow") == "true" {
+// 		RecordFollowHost(t.db, guest.Id, host.Id)
+// 	}
+// 	_, err = GetMealRequestByGuestIdAndMealId(t.db, guest.Id, meal.Id)
+// 	if err == sql.ErrNoRows { // error here (99%) means the request doesn't exist
+// 		return t.record_request(guest, host, meal, count, last4) // add last 4 as an arg in the request
+// 	}
+// 	return APIError("You've already requested to join this meal", 400)
+// }
+
+/* 
+curl --data "method=BookPopup&session=f1caa66a-3351-48db-bcb3-d76bdc644634&popupId=15&seats=2&last4=1234" https://qa.yaychakula.com/api/meal
+*/
+func (t *MealRequestServlet) BookPopup(r *http.Request) *ApiResult{
+	// get popup
+	// get guest
+	// get last 4 digits of cc
+	// get seats
+	// reserve popup
+	popup_id_s := r.Form.Get("popupId")
+	popup_id, err := strconv.ParseInt(popup_id_s, 10, 64)
 	if err != nil {
-		return APIError("Malformed meal ID", 400)
+		return APIError("Malformed popup ID", 400)
 	}
+	popup, err := GetPopupById(t.db, popup_id)
 	session_id := r.Form.Get("session")
-	guest, host, meal, err := t.get_guest_host_meal(meal_id, session_id)
-	if guest == nil {
-		return APIError("Couldn't process guest", 400)
-	}
-	if meal == nil {
-		return APIError("Couldn't process meal", 400)
-	}
-	if host == nil {
-		return APIError("Couldn't process host", 400)
-	}
-	if err != nil {
+	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil || !session_valid {
 		return APIError("Couldn't process request", 400)
 	}
 	last4_s := r.Form.Get("last4")
 	last4, err := strconv.ParseInt(last4_s, 10, 64)
 	if err != nil {
 		log.Println(err)
-		return APIError("Malformed meal ID", 400)
+		return APIError("Malformed last 4", 400)
 	}
 	count_s := r.Form.Get("seats")
 	count, err := strconv.ParseInt(count_s, 10, 64)
@@ -72,96 +114,52 @@ func (t *MealRequestServlet) SendRequest(r *http.Request) *ApiResult {
 		return APIError("Malformed meal ID", 400)
 	}
 	if r.Form.Get("follow") == "true" {
-		RecordFollowHost(t.db, guest.Id, host.Id)
+		meal, err := GetMealById(t.db, popup.Meal_id)
+		if err != nil {
+			log.Println(err)
+			return APIError("Could not process follow", 500)
+		}
+		host, err := GetHostById(t.db, meal.Host_id)
+		if err != nil {
+			log.Println(err)
+			return APIError("Could not process follow", 500)
+		}
+		RecordFollowHost(t.db, session.Guest.Id, host.Id)
 	}
-	_, err = GetMealRequestByGuestIdAndMealId(t.db, guest.Id, meal.Id)
+	_, err = GetBookingByGuestAndPopupId(t.db, session.Guest.Id, popup_id)
 	if err != nil { // error here (99%) means the request doesn't exist
-		return t.record_request(guest, host, meal, count, last4) // add last 4 as an arg in the request
+		return t.record_booking(session.Guest, popup, count, last4)
 	}
 	return APIError("You've already requested to join this meal", 400)
 }
 
-func (t *MealRequestServlet) GetRequest(r *http.Request) *ApiResult {
-	log.Println("=====Getting Request======")
-	request_id_s := r.Form.Get("requestId")
-	request_id, err := strconv.ParseInt(request_id_s, 10, 64)
-	if err != nil {
-		return APIError("Malformed meal ID", 400)
-	}
-	// get the request by its id
-	request, err := GetMealRequestById(t.db, request_id)
-	if err != nil {
-		return APIError("Could not locate request", 400)
-	}
-	// get the guest data by their id
-	guest, err := GetGuestById(t.db, request.Guest_id)
-	if err != nil {
-		return APIError("Could not locate guest", 500)
-	}
-	request_read := new(MealRequestRead)
-	request_read.Guest_name = guest.First_name
-	request_read.Guest_pic = GetFacebookPic(guest.Facebook_id)
-	request_read.Status = request.Status
-	meal, err := GetMealById(t.db, request.Meal_id)
-	if err != nil {
-		return APIError("Could not locate meal", 500)
-	}
-	request_read.Meal_title = meal.Title
-	return APISuccess(request_read)
-}
-
-/* 
-curl --data "method=Respond&requestId=93&response=1" https://qa.yaychakula.com/api/mealrequest
-*/
-func (t *MealRequestServlet) Respond(r *http.Request) *ApiResult {
-	request_id_s := r.Form.Get("requestId")
-	request_id, err := strconv.ParseInt(request_id_s, 10, 64)
-	if err != nil {
-		return APIError("Malformed request ID", 400)
-	}
-	// get request and make sure it hasn't been responded to already
-	request, err := GetMealRequestById(t.db, request_id)
-	if err != nil {
-		return APIError("Could not locate request", 400)
-	}
-	if request.Status != 0 {
-		return APIError("You already responded to this request.", 400)
-	}
-	// process, check, and record the response
-	response_s := r.Form.Get("response")
-	response, err := strconv.ParseInt(response_s, 10, 64)
-	if response != 1 && response != -1 {
-		return APIError("Invalid response.", 400)
-	}
-	err = UpdateMealRequest(t.db, request_id, response)
-	if err != nil {
-		return APIError("Failed to record response.", 400)
-	}
-	updated_request, err := GetMealRequestById(t.db, request_id)
+func (t *MealRequestServlet) record_booking(guest *GuestData, popup *Popup, count, last4 int64) *ApiResult {
+	booking := new(PopupBooking)
+	booking.Guest_id = guest.Id
+	booking.Popup_id = popup.Id
+	booking.Seats = count
+	booking.Last4 = last4
+	err := SavePopupBooking(t.db, booking)
 	if err != nil {
 		log.Println(err)
-		return APIError("Failed to record response.", 400)
+		return APIError("Couldn't record meal request. Please try again", 500)
 	}
-	err = t.notify_guest(updated_request)
+	saved_booking, err := GetBookingByGuestAndPopupId(t.db, guest.Id, popup.Id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Couldn't process meal request. Please try again", 500)
+	}
+	// Notifies guest that they're attending the meal, with all relevant info
+	err = t.notify_guest(saved_booking)
 	if err != nil {
 		log.Println(err)
 		return APIError("Failed to notify guest", 500)
 	}
-	return APISuccess(updated_request)
+	return APISuccess(saved_booking)
 }
 
-func (t *MealRequestServlet) notify_guest(updated_request *MealRequest) (error) {
-	guest, err := GetGuestById(t.db, updated_request.Guest_id)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	meal, err := GetMealById(t.db, updated_request.Meal_id)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	host, err := GetHostById(t.db, meal.Host_id)
+func (t *MealRequestServlet) notify_guest(booking *PopupBooking) (error) {
+	guest, err := GetGuestById(t.db, booking.Guest_id)
 	if err != nil {
 		log.Println(err)
 		return err
@@ -171,21 +169,28 @@ func (t *MealRequestServlet) notify_guest(updated_request *MealRequest) (error) 
 		log.Println(err)
 	}
 	if phone != "" {
-		err := t.text_guest(phone, host, meal, updated_request.Status)
+		err := t.text_guest(phone, booking)
 		if err != nil {
-			log.Println(err)
 			return err
 		}
 	} 
-	err = t.email_guest(guest, host, meal, updated_request.Status)
-	if err != nil {
-		log.Println(err)
-	}
+	err = t.email_guest(booking)
 	return err
 }
 
 // Called to let them know if they made it
-func (t *MealRequestServlet) text_guest(phone string, host *HostData, meal *Meal, status int64) (error) {
+func (t *MealRequestServlet) text_guest(phone string, booking *PopupBooking) (error) {
+	popup, err := GetPopupById(t.db, booking.Popup_id)
+	meal, err := GetMealById(t.db, popup.Meal_id)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	host, err := GetHostById(t.db, meal.Host_id)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
 	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
 	if err != nil {
 		log.Println(err)
@@ -193,130 +198,60 @@ func (t *MealRequestServlet) text_guest(phone string, host *HostData, meal *Meal
 	}
 	msg := new(SMS)
 	msg.To = phone
-	// Mon Jan 2 15:04:05 -0700 MST 2006
 	// Good news - {HOST} welcomed you to {DINNER}! It's at {ADDRESS} at {TIME}. See you there! :) 
-	if status == 1 {
-		// get just the hour, convert it to 12 hour format
-		msg.Message = fmt.Sprintf("Good news - %s welcomed you to %s! It's at %s at %s, %s, %s. See you there! :)",
-			host_as_guest.First_name, 
-			meal.Title,
-			BuildTime(meal.Starts),
-			host.Address,
-			host.City,
-			host.State)
-	} else if status == -1 {
-	// Bummer... {HOST} could not welcome you to {DINNER}. I'm sorry :/
-		msg.Message = fmt.Sprintf("Bummer... %s could not welcome you to %s! I'm sorry :/",
-			host_as_guest.First_name, 
-			meal.Title)
-	} 
+	// get just the hour, convert it to 12 hour format
+	msg.Message = fmt.Sprintf("Good news - %s welcomed you to %s! It's at %s at %s, %s, %s. See you there! :)",
+		host_as_guest.First_name, 
+		meal.Title,
+		BuildTime(popup.Starts),
+		popup.Address,
+		popup.City,
+		popup.State)
 	t.twilio_queue <- msg
 	return nil
 }
 
-func (t *MealRequestServlet) email_guest(guest *GuestData, host *HostData, meal *Meal, status int64) error {
+func (t *MealRequestServlet) email_guest(booking *PopupBooking) error {
+	popup, err := GetPopupById(t.db, booking.Popup_id)
+	meal, err := GetMealById(t.db, popup.Meal_id)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	host, err := GetHostById(t.db, meal.Host_id)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
 	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
 	if err != nil {
 		log.Println(err)
 		return err
-
+	}
+	guest, err := GetGuestById(t.db, booking.Guest_id)
+	if err != nil {
+		log.Println(err)
+		return err
 	}
 	guest_email, err := GetEmailForGuest(t.db, guest.Id)
 	if err != nil {
 		log.Println(err)
 		return err
 	}
-	if status == 1 {
-		subject := fmt.Sprintf("%s Welcomed You to Their Chakula Meal!", host_as_guest.First_name)
-		html :=fmt.Sprintf("<p>Get excited!</p><p>The dinner is at %s, %s, %s, %s</p>" + 
-							"<p>Please reply to this email if you need any help.</p>" +
-							"<p>View the meal again <a href=https://yaychakula.com/meal/%d" + 
-							">here</a> " +
-							"<p>Peace, love and full stomachs,</p>" +
-							"<p>Chakula</p>", 
-							BuildTime(meal.Starts), 
-							host.Address, 
-							host.City,
-							host.State, 
-							meal.Id)
-		SendEmail(guest_email, subject, html)
-	} else {
-		subject := fmt.Sprintf("%s Couldn't Welcome You to their Chakula Meal", host_as_guest.First_name)
-		html :=fmt.Sprintf("<p>Bummer.</p><p>There's always hope...</p>" + 
-							"<p>Michael Jordan got cut from his high school's JV basketball team." + 
-							"<p>His coach probably didn't expect him to ball with Bugs Bunny in" +
-							" the 1996 blockbuster, <i>Space Jam</i></p>" +
-							"<p>Love,</p><p>Chakula</p>")
-		SendEmail(guest_email, subject, html)
-	}
+	subject := fmt.Sprintf("%s Welcomed You to Their Chakula Meal!", host_as_guest.First_name)
+	html :=fmt.Sprintf("<p>Get excited!</p><p>The dinner is at %s, %s, %s, %s</p>" + 
+		"<p>Please reply to this email if you need any help.</p>" +
+		"<p>View the meal again <a href=https://yaychakula.com/meal/%d" + 
+		">here</a> " +
+		"<p>Peace, love and full stomachs,</p>" +
+		"<p>Chakula</p>", 
+		BuildTime(popup.Starts), 
+		popup.Address, 
+		popup.City,
+		popup.State, 
+		meal.Id)
+	SendEmail(guest_email, subject, html)
 	return nil
-}
-
-func (t *MealRequestServlet) get_guest_host_meal(meal_id int64, session_id string) (*GuestData, *HostData, *Meal, error) {
-	// Get the guest info.
-	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
-	if err != nil {
-		log.Println(err)
-		return nil, nil, nil, err
-	}
-	if !session_valid {
-		return nil, nil, nil, err
-	}
-	guest := session.Guest
-
-	// get the meal
-	meal, err := GetMealById(t.db, meal_id)
-	if err != nil {
-		log.Println(err)
-		return guest, nil, nil, err
-	}
-	// get the host
-	host, err := GetHostById(t.db, meal.Host_id)
-	if err != nil {
-		log.Println(err)
-		return guest, nil, meal, err
-	}
-
-	return guest, host, meal, nil
-}
-
-// Called if the meal request doesn't exist. Generate and save it
-// NOTE: infrastructure currently auto-accepts every attendee
-func (t *MealRequestServlet) record_request(guest *GuestData, host *HostData, meal *Meal, count int64, last4 int64) *ApiResult {
-	meal_req := new(MealRequest)
-	meal_req.Guest_id = guest.Id
-	meal_req.Meal_id = meal.Id
-	meal_req.Seats = count
-	meal_req.Last4 = last4
-	err := SaveMealRequest(t.db, meal_req)
-	if err != nil {
-		log.Println(err)
-		return APIError("Couldn't record meal request. Please try again", 500)
-	}
-	saved_req, err := GetMealRequestByGuestIdAndMealId(t.db, guest.Id, meal.Id)
-	if err != nil {
-		log.Println(err)
-		return APIError("Couldn't process meal request. Please try again", 500)
-	}
-	// Notifies guest that they're attending the meal, with all relevant info
-	err = t.notify_guest(saved_req)
-	if err != nil {
-		log.Println(err)
-		return APIError("Failed to notify guest", 500)
-	}
-	// guest_as_host, err := GetGuestById(t.db, host.Guest_id)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return APIError("Couldn't locate host.", 500)
-	// }
-	// // Text the host "<session.Guest.Name> wants to join <meal.Title>. Please respond here: https://yaychakula.com/req/<reqId> "
-	// msg := new(SMS)
-	// msg.To = guest_as_host.Phone
-	// msg.Message = fmt.Sprintf("Yo! %s wants to join %s. Please respond: https://yaychakula.com/request.html?Id=%d",
-	// 	guest.First_name, meal.Title,
-	// 	saved_request.Id)
-	// t.twilio_queue <- msg
-	return APISuccess(meal_req)
 }
 
 func BuildTime(ts time.Time) string {

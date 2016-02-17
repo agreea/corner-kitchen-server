@@ -48,8 +48,25 @@ type Meal_read struct {
 	Rsvp_by			time.Time
 	Pics 			[]*Pic
 	Meal_reviews	[]*Review
-	Host_reviews 	[]*Review_read	
+	Host_reviews 	[]*Review_read
+	Popups 			[]*Popup
 	Upcoming_meals 	[]*Meal_read	
+}
+
+type Popup struct {
+	Id 			int64
+	Starts 		time.Time
+	Rsvp_by 	time.Time
+	Address 	string
+	City 		string
+	State 		string
+	Meal_id 	int64
+	Capacity 	int64
+	Processed 	int64
+	// Go Fields
+	Attendees 	[]*Attendee_read
+	Maps_url	string
+	Attending 	bool
 }
 
 type Review_read struct {
@@ -67,7 +84,7 @@ func NewMealServlet(server_config *Config, session_manager *SessionManager) *Mea
 	t.server_config = server_config
 	db, err := sql.Open("mysql", server_config.GetSqlURI())
 	if err != nil {
-		log.Fatal("NewMealRequestServlet", "Failed to open database:", err)
+		log.Fatal("NewMealServlet", "Failed to open database:", err)
 	}
 	t.random = rand.New(rand.NewSource(time.Now().UnixNano()))
 
@@ -115,8 +132,8 @@ type Attendee_read struct {
 }
 
 // curl --data "method=GetMealAttendees&mealId=3" https://qa.yaychakula.com/api/meal
-func (t *MealServlet) get_meal_attendees(meal_id int64) ([]*Attendee_read, error) {
-	attendees, err := GetAttendeesForMeal(t.db, meal_id)
+func (t *MealServlet) get_popup_attendees(meal_id int64) ([]*Attendee_read, error) {
+	attendees, err := GetAttendeesForPopup(t.db, meal_id)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -282,9 +299,11 @@ func (t *MealServlet) DeleteMeal(r *http.Request) *ApiResult {
 	if meal.Host_id != host.Id {
 		return APIError("This is not your meal", 400)		
 	}
-	attendees, _ := GetAttendeesForMeal(t.db, meal_id)
-	if meal.Published == 1 && attendees != nil && len(attendees) > 0 {
-		return APIError("You cannot delete a published meal. Please contact agree@yaychakula.com if you need assistance.", 400)
+	popups, _ := GetPopupsForMeal(t.db, meal_id)
+	for _, popup := range popups {
+		if meal.Published == 1 && popup.Attendees != nil && len(popup.Attendees) > 0 {
+			return APIError("You cannot delete a published meal. Please contact agree@yaychakula.com if you need assistance.", 400)
+		}
 	}
     _, err = t.db.Exec("DELETE FROM Meal WHERE Id = ?", meal_id)
     if err != nil {
@@ -542,7 +561,6 @@ func (t *MealServlet) Geocode(r *http.Request) *ApiResult {
 // gets the lat + lon from the google maps API 
 // generates the polyline code for the circle around a fuzzied nearby center pt
 // and stores it in DB
-// NOT LIVE YET
 func (t *MealServlet) geocode_new_location(full_address string) error {
 	url_address := strings.Replace(full_address, " ", "+", -1)
 	resp, err := 
@@ -690,59 +708,60 @@ func (t *MealServlet) process_meal_charge_worker() {
 }
 
 // TODO: handle failed charges...
+
 func (t *MealServlet) process_meal_charges(){
 	if server_config.Version.V == "qa" { // only run this routine on prod
 		log.Println("Exiting meal_charge routine on qa")
 		return
 	}
-	window_starts := time.Now().Add(-time.Hour * 24 * 8)
-	window_ends := time.Now().Add(-time.Hour * 24 * 7)
-	meals, err := GetMealsFromTimeWindow(t.db, window_starts, window_ends)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	for _, meal := range meals {
-		if (meal.Processed == 1 || meal.Published == 0) { // skip the processed meals
-			continue
-		}
-		meal_reqs, err := GetConfirmedMealRequestsForMeal(t.db, meal.Id)
-		if err != nil {
-			log.Println(err)
-		}
-		t.process_meal_requests(meal_reqs)
-		SetMealProcessed(t.db, meal.Id)
-		host, err := GetHostById(t.db, meal.Host_id)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		host_as_guest, err := GetGuestById(t.db, host.Guest_id)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		host_as_guest.Email, err = GetEmailForGuest(t.db, host_as_guest.Id)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		subject := "Chakula has Processed Your Payments"
-		html := "<p>Chakula processed the payments for the meal you recently held.</p>" +
-				"<p>Please be advised that <b>Stripe still has to clear the payments</b> before the funds are transferred to your account." +
-				"This should take no more than 4 business days</p>" +
-				"<p>To check the status of your funds please log into your <a href='https://stripe.com'>stripe account</a></p>" +
-				"<p>If you have any further questions, contact Agree at agree@yaychakula.com</p>" +
-				"<p>Sincerely,</p>" +
-				"<p>Chakula</p>"
-		SendEmail(host_as_guest.Email, subject, html)
-	}
+	// window_starts := time.Now().Add(-time.Hour * 24 * 8)
+	// window_ends := time.Now().Add(-time.Hour * 24 * 7)
+	// popups, err := GetPopupsFromTimeWindow(t.db, window_starts, window_ends)
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return
+	// }
+	// for _, popup := range popups {
+	// 	if (popup.Processed == 1) { // skip the processed meals
+	// 		continue
+	// 	}
+	// 	bookings, err := GetBookingsForPopup(t.db, popup.Id)
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 	}
+	// 	t.process_meal_requests(meal_reqs)
+	// 	SetMealProcessed(t.db, meal.Id)
+	// 	host, err := GetHostById(t.db, meal.Host_id)
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 		continue
+	// 	}
+	// 	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 		continue
+	// 	}
+	// 	host_as_guest.Email, err = GetEmailForGuest(t.db, host_as_guest.Id)
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 		continue
+	// 	}
+	// 	subject := "Chakula has Processed Your Payments"
+	// 	html := "<p>Chakula processed the payments for the meal you recently held.</p>" +
+	// 			"<p>Please be advised that <b>Stripe still has to clear the payments</b> before the funds are transferred to your account." +
+	// 			"This should take no more than 4 business days</p>" +
+	// 			"<p>To check the status of your funds please log into your <a href='https://stripe.com'>stripe account</a></p>" +
+	// 			"<p>If you have any further questions, contact Agree at agree@yaychakula.com</p>" +
+	// 			"<p>Sincerely,</p>" +
+	// 			"<p>Chakula</p>"
+	// 	SendEmail(host_as_guest.Email, subject, html)
+	// }
 }
 
-func (t *MealServlet) process_meal_requests(meal_reqs []*MealRequest) {
-	for _, meal_req := range meal_reqs {
+func (t *MealServlet) process_meal_requests(bookings []*PopupBooking) {
+	for _, booking := range bookings {
 		// create stripe charge
-		t.stripe_charge(meal_req)
+		t.stripe_charge(booking)
 	}
 }
 /*
@@ -767,8 +786,8 @@ type StripeCharge struct {
 curl --data "method=issueStripeCharge&id=63&key=***REMOVED***" https://qa.yaychakula.com/api/meal
 */
 func (t *MealServlet) IssueStripeCharge(r *http.Request) *ApiResult {
-	meal_req_id_s := r.Form.Get("id")
-	meal_req_id, err := strconv.ParseInt(meal_req_id_s, 10, 64)
+	booking_id_s := r.Form.Get("id")
+	booking_id, err := strconv.ParseInt(booking_id_s, 10, 64)
 	if err != nil {
 		log.Println(err)
 		return APIError("Ya fucked up", 400)
@@ -779,12 +798,12 @@ func (t *MealServlet) IssueStripeCharge(r *http.Request) *ApiResult {
 		return APIError("Error", 400)
 	}
 
-	meal_req, err := GetMealRequestById(t.db, meal_req_id)
+	booking, err := GetBookingById(t.db, booking_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Fuck", 500)
 	}
-	t.stripe_charge(meal_req)
+	t.stripe_charge(booking)
 	return APISuccess("OKEN")
 }
 
@@ -798,22 +817,25 @@ curl https://api.stripe.com/v1/charges \
    -d application_fee=___
 */
 
-func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
+func (t *MealServlet) stripe_charge(booking *PopupBooking) {
 	// Get customer object, meal (to get the price), and host (to get stripe destination)
-	customer, err := GetStripeTokenByGuestIdAndLast4(t.db, meal_req.Guest_id, meal_req.Last4)
+	customer, err := GetStripeTokenByGuestIdAndLast4(t.db, booking.Guest_id, booking.Last4)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-
-	meal, err := GetMealById(t.db, meal_req.Meal_id)
+	popup, err := GetPopupById(t.db, booking.Popup_id)
 	if err != nil {
 		log.Println(err)
 		return	
 	}
-	log.Println(meal_req)
+	meal, err := GetMealById(t.db, popup.Meal_id)
+	if err != nil {
+		log.Println(err)
+		return	
+	}
 	log.Println("Price in pennies: %d", int(GetMealPriceWithCommission(meal.Price) * 100))
-	log.Println("Price in pennies time seats: %d", int(GetMealPriceWithCommission(meal.Price) * 128) * int(meal_req.Seats))
+	log.Println("Price in pennies time seats: %d", int(GetMealPriceWithCommission(meal.Price) * 128) * int(booking.Seats))
 	host, err := GetHostById(t.db, meal.Host_id)
 	if err != nil {
 		log.Println(err)
@@ -823,8 +845,8 @@ func (t *MealServlet) stripe_charge(meal_req *MealRequest) {
 	price_plus_commission := GetMealPriceWithCommission(meal.Price)
 	// calculate the tip
 	tip_multiplier := 1.00
-	seats := float64(meal_req.Seats)
-	review, err := GetReviewByGuestAndMealId(t.db, meal_req.Guest_id, meal_req.Meal_id)
+	seats := float64(booking.Seats)
+	review, err := GetReviewByGuestAndMealId(t.db, booking.Guest_id, meal.Id)
 	if review != nil {
 		tip_percent := (float64(review.Tip_percent) / float64(100))
 		log.Println("Found the review. Heres the tip i'm casting: ", tip_percent)
@@ -869,10 +891,12 @@ curl --data "method=bookMeal&mealId=4&session=" https://yaychakula.com/api/meal
 // }
 
 /*
+
 curl --data "method=getMeal&mealId=60&session=ce5fddc6-7d81-4092-a996-9f157f99fafe" https://yaychakula.com/api/meal
 */
 
 func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
+	
 	// parse the meal id
 	meal_id, err := GetMealIdFromReq(r)
 	if err != nil {
@@ -890,7 +914,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	}
 	// get the data from the db and populate the fields required for a listing
 	meal_data, err := GetMealCardDataById(t.db, meal.Id)
-	meal_data.Attendees, err = t.get_meal_attendees(meal.Id)
+	meal_data.Popups, err = GetPopupsForMeal(t.db, meal.Id)
 	if err != nil && err != sql.ErrNoRows {
 		log.Println(err)
 		return APIError("Failed to load attendees", 500)
@@ -899,7 +923,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	if err != nil {
 		log.Println(err)
 	}
-	meal_data.Maps_url, err = GetStaticMapsUrlForMeal(t.db, meal)
+	meal_data.Maps_url, err = GetStaticMapsUrlForMeal(t.db, meal.Address + ", " + meal.City + ", " + meal.State)
 	if err != nil {
 		log.Println(err)
 	}
@@ -927,32 +951,43 @@ func (t *MealServlet) getMealWithGuestInfo(meal_data *Meal_read, meal *Meal, ses
 		return nil, err
 	}
 	if !session_valid {
+		log.Println(session_valid)
 		return nil, err
 	}
 	meal_data.Follows_host = GetGuestFollowsHost(t.db, session.Guest.Id, meal_data.Host_id)
 	meal_data.Cards, err = GetLast4sForGuest(t.db, session.Guest.Id) 
-	meal_req, err := t.get_request_by_guest_and_meal_id(session.Guest.Id, meal_data.Id)
-	if err == sql.ErrNoRows {
-		meal_data.Status = "NONE"
-	} else if meal_req.Status == 0 {
-		meal_data.Status = "PENDING"
-	} else if meal_req.Status == 1 {
-		meal_data.Status = "ATTENDING"
-	} else if meal_req.Status == -1 {
-		meal_data.Status = "DECLINED"
+	for i, popup := range meal_data.Popups {
+		attendees, err := GetAttendeesForPopup(t.db, popup.Id)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		for _, attendee := range attendees {
+			if attendee.Guest.Id == session.Guest.Id {
+				// NEED TO FIGURE OUT A WAY TO EXPOSE THE ADDRESS FOR THIS POPUP
+				meal_data.Popups[i].Address = meal.Address
+				meal_data.Popups[i].Maps_url = 
+					fmt.Sprintf("https://maps.googleapis.com/maps/api/staticmap?" + 
+						"size=600x300&scale=2&zoom=14&markers=color:red|%s,%s,%s", 
+						popup.Address, popup.City, popup.State)
+				meal_data.Popups[i].Attending = true
+				return meal_data, nil
+			}
+		}
 	}
-	if meal_data.Status == "ATTENDING" {
-		meal_data.Address = meal.Address
-		meal_data.Maps_url = 
-			fmt.Sprintf("https://maps.googleapis.com/maps/api/staticmap?" + 
-				"size=600x300&scale=2&zoom=14&markers=color:red|%s,%s,%s", 
-				meal.Address, meal.City, meal.State)
-	}
-	if !session_valid {
-		meal_data.Status = "NONE"
-		log.Println(session_valid)
-		return nil, err
-	}
+	// TODO: figure this the fuck out
+	// meal_req, err := GetPopupByGuestIdAndMealId(t.db, session.Guest.Id, meal_data.Id)
+	// if err == sql.ErrNoRows {
+	// 	meal_data.Status = "NONE"
+	// } else if meal_req.Status == 0 {
+	// 	meal_data.Status = "PENDING"
+	// } else if meal_req.Status == 1 {
+	// 	meal_data.Status = "ATTENDING"
+	// } else if meal_req.Status == -1 {
+	// 	meal_data.Status = "DECLINED"
+	// }
+	// if meal_data.Status == "ATTENDING" {
+	// }
 	return meal_data, nil
 }
 
@@ -998,13 +1033,3 @@ func (t *MealServlet) get_host_reviews(host_id int64) ([]*Review_read) {
 	}
 	return review_reads
 }
-
-func (t *MealServlet) get_request_by_guest_and_meal_id(guest_id int64, meal_id int64) (meal_request *MealRequest, err error) {
-	meal_req, err := GetMealRequestByGuestIdAndMealId(t.db, guest_id, meal_id)
-	if err != nil {
-		return nil, err
-	}
-	return meal_req, nil
-}
-
-

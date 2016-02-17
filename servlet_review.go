@@ -47,97 +47,99 @@ func (t *ReviewServlet) nudge_review_worker(){
 	}
 }
 
+// TODO FIX THIS JESUS - POPUP INTEGRATION
 func (t *ReviewServlet) nudge_review_for_recent_meals(){
-	window_starts := time.Now().Add(-time.Hour * 24 * 6) // starts should be farther back in the past than the ends
-	window_ends := time.Now().Add(-time.Hour * 2)
-	meals, err := GetMealsFromTimeWindow(t.db, window_starts, window_ends)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	for _, meal := range meals {
-		requests, err := GetConfirmedMealRequestsForMeal(t.db, meal.Id)
-		if err != nil {
-			log.Println(err)
-			return
-		}
-		err = t.nudge_attendees(requests)
-		if err != nil {
-			log.Println(err)
-		}
-	}
+	// window_starts := time.Now().Add(-time.Hour * 24 * 6) // starts should be farther back in the past than the ends
+	// window_ends := time.Now().Add(-time.Hour * 2)
+	// meals, err := GetMealsFromTimeWindow(t.db, window_starts, window_ends)
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return
+	// }
+	// for _, meal := range meals {
+	// 	requests, err := GetConfirmedMealRequestsForMeal(t.db, meal.Id)
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 		return
+	// 	}
+	// 	err = t.nudge_attendees(requests)
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 	}
+	// }
 }
 
 // Called for each meal
-func (t *ReviewServlet) nudge_attendees(requests []*MealRequest) error {
-	meal, err := GetMealById(t.db, requests[0].Meal_id)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
+// func (t *ReviewServlet) nudge_attendees(bookings []*PopupBooking) error {
+// 	booking
+// 	meal, err := GetMealById(t.db, requests[0].Meal_id)
+// 	if err != nil {
+// 		log.Println(err)
+// 		return err
+// 	}
 
-	host, err := GetHostById(t.db, meal.Host_id)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	for _, request := range requests {
-		if request.Nudge_count == -1 {
-			continue
-		}
-		attendee, err := GetGuestById(t.db, request.Guest_id)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		// nudge the attendee if they haven't reviewed the meal in 48 hours 
-		if (time.Since(request.Last_nudge) > time.Hour * 48 && request.Nudge_count < 3) {
-			if (request.Nudge_count == 0 && attendee.Phone != "") { // text if we have their phone and it's the first nudge
-				msg := new(SMS)
-				msg.To = attendee.Phone
-				msg.Message = fmt.Sprintf("Heyo! Thanks for coming to %s's meal! Make sure you leave a review so %s can build their reputation." +
-											" Here's the link: https://yaychakula.com/review.html?Id=%d %0a" +
-											"Love, Chakula",
-					host_as_guest.First_name, host_as_guest.First_name,
-					meal.Id)
-				t.twilio_queue <- msg
-			} else { // email them
-				attendee.Email, err = GetEmailForGuest(t.db, attendee.Id)
-				subject := fmt.Sprintf("%s, Please Review %s's Meal", attendee.First_name, host_as_guest.First_name)
-				if request.Nudge_count > 1 {
-					subject = "Reminder: " + subject
-				}
-				html := fmt.Sprintf("<p>Hi %s,</p>" +
-									"<p>Thank you for attending %s's meal.</p>" + 
-									"<p>We hope that you will take the time to <a href=https://yaychakula.com/review.html?Id=%d>review your meal here</a>. " +
-									"Your review will help %s build a reputation and will strengthen our little Chakula community.</p>" +
-									"<p>We are so happy that you are part of the Chakula movement.</p>" +
-									"<p>Have a good one!</p>" +
-									"<p> Agree and Pat </p>",
-									attendee.First_name, host_as_guest.First_name, meal.Id, host_as_guest.First_name)
-				SendEmail(attendee.Email, subject, html)
-			}
-			_, err = t.db.Exec(`
-				UPDATE MealRequest
-				SET Nudge_count = Nudge_count + 1 AND Last_nudge = ?
-				WHERE Id = ?
-				`,
-				time.Now(),
-				request.Id,
-			)
-			if err != nil {
-				log.Println(err)
-				return err
-			}
-		}
-	}
-	return nil
-}
+// 	host, err := GetHostById(t.db, meal.Host_id)
+// 	if err != nil {
+// 		log.Println(err)
+// 		return err
+// 	}
+// 	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
+// 	if err != nil {
+// 		log.Println(err)
+// 		return err
+// 	}
+// 	for _, request := range requests {
+// 		if request.Nudge_count == -1 {
+// 			continue
+// 		}
+// 		attendee, err := GetGuestById(t.db, request.Guest_id)
+// 		if err != nil {
+// 			log.Println(err)
+// 			continue
+// 		}
+// 		// nudge the attendee if they haven't reviewed the meal in 48 hours 
+// 		if (time.Since(request.Last_nudge) > time.Hour * 48 && request.Nudge_count < 3) {
+// 			if (request.Nudge_count == 0 && attendee.Phone != "") { // text if we have their phone and it's the first nudge
+// 				msg := new(SMS)
+// 				msg.To = attendee.Phone
+// 				msg.Message = fmt.Sprintf("Heyo! Thanks for coming to %s's meal! Make sure you leave a review so %s can build their reputation." +
+// 											" Here's the link: https://yaychakula.com/review.html?Id=%d %0a" +
+// 											"Love, Chakula",
+// 					host_as_guest.First_name, host_as_guest.First_name,
+// 					meal.Id)
+// 				t.twilio_queue <- msg
+// 			} else { // email them
+// 				attendee.Email, err = GetEmailForGuest(t.db, attendee.Id)
+// 				subject := fmt.Sprintf("%s, Please Review %s's Meal", attendee.First_name, host_as_guest.First_name)
+// 				if request.Nudge_count > 1 {
+// 					subject = "Reminder: " + subject
+// 				}
+// 				html := fmt.Sprintf("<p>Hi %s,</p>" +
+// 									"<p>Thank you for attending %s's meal.</p>" + 
+// 									"<p>We hope that you will take the time to <a href=https://yaychakula.com/review.html?Id=%d>review your meal here</a>. " +
+// 									"Your review will help %s build a reputation and will strengthen our little Chakula community.</p>" +
+// 									"<p>We are so happy that you are part of the Chakula movement.</p>" +
+// 									"<p>Have a good one!</p>" +
+// 									"<p> Agree and Pat </p>",
+// 									attendee.First_name, host_as_guest.First_name, meal.Id, host_as_guest.First_name)
+// 				SendEmail(attendee.Email, subject, html)
+// 			}
+// 			_, err = t.db.Exec(`
+// 				UPDATE MealRequest
+// 				SET Nudge_count = Nudge_count + 1 AND Last_nudge = ?
+// 				WHERE Id = ?
+// 				`,
+// 				time.Now(),
+// 				request.Id,
+// 			)
+// 			if err != nil {
+// 				log.Println(err)
+// 				return err
+// 			}
+// 		}
+// 	}
+// 	return nil
+// }
 
 /*
 SENDGRID API KEY: ***REMOVED***
@@ -243,20 +245,21 @@ func (t *ReviewServlet) LeaveReview(r *http.Request) *ApiResult {
 	if !valid {
 		return APIError("Invalid session", 400)
 	}
-	meal_id_s := r.Form.Get("mealId")
-	meal_id, err := strconv.ParseInt(meal_id_s, 10, 64)
+	popup_id_s := r.Form.Get("popupId")
+	popup_id, err := strconv.ParseInt(popup_id_s, 10, 64)
 	if err != nil {
 		log.Println(err)
 		return APIError("Malformed meal ID", 400)
 	}
+	popup, err := GetPopupById(t.db, popup_id)
 	// check that the guest had requested the meal
-	request, err := GetMealRequestByGuestIdAndMealId(t.db, session.Guest.Id, meal_id)
-	if err != nil || request.Status != 1 {
+	_, err = GetBookingByGuestAndPopupId(t.db, session.Guest.Id, popup_id)
+	if err != nil {
 		log.Println(err)
 		return APIError("You can only review meals you have attended", 400)
 	}
 	// check the table: have they left a review already?
-	review, err := GetMealReviewByGuestIdAndMealId(t.db, session.Guest.Id, meal_id)
+	review, err := GetMealReviewByGuestIdAndMealId(t.db, session.Guest.Id, popup.Meal_id)
 	if review != nil {
 		return APIError("You only review a meal once. That's the motto, #YORAMO", 400)
 	}
@@ -273,7 +276,7 @@ func (t *ReviewServlet) LeaveReview(r *http.Request) *ApiResult {
 		return APIError("Malformed tip percent", 400)
 	}
 	comment := r.Form.Get("comment")
-	err = SaveReview(t.db, session.Guest.Id, meal_id, rating, comment, tip_percent)
+	err = SaveReview(t.db, session.Guest.Id, popup.Meal_id, rating, comment, tip_percent)
 	if err != nil {
 		return APIError("Failed to save review. Please try again.", 500)
 	}
