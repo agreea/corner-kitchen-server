@@ -219,12 +219,11 @@ type AttendeeData struct {
 	Seats 		int64
 }
 
-type MealRequest struct {
+type PopupBooking struct {
 	Id       		int64
 	Guest_id 		int64
-	Meal_id  		int64
+	Popup_id  		int64
 	Seats 	 		int64
-	Status   		int64
 	Last4 	 		int64
 	Nudge_count 	int64
 	Last_nudge 		time.Time
@@ -464,42 +463,6 @@ func read_meal_rows(rows *sql.Rows) ([]*Meal, error) {
 	return meals, nil
 }
 
-func GetMealRequestByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) (meal_req *MealRequest, err error) {
-	row := db.QueryRow(`SELECT Id, Guest_id, Meal_id, Seats, Status, Last4, Nudge_count, Last_nudge
-        FROM MealRequest
-        WHERE Guest_id = ? AND Meal_id = ?`, guest_id, meal_id)
-	return readMealRequestLine(row)
-}
-
-func GetConfirmedMealRequestsForMeal(db *sql.DB, meal_id int64) ([]*MealRequest, error) {
-	rows, err := db.Query(`SELECT Id, Guest_id, Meal_id, Seats, Status, Last4, Nudge_count, Last_nudge
-        FROM MealRequest
-        WHERE Meal_id = ? AND Status = 1`, meal_id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	meal_reqs := make([]*MealRequest, 0)
-	// get the guest for each guest id and add them to the slice of guests
-	for rows.Next() {
-		meal_req := new(MealRequest)
-		if err := rows.Scan(
-			&meal_req.Id,
-			&meal_req.Guest_id,
-			&meal_req.Meal_id,
-			&meal_req.Seats,
-			&meal_req.Status,
-			&meal_req.Last4,
-			&meal_req.Nudge_count,
-			&meal_req.Last_nudge,
-		); err != nil {
-			return nil, err
-		}
-		meal_reqs = append(meal_reqs, meal_req)
-	}
-	return meal_reqs, nil
-}
-
 // avoids double-charging if both qa and prod are running chronjobs
 func SetMealProcessed(db *sql.DB, meal_id int64) error{
 	_, err := db.Exec(`
@@ -524,53 +487,6 @@ func GetMealReviewByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) 
 		return nil, err
 	}
 	return meal_review, nil
-}
-
-
-func GetMealRequestById(db *sql.DB, request_id int64) (*MealRequest, error) {
-	row := db.QueryRow(`SELECT Id, Guest_id, Meal_id, Seats, Status, Last4, Nudge_count, Last_nudge
-        FROM MealRequest
-        WHERE Id = ?`, request_id)
-	meal_req, err := readMealRequestLine(row)
-	if err != nil {
-		return nil, err
-	}
-	return meal_req, nil
-}
-
-func GetAttendeesForMeal(db *sql.DB, meal_id int64) ([]*AttendeeData, error) {
-	// get all the guest ids attending the meal
-	rows, err := db.Query(`
-		SELECT Guest_id, Seats
-		FROM MealRequest
-		WHERE Meal_id = ? AND Status = 1`, meal_id,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	attendees := make([]*AttendeeData, 0)
-	// get the guest for each guest id and add them to the slice of guests
-	for rows.Next() {
-		var guest_id int64
-		var seats int64
-		if err := rows.Scan(
-			&guest_id,
-			&seats,
-		); err != nil {
-			return nil, err
-		}
-		guest_data, err := GetGuestById(db, guest_id)
-		if err == nil {
-			attendee := new(AttendeeData)
-			attendee.Guest = guest_data
-			attendee.Seats = seats
-			attendees = append(attendees, attendee)
-		} else {
-			log.Println(err)
-		}
-	}
-	return attendees, nil
 }
 
 func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal_read, error) {
@@ -616,15 +532,6 @@ func GetMealCardDataById(db *sql.DB, meal_id int64) (*Meal_read, error) {
 	log.Println(meal.Price)
 	meal_data.Price = GetMealPriceWithCommission(meal.Price)
 	log.Println(meal_data.Price)
-	attendees, err := GetAttendeesForMeal(db, meal.Id)
-	if err != nil {
-		return nil, err
-	}
-	taken_seats := int64(0)
-	for _, attendee := range attendees {
-		taken_seats += attendee.Seats
-	}
-	meal_data.Open_spots = meal.Capacity - taken_seats
 	meal_data.Starts = meal.Starts
 	meal_data.Rsvp_by = meal.Rsvp_by
 	meal_data.Pics, err = GetAllPicsForMeal(db, meal.Id)
@@ -649,7 +556,150 @@ func GetMealCardDataById(db *sql.DB, meal_id int64) (*Meal_read, error) {
 	}
 	meal_data.Host_id = host.Id
 	meal_data.Host_bio = host_as_guest.Bio
+	meal_data.Popups, err = GetPopupsForMeal(db, meal.Id)
+	if err != nil {
+		return nil, err
+	}
 	return meal_data, nil
+}
+
+func GetPopupsForMeal(db *sql.DB, meal_id int64) ([]*Popup, error) {
+	rows, err := db.Query(`SELECT Id, Meal_id, Starts, Rsvp_by, Address, City, State, Capacity, Processed
+        FROM Popup 
+        WHERE Meal_id = ?`, meal_id,
+	)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	defer rows.Close()
+	popups := make([]*Popup, 0)
+	for rows.Next() { // construct each meal, get its reviews, and append them to all host reviews
+		popup := new(Popup)
+		if err := rows.Scan(
+			&popup.Id,
+			&popup.Meal_id,
+			&popup.Starts,
+			&popup.Rsvp_by,
+			&popup.Address,
+			&popup.City,
+			&popup.State,
+			&popup.Capacity,
+			&popup.Processed,
+		); err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		attendees, err := GetAttendeesForPopup(db, popup.Id)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		popup.Attendees, err = get_attendee_reads_for_attendees(attendees)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		full_address := popup.Address + ", " + popup.City + ", " + popup.State
+		popup.Maps_url, err = GetStaticMapsUrlForMeal(db, full_address)
+		if err != nil {
+			return nil, err
+		}
+		popups = append(popups, popup)
+	}
+	return popups, nil
+}
+
+func GetPopupById(db *sql.DB, popup_id int64) (*Popup, error) {
+	row := db.QueryRow(`SELECT Id, Meal_id, Starts, Rsvp_by, Address, City, State, Capacity, Processed
+        FROM Popup 
+        WHERE Id = ?`, popup_id,
+	)
+	return readPopupLine(row)
+}
+
+func GetBookingById(db *sql.DB, booking_id int64) (*PopupBooking, error) {
+	row := db.QueryRow(`SELECT Id, Popup_id, Guest_id, Seats, Last4, Nudge_count, Last_nudge
+        FROM PopupBooking 
+        WHERE Id = ?`, booking_id,
+	)
+	return readBookingLine(row)
+}
+
+func GetBookingByGuestAndPopupId(db *sql.DB, guest_id, popup_id int64) (*PopupBooking, error) {
+	row := db.QueryRow(`SELECT Id, Popup_id, Guest_id, Seats, Last4, Nudge_count, Last_nudge
+        FROM PopupBooking 
+        WHERE Guest_id = ? AND Popup_id = ?`, guest_id, popup_id,
+	)
+	return readBookingLine(row)
+}
+
+func SavePopupBooking(db *sql.DB, booking *PopupBooking) error {
+	_, err := db.Exec(
+		`INSERT INTO PopupBooking
+		(Guest_id, Popup_id, Seats, Last4, Nudge_count, Last_nudge)
+		VALUES
+		(?, ?, ?, ?, ?, ?)`,
+		booking.Guest_id, 
+		booking.Popup_id,
+		booking.Seats, 
+		booking.Last4, 
+		booking.Nudge_count, 
+		time.Now())
+	return err
+}
+
+func get_attendee_reads_for_attendees(attendees []*AttendeeData) ([]*Attendee_read, error) {
+	attendee_reads := make([]*Attendee_read, 0)
+	for _, attendee := range attendees {
+		as_guest := attendee.Guest
+		attendee_read := new(Attendee_read)
+    	attendee_read.First_name = as_guest.First_name
+    	if as_guest.Prof_pic != "" {
+    		attendee_read.Prof_pic_url = "https://yaychakula.com/img/" + as_guest.Prof_pic
+    	} else if as_guest.Facebook_id != "" {
+    		attendee_read.Prof_pic_url = GetFacebookPic(attendee.Guest.Facebook_id)
+    	}
+    	attendee_read.Seats = attendee.Seats
+    	attendee_reads = append(attendee_reads, attendee_read)
+	}
+	return attendee_reads, nil
+}
+
+
+func GetAttendeesForPopup(db *sql.DB, popup_id int64) ([]*AttendeeData, error) {
+	// get all the guest ids attending the meal
+	rows, err := db.Query(`
+		SELECT Guest_id, Seats
+		FROM PopupBooking
+		WHERE Popup_id = ?`, popup_id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	attendees := make([]*AttendeeData, 0)
+	// get the guest for each guest id and add them to the slice of guests
+	for rows.Next() {
+		var guest_id int64
+		var seats int64
+		if err := rows.Scan(
+			&guest_id,
+			&seats,
+		); err != nil {
+			return nil, err
+		}
+		guest_data, err := GetGuestById(db, guest_id)
+		if err == nil {
+			attendee := new(AttendeeData)
+			attendee.Guest = guest_data
+			attendee.Seats = seats
+			attendees = append(attendees, attendee)
+		} else {
+			log.Println(err)
+		}
+	}
+	return attendees, nil
 }
 
 func GetReviewById(db *sql.DB, review_id int64) (*Review, error) {
@@ -761,8 +811,7 @@ func GetLocationByAddress(db *sql.DB, full_address string) (*Location, error) {
 	return location, nil
 }
 
-func GetStaticMapsUrlForMeal(db *sql.DB, meal *Meal) (string, error) {
-	full_address := meal.Address + ", " + meal.City + ", " + meal.State
+func GetStaticMapsUrlForMeal(db *sql.DB, full_address string) (string, error) {
 	log.Println(full_address)
 	row := db.QueryRow(`
 		SELECT Polyline FROM Location WHERE Address = ?`, full_address)
@@ -910,16 +959,6 @@ func SaveProfPic(db *sql.DB, file_name string, guest_id int64) error {
 	return err
 }
 
-func UpdateMealRequest(db *sql.DB, request_id int64, status int64) error {
-	_, err := db.Exec(`
-		UPDATE MealRequest
-		SET Status = ?
-		WHERE Id = ?`,
-		status, request_id,
-	)
-	return err
-}
-
 func UpdateGuestFbToken(db *sql.DB, fb_id string, fb_token string) error {
 	_, err := db.Exec(`
 		UPDATE Guest
@@ -1055,6 +1094,41 @@ func readUserLine(row *sql.Row) (*UserData, error) {
 	return user_data, nil
 }
 
+func readPopupLine(row *sql.Row) (*Popup, error) {
+	popup := new(Popup)
+	if err := row.Scan(
+		&popup.Id,
+		&popup.Meal_id,
+		&popup.Starts,
+		&popup.Rsvp_by,
+		&popup.Address,
+		&popup.City,
+		&popup.State,
+		&popup.Capacity,
+		&popup.Processed,
+	); err != nil {
+		return nil, err
+	}
+	return popup, nil
+}
+
+func readBookingLine(row *sql.Row) (*PopupBooking, error) {
+	booking := new(PopupBooking)
+	if err := row.Scan(
+		&booking.Id,
+		&booking.Popup_id,
+		&booking.Guest_id,
+		&booking.Seats,
+		&booking.Last4,
+		&booking.Nudge_count,
+		&booking.Last_nudge,
+	); err != nil {
+		return nil, err
+	}
+	return booking, nil
+}
+
+
 func readGuestLine(row *sql.Row) (*GuestData, error) {
 	guest_data := new(GuestData)
 	if err := row.Scan(
@@ -1122,23 +1196,6 @@ func readMealLine(row *sql.Row) (*Meal, error) {
 		return nil, err
 	}
 	return meal, nil
-}
-
-func readMealRequestLine(row *sql.Row) (*MealRequest, error) {
-	meal_req := new(MealRequest)
-	if err := row.Scan(
-		&meal_req.Id,
-		&meal_req.Guest_id,
-		&meal_req.Meal_id,
-		&meal_req.Seats,
-		&meal_req.Status,
-		&meal_req.Last4,
-		&meal_req.Nudge_count,
-		&meal_req.Last_nudge,
-	); err != nil {
-		return nil, err
-	}
-	return meal_req, nil
 }
 
 func readPicLines(rows *sql.Rows) ([]*Pic, error) {
@@ -1582,7 +1639,7 @@ func SaveReview(db *sql.DB, guest_id int64, meal_id int64, rating int64, comment
 	)
 	if err == nil {
 		_, err := db.Exec(`
-			UPDATE MealRequest
+			UPDATE PopupBooking
 			SET Nudge_count = -1
 			WHERE Guest_id = ? AND Meal_id = ?
 			`,
@@ -1605,24 +1662,6 @@ func SavePaymentToken(db *sql.DB, token *PaymentToken) error {
 		token.Name,
 		token.stripe_key,
 		token.Token,
-	)
-	return err
-}
-
-// TODO: seats cannot exceed available spots
-// Just another test...
-func SaveMealRequest(db *sql.DB, meal_req *MealRequest) error {
-	_, err := db.Exec(
-		`INSERT INTO MealRequest
-		(Guest_id, Meal_id, Seats, Status, Last4)
-		VALUES
-		(?, ?, ?, ?, ?)
-		`,
-		meal_req.Guest_id,
-		meal_req.Meal_id,
-		meal_req.Seats,
-		1,
-		meal_req.Last4,
 	)
 	return err
 }
