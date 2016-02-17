@@ -201,9 +201,9 @@ func (t *MealRequestServlet) text_guest(phone string, host *HostData, meal *Meal
 			host_as_guest.First_name, 
 			meal.Title,
 			BuildTime(meal.Starts),
-			host.Address,
-			host.City,
-			host.State)
+			meal.Address,
+			meal.City,
+			meal.State)
 	} else if status == -1 {
 	// Bummer... {HOST} could not welcome you to {DINNER}. I'm sorry :/
 		msg.Message = fmt.Sprintf("Bummer... %s could not welcome you to %s! I'm sorry :/",
@@ -232,12 +232,13 @@ func (t *MealRequestServlet) email_guest(guest *GuestData, host *HostData, meal 
 							"<p>Please reply to this email if you need any help.</p>" +
 							"<p>View the meal again <a href=https://yaychakula.com/meal/%d" + 
 							">here</a> " +
+							"<p>Your card will be charged %d</p>" + 
 							"<p>Peace, love and full stomachs,</p>" +
 							"<p>Chakula</p>", 
 							BuildTime(meal.Starts), 
-							host.Address, 
-							host.City,
-							host.State, 
+							meal.Address, 
+							meal.City,
+							meal.State, 
 							meal.Id)
 		SendEmail(guest_email, subject, html)
 	} else {
