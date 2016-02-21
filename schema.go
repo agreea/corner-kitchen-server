@@ -184,12 +184,6 @@ type Meal struct {
 	Price   		float64
 	Title   		string
 	Description		string
-	Capacity		int64
-	Address 		string
-	City 			string
-	State 			string
-	Starts			time.Time
-	Rsvp_by			time.Time
 	Processed 		int64
 	Published 		int64
 	Pics 			[]*Pic
@@ -406,15 +400,14 @@ func GetUserByPhone(db *sql.DB, phone string) (*UserData, error) {
 
 func GetMealById(db *sql.DB, id int64) (*Meal, error) {
 	row := db.QueryRow(`SELECT Id, Host_id, Price, Title, 
-		Description, Capacity, Starts, Rsvp_by, Processed, 
-		Address, City, State, Published
+		Description, Processed, Published
         FROM Meal 
         WHERE Id = ?`, id)
 	return readMealLine(row)
 }
 
 func GetMealsFromTimeWindow(db *sql.DB, window_starts time.Time, window_ends time.Time) ([]*Meal, error) {
-	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by, Processed, Published
+	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Processed, Published
         FROM Meal 
         WHERE Starts > ? AND Starts < ? AND Published = 1`, 
         window_starts,
@@ -427,10 +420,9 @@ func GetMealsFromTimeWindow(db *sql.DB, window_starts time.Time, window_ends tim
 }
 
 func GetMealsForHost(db *sql.DB, host_id int64) ([]*Meal, error) {
-	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by, Processed, Published
+	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Processed, Published
         FROM Meal 
-        WHERE Host_id = ?
-        ORDER BY Starts DESC`, 
+        WHERE Host_id = ?`, 
         host_id)
 	if err != nil {
 		return nil, err
@@ -449,9 +441,6 @@ func read_meal_rows(rows *sql.Rows) ([]*Meal, error) {
 			&meal.Price,
 			&meal.Title,
 			&meal.Description,
-			&meal.Capacity,
-			&meal.Starts,
-			&meal.Rsvp_by,
 			&meal.Processed,
 			&meal.Published,
 		); err != nil {
@@ -492,8 +481,8 @@ func GetMealReviewByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) 
 func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal_read, error) {
 	rows, err := db.Query(`
 		SELECT Id
-		FROM Meal
-		WHERE Rsvp_by > ? AND Id > 0 AND Published = 1`,
+		FROM Popup
+		WHERE Rsvp_by > ? AND Id > 0`,
 		time.Now(),
 	)
 	if err != nil {
@@ -503,13 +492,17 @@ func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal_read, error) {
 	meal_reads := make([]*Meal_read, 0)
 	// get the guest for each guest id and add them to the slice of guests
 	for rows.Next() {
-		meal_id := 0
+		popup_id := 0
 		if err := rows.Scan(
-			&meal_id,
+			&popup_id,
 		); err != nil {
 			return nil, err
 		}
-		meal_read, err := GetMealCardDataById(db, int64(meal_id))
+		popup, err := GetPopupById(db, int64(popup_id))
+		if err != nil {
+			return nil, err
+		}
+		meal_read, err := GetMealCardDataById(db, popup.Meal_id)
 		if err != nil {
 			log.Println(err)
 			continue
@@ -529,17 +522,11 @@ func GetMealCardDataById(db *sql.DB, meal_id int64) (*Meal_read, error) {
 	meal_data.Id = meal.Id
 	meal_data.Title = meal.Title
 	meal_data.Description = meal.Description
-	log.Println(meal.Price)
 	meal_data.Price = GetMealPriceWithCommission(meal.Price)
-	log.Println(meal_data.Price)
-	meal_data.Starts = meal.Starts
-	meal_data.Rsvp_by = meal.Rsvp_by
 	meal_data.Pics, err = GetAllPicsForMeal(db, meal.Id)
 	if err != nil{ 
 		return nil, err
 	}
-	meal_data.City = meal.City
-	meal_data.State = meal.State
 	host, err := GetHostById(db, meal.Host_id)
 	if err != nil {
 		return nil, err
@@ -713,7 +700,7 @@ func GetReviewById(db *sql.DB, review_id int64) (*Review, error) {
 	return meal_review, nil
 }
 func GetReviewsForHost(db *sql.DB, host_id int64) ([]*Review, error) {
-	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by
+	rows, err := db.Query(`SELECT Id, Host_id, Price, Title
         FROM Meal 
         WHERE Host_id = ?`, host_id,
 	)
@@ -730,10 +717,6 @@ func GetReviewsForHost(db *sql.DB, host_id int64) ([]*Review, error) {
 			&meal.Host_id,
 			&meal.Price,
 			&meal.Title,
-			&meal.Description,
-			&meal.Capacity,
-			&meal.Starts,
-			&meal.Rsvp_by,
 		); err != nil {
 			log.Println(err)
 			return nil, err
@@ -1040,20 +1023,13 @@ func UpdateFb(db *sql.DB, token string, fb_id, guest_id int64) error {
 func UpdateMeal(db *sql.DB, meal_draft *Meal) error {
 	_, err := db.Exec(
 		`UPDATE Meal
-		SET Host_id = ?, Price = ?, Title = ?, Description = ?, Capacity = ?, 
-			Starts = ?, Rsvp_by = ?, Address = ?, City = ?, State = ?
+		SET Host_id = ?, Price = ?, Title = ?, Description = ?
 		WHERE Id = ?
 		`,
 		meal_draft.Host_id,
 		meal_draft.Price,
 		meal_draft.Title,
 		meal_draft.Description,
-		meal_draft.Capacity,
-		meal_draft.Starts,
-		meal_draft.Rsvp_by,
-		meal_draft.Address,
-		meal_draft.City,
-		meal_draft.State,
 		meal_draft.Id,
 	)
 	return err
@@ -1184,13 +1160,7 @@ func readMealLine(row *sql.Row) (*Meal, error) {
 		&meal.Price,
 		&meal.Title,
 		&meal.Description,
-		&meal.Capacity,
-		&meal.Starts,
-		&meal.Rsvp_by,
 		&meal.Processed,
-		&meal.Address,
-		&meal.City,
-		&meal.State,
 		&meal.Published, 
 	); err != nil {
 		return nil, err
@@ -1609,7 +1579,7 @@ func SaveMealPic(db *sql.DB, pic_name string, caption string, meal_id int64) err
 func CreateMeal(db *sql.DB, meal_draft *Meal) (sql.Result, error) {
 	return db.Exec(
 		`INSERT INTO Meal
-		(Host_id, Price, Title, Description, Capacity, Starts, Rsvp_by)
+		(Host_id, Price, Title, Description)
 		VALUES
 		(?, ?, ?, ?, ?, ?, ?)
 		`,
@@ -1617,9 +1587,6 @@ func CreateMeal(db *sql.DB, meal_draft *Meal) (sql.Result, error) {
 		meal_draft.Price,
 		meal_draft.Title,
 		meal_draft.Description,
-		meal_draft.Capacity,
-		meal_draft.Starts,
-		meal_draft.Rsvp_by,
 	)
 }
 
