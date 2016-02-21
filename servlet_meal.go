@@ -317,12 +317,12 @@ func (t *MealServlet) DeleteMeal(r *http.Request) *ApiResult {
 
 func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	// parse seats
-	seats_s := r.Form.Get("Capacity")
-	seats, err := strconv.ParseInt(seats_s, 10, 64)
-	if err != nil {
-		log.Println(err)
-		return APIError("Malformed seat count", 400)
-	}
+	// seats_s := r.Form.Get("Capacity")
+	// seats, err := strconv.ParseInt(seats_s, 10, 64)
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return APIError("Malformed seat count", 400)
+	// }
 
 	// and price
 	price_s := r.Form.Get("Price")
@@ -332,23 +332,23 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 		return APIError("Malformed price", 400)
 	}
 
-	// and start time
-	starts_s := r.Form.Get("Starts")
-	starts_int, err := strconv.ParseInt(starts_s, 10, 64)
-	if err != nil {
-		log.Println(err)
-		return APIError("Malformed start time", 400)
-	}
-	starts := time.Unix(starts_int, 0)
+	// // and start time
+	// starts_s := r.Form.Get("Starts")
+	// starts_int, err := strconv.ParseInt(starts_s, 10, 64)
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return APIError("Malformed start time", 400)
+	// }
+	// starts := time.Unix(starts_int, 0)
 
-	// and rsvp by time
-	rsvp_by_s := r.Form.Get("Rsvp_by")
-	rsvp_by_int, err := strconv.ParseInt(rsvp_by_s, 10, 64)
-	if err != nil {
-		log.Println(err)
-		return APIError("Malformed rsvp by time", 400)
-	}
-	rsvp_by := time.Unix(rsvp_by_int, 0)
+	// // and rsvp by time
+	// rsvp_by_s := r.Form.Get("Rsvp_by")
+	// rsvp_by_int, err := strconv.ParseInt(rsvp_by_s, 10, 64)
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return APIError("Malformed rsvp by time", 400)
+	// }
+	// rsvp_by := time.Unix(rsvp_by_int, 0)
 
 	// get the host data based on the session
 	session_id := r.Form.Get("Session")
@@ -363,23 +363,23 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	meal_draft.Host_id = host.Id
 	meal_draft.Title = r.Form.Get("Title")
 	meal_draft.Description = r.Form.Get("Description")
-	meal_draft.Capacity = seats
+	// meal_draft.Capacity = seats
 	meal_draft.Price = price
-	meal_draft.Starts = starts
-	meal_draft.Rsvp_by = rsvp_by
-	meal_draft.Address = r.Form.Get("Address")
-	meal_draft.City = r.Form.Get("City")
-	meal_draft.State = r.Form.Get("State")
-	full_address := 
-		fmt.Sprintf("%s, %s, %s", 
-			meal_draft.Address, 
-			meal_draft.City, 
-			meal_draft.State)
-	err = t.geocode_location(full_address)	
-	if err != nil {
-		log.Println(err)
-		return APIError("Could not confirm your address. Please check it and try again", 400)
-	}
+	// meal_draft.Starts = starts
+	// meal_draft.Rsvp_by = rsvp_by
+	// meal_draft.Address = r.Form.Get("Address")
+	// meal_draft.City = r.Form.Get("City")
+	// meal_draft.State = r.Form.Get("State")
+	// full_address := 
+	// 	fmt.Sprintf("%s, %s, %s", 
+	// 		meal_draft.Address, 
+	// 		meal_draft.City, 
+	// 		meal_draft.State)
+	// err = t.geocode_location(full_address)	
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return APIError("Could not confirm your address. Please check it and try again", 400)
+	// }
 	// if there's no id, create a new meal
 	// if there is an id, update an existing meal
 	id_s := r.Form.Get("Meal_id")
@@ -923,10 +923,10 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	if err != nil {
 		log.Println(err)
 	}
-	meal_data.Maps_url, err = GetStaticMapsUrlForMeal(t.db, meal.Address + ", " + meal.City + ", " + meal.State)
-	if err != nil {
-		log.Println(err)
-	}
+	// meal_data.Maps_url, err = GetStaticMapsUrlForMeal(t.db, meal.Address + ", " + meal.City + ", " + meal.State)
+	// if err != nil {
+	// 	log.Println(err)
+	// }
 	meal_data.Upcoming_meals, err = GetUpcomingMealsFromDB(t.db)
 	if err != nil {
 		log.Println(err)
@@ -962,32 +962,27 @@ func (t *MealServlet) getMealWithGuestInfo(meal_data *Meal_read, meal *Meal, ses
 			log.Println(err)
 			return nil, err
 		}
+
 		for _, attendee := range attendees {
 			if attendee.Guest.Id == session.Guest.Id {
 				// NEED TO FIGURE OUT A WAY TO EXPOSE THE ADDRESS FOR THIS POPUP
-				meal_data.Popups[i].Address = meal.Address
-				meal_data.Popups[i].Maps_url = 
+				popup.Maps_url = 
 					fmt.Sprintf("https://maps.googleapis.com/maps/api/staticmap?" + 
 						"size=600x300&scale=2&zoom=14&markers=color:red|%s,%s,%s", 
 						popup.Address, popup.City, popup.State)
-				meal_data.Popups[i].Attending = true
-				return meal_data, nil
+				popup.Attending = true
+				meal_data.Popups[i] = popup
+				break
 			}
 		}
+		if !popup.Attending { // show the fuzzy map and hide address
+			popup.Maps_url, err = GetStaticMapsUrlForMeal(t.db, popup.Address + ", " + popup.City + ", " + popup.State)
+			if err != nil {
+				return nil, err
+			}
+			popup.Address = ""
+		}
 	}
-	// TODO: figure this the fuck out
-	// meal_req, err := GetPopupByGuestIdAndMealId(t.db, session.Guest.Id, meal_data.Id)
-	// if err == sql.ErrNoRows {
-	// 	meal_data.Status = "NONE"
-	// } else if meal_req.Status == 0 {
-	// 	meal_data.Status = "PENDING"
-	// } else if meal_req.Status == 1 {
-	// 	meal_data.Status = "ATTENDING"
-	// } else if meal_req.Status == -1 {
-	// 	meal_data.Status = "DECLINED"
-	// }
-	// if meal_data.Status == "ATTENDING" {
-	// }
 	return meal_data, nil
 }
 
