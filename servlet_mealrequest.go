@@ -187,10 +187,6 @@ func (t *MealRequestServlet) text_guest(phone string, booking *PopupBooking) (er
 		return err
 	}
 	host, err := GetHostById(t.db, meal.Host_id)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
 	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
 	if err != nil {
 		log.Println(err)
