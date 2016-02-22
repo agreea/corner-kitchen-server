@@ -186,7 +186,9 @@ type Meal struct {
 	Description		string
 	Processed 		int64
 	Published 		int64
+	// go fields
 	Pics 			[]*Pic
+	Popups 			[]*Popup
 }
 
 type StripeToken struct {
@@ -373,7 +375,6 @@ func GetHostById(db *sql.DB, id int64) (*HostData, error) {
 func GetHostBySession(db *sql.DB, session_manager *SessionManager, session_id string) (*HostData, error) {
 	valid, session, err := session_manager.GetGuestSession(session_id)
 	if err != nil {
-		log.Println(err)
 		return nil, errors.New("Couldn't locate guest")
 	}
 	if !valid {
@@ -428,7 +429,18 @@ func GetMealsForHost(db *sql.DB, host_id int64) ([]*Meal, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	return read_meal_rows(rows)
+	meals, err := read_meal_rows(rows)
+	if err != nil {
+		return nil, err
+	}
+	for _, meal := range meals {
+		meal.Popups, err = GetPopupsForMeal(db, meal.Id)
+		if err != nil {
+			log.Println("Problem is with popups")
+			return nil, err
+		}
+	}
+	return meals, nil
 }
 
 func read_meal_rows(rows *sql.Rows) ([]*Meal, error) {
@@ -551,6 +563,7 @@ func GetMealCardDataById(db *sql.DB, meal_id int64) (*Meal_read, error) {
 }
 
 func GetPopupsForMeal(db *sql.DB, meal_id int64) ([]*Popup, error) {
+	log.Println(meal_id)
 	rows, err := db.Query(`SELECT Id, Meal_id, Starts, Rsvp_by, Address, City, State, Capacity, Processed
         FROM Popup 
         WHERE Meal_id = ?`, meal_id,
@@ -590,8 +603,10 @@ func GetPopupsForMeal(db *sql.DB, meal_id int64) ([]*Popup, error) {
 		full_address := popup.Address + ", " + popup.City + ", " + popup.State
 		popup.Maps_url, err = GetStaticMapsUrlForMeal(db, full_address)
 		if err != nil {
+			log.Println(err)
 			return nil, err
 		}
+		log.Println("There was at least one popup")
 		popups = append(popups, popup)
 	}
 	return popups, nil
@@ -605,6 +620,22 @@ func GetPopupById(db *sql.DB, popup_id int64) (*Popup, error) {
 	return readPopupLine(row)
 }
 
+func CreatePopup(db *sql.DB, popup *Popup) (sql.Result, error) {
+	return db.Exec(
+		`INSERT INTO Popup
+		(Meal_id, Capacity, Starts, Rsvp_by, Address, City, State, Processed)
+		VALUES
+		(?, ?, ?, ?, ?, ?, ?, 0)
+		`,
+		popup.Meal_id,
+		popup.Capacity,
+		popup.Starts,
+		popup.Rsvp_by,
+		popup.Address,
+		popup.City,
+		popup.State,
+	)
+}
 func GetBookingById(db *sql.DB, booking_id int64) (*PopupBooking, error) {
 	row := db.QueryRow(`SELECT Id, Popup_id, Guest_id, Seats, Last4, Nudge_count, Last_nudge
         FROM PopupBooking 
@@ -1581,7 +1612,7 @@ func CreateMeal(db *sql.DB, meal_draft *Meal) (sql.Result, error) {
 		`INSERT INTO Meal
 		(Host_id, Price, Title, Description)
 		VALUES
-		(?, ?, ?, ?, ?, ?, ?)
+		(?, ?, ?, ?)
 		`,
 		meal_draft.Host_id,
 		meal_draft.Price,

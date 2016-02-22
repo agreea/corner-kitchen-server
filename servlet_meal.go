@@ -313,17 +313,78 @@ func (t *MealServlet) DeleteMeal(r *http.Request) *ApiResult {
     return APISuccess("Okay")
 }
 
-// Maybe add safeguard that prevents hosts from updating starts or price on already published meals
+func (t *MealServlet) CreatePopup(r *http.Request) *ApiResult {
+	meal_id_s := r.Form.Get("MealId")
+	meal_id, err := strconv.ParseInt(meal_id_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed meal id", 400)
+	}
+	meal, err := GetMealById(t.db, meal_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not locate meal", 400)
+	}
+	session_id := r.Form.Get("Session")
+	host, err := GetHostBySession(t.db, t.session_manager, session_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not locate host", 400)
+	}
+	if meal.Host_id != host.Id {
+		log.Println(err)
+		return APIError("You are not the host of this meal", 400)
+	}
 
-func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
+	popup := new(Popup)
+	popup.Meal_id = meal_id
 	// parse seats
-	// seats_s := r.Form.Get("Capacity")
-	// seats, err := strconv.ParseInt(seats_s, 10, 64)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return APIError("Malformed seat count", 400)
-	// }
+	seats_s := r.Form.Get("Capacity")
+	popup.Capacity, err = strconv.ParseInt(seats_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed seat count", 400)
+	}
+	// and start time
+	starts_s := r.Form.Get("Starts")
+	starts_int, err := strconv.ParseInt(starts_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed start time", 400)
+	}
+	popup.Starts = time.Unix(starts_int, 0)
 
+	// and rsvp by time
+	rsvp_by_s := r.Form.Get("Rsvp_by")
+	rsvp_by_int, err := strconv.ParseInt(rsvp_by_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed rsvp by time", 400)
+	}
+	popup.Rsvp_by = time.Unix(rsvp_by_int, 0)
+	popup.Address = r.Form.Get("Address")
+	popup.City = r.Form.Get("City")
+	popup.State = r.Form.Get("State")
+	full_address := 
+		fmt.Sprintf("%s, %s, %s", 
+			popup.Address, 
+			popup.City, 
+			popup.State)
+	err = t.geocode_location(full_address)	
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not confirm your address. Please check it and try again", 400)
+	}
+	_, err = CreatePopup(t.db, popup)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not create popup. Please check it and try again", 400)
+	}
+	popup.Attendees = make([]*Attendee_read, 0)
+	return APISuccess(popup)
+}
+// Maybe add safeguard that prevents hosts from updating starts or price on already published meals
+func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	// and price
 	price_s := r.Form.Get("Price")
 	price, err := strconv.ParseFloat(price_s, 64)
@@ -331,25 +392,6 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Malformed price", 400)
 	}
-
-	// // and start time
-	// starts_s := r.Form.Get("Starts")
-	// starts_int, err := strconv.ParseInt(starts_s, 10, 64)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return APIError("Malformed start time", 400)
-	// }
-	// starts := time.Unix(starts_int, 0)
-
-	// // and rsvp by time
-	// rsvp_by_s := r.Form.Get("Rsvp_by")
-	// rsvp_by_int, err := strconv.ParseInt(rsvp_by_s, 10, 64)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return APIError("Malformed rsvp by time", 400)
-	// }
-	// rsvp_by := time.Unix(rsvp_by_int, 0)
-
 	// get the host data based on the session
 	session_id := r.Form.Get("Session")
 	host, err := GetHostBySession(t.db, t.session_manager, session_id)
@@ -365,21 +407,6 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	meal_draft.Description = r.Form.Get("Description")
 	// meal_draft.Capacity = seats
 	meal_draft.Price = price
-	// meal_draft.Starts = starts
-	// meal_draft.Rsvp_by = rsvp_by
-	// meal_draft.Address = r.Form.Get("Address")
-	// meal_draft.City = r.Form.Get("City")
-	// meal_draft.State = r.Form.Get("State")
-	// full_address := 
-	// 	fmt.Sprintf("%s, %s, %s", 
-	// 		meal_draft.Address, 
-	// 		meal_draft.City, 
-	// 		meal_draft.State)
-	// err = t.geocode_location(full_address)	
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return APIError("Could not confirm your address. Please check it and try again", 400)
-	// }
 	// if there's no id, create a new meal
 	// if there is an id, update an existing meal
 	id_s := r.Form.Get("Meal_id")
