@@ -5,7 +5,6 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"net/http"
-	"net/url"
 	"strconv"
 	"time"
 	"math/rand"
@@ -43,6 +42,7 @@ type Meal_read struct {
 	Follows_host 	bool
 	Host_id 		int64
 	Cards 			[]int64
+	New_host 		bool
 	Attendees 		[]*Attendee_read
 	Starts			time.Time
 	Rsvp_by			time.Time
@@ -90,7 +90,6 @@ func NewMealServlet(server_config *Config, session_manager *SessionManager) *Mea
 
 	t.db = db
 	t.session_manager = session_manager
-	go t.process_meal_charge_worker()
 	return t
 }
 
@@ -108,12 +107,29 @@ func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
 	// return the array
 }
 
-// returns the data required to construct a meal card for a given meal
+func GetMealPriceById(db *sql.DB, meal_id int64) (float64, error) {
+	meal, err := GetMealById(db, meal_id)
+	if err != nil {
+		return 0, err
+	}
+	return GetMealPrice(db, meal)
+}
+
+func GetMealPrice(db *sql.DB, meal *Meal) (float64, error) {
+	new_host, err := GetNewHostStatus(db, meal.Host_id)
+	if err != nil {
+		return float64(0), err
+	}
+	if new_host {
+		return meal.Price, nil
+	}
+	return GetMealPriceWithCommission(meal.Price), nil
+}
 
 func GetMealPriceWithCommission(price float64) float64 {
-	if(price <= 15) {
+	if price <= 15 {
 		return price * 1.28
-	} else if (price < 100) {
+	} else if price < 100 {
 		commission_percent := (-0.152941 * price + 30.2941)/100
 		return price * (1 + commission_percent)
 	}
@@ -726,189 +742,6 @@ func encode(oldCoordinate float64, factor float64) string {
 	return output
 }
 
-func (t *MealServlet) process_meal_charge_worker() {
-	// get all meals that happened 7 - 8 days ago
-	for {
-		t.process_meal_charges()
-		time.Sleep(time.Hour * 24)
-	}
-}
-
-// TODO: handle failed charges...
-
-func (t *MealServlet) process_meal_charges(){
-	if server_config.Version.V == "qa" { // only run this routine on prod
-		log.Println("Exiting meal_charge routine on qa")
-		return
-	}
-	// window_starts := time.Now().Add(-time.Hour * 24 * 8)
-	// window_ends := time.Now().Add(-time.Hour * 24 * 7)
-	// popups, err := GetPopupsFromTimeWindow(t.db, window_starts, window_ends)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return
-	// }
-	// for _, popup := range popups {
-	// 	if (popup.Processed == 1) { // skip the processed meals
-	// 		continue
-	// 	}
-	// 	bookings, err := GetBookingsForPopup(t.db, popup.Id)
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 	}
-	// 	t.process_meal_requests(meal_reqs)
-	// 	SetMealProcessed(t.db, meal.Id)
-	// 	host, err := GetHostById(t.db, meal.Host_id)
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 		continue
-	// 	}
-	// 	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 		continue
-	// 	}
-	// 	host_as_guest.Email, err = GetEmailForGuest(t.db, host_as_guest.Id)
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 		continue
-	// 	}
-	// 	subject := "Chakula has Processed Your Payments"
-	// 	html := "<p>Chakula processed the payments for the meal you recently held.</p>" +
-	// 			"<p>Please be advised that <b>Stripe still has to clear the payments</b> before the funds are transferred to your account." +
-	// 			"This should take no more than 4 business days</p>" +
-	// 			"<p>To check the status of your funds please log into your <a href='https://stripe.com'>stripe account</a></p>" +
-	// 			"<p>If you have any further questions, contact Agree at agree@yaychakula.com</p>" +
-	// 			"<p>Sincerely,</p>" +
-	// 			"<p>Chakula</p>"
-	// 	SendEmail(host_as_guest.Email, subject, html)
-	// }
-}
-
-func (t *MealServlet) process_meal_requests(bookings []*PopupBooking) {
-	for _, booking := range bookings {
-		// create stripe charge
-		t.stripe_charge(booking)
-	}
-}
-/*
-curl https://api.stripe.com/v1/charges \
-   -u ***REMOVED***: \
-   -d amount=___ \
-   -d currency=usd \
-   -d customer=___ \
-   -d destination=___ \
-   -d application_fee=___
-*/
-
-type StripeCharge struct {
-	Amount 			int `json:"amount"`
-	Currency   		string `json:"currency"`
-	Customer 		string `json:"customer"`
-	Host_acct		string `json:"destination"`
-	Chakula_fee		int `json:"application_fee"`
-}
-
-/* 
-curl --data "method=issueStripeCharge&id=63&key=***REMOVED***" https://qa.yaychakula.com/api/meal
-*/
-func (t *MealServlet) IssueStripeCharge(r *http.Request) *ApiResult {
-	booking_id_s := r.Form.Get("id")
-	booking_id, err := strconv.ParseInt(booking_id_s, 10, 64)
-	if err != nil {
-		log.Println(err)
-		return APIError("Ya fucked up", 400)
-	}
-
-	key := r.Form.Get("key")
-	if key != "***REMOVED***" {
-		return APIError("Error", 400)
-	}
-
-	booking, err := GetBookingById(t.db, booking_id)
-	if err != nil {
-		log.Println(err)
-		return APIError("Fuck", 500)
-	}
-	t.stripe_charge(booking)
-	return APISuccess("OKEN")
-}
-
-/*
-curl https://api.stripe.com/v1/charges \
-   -u ***REMOVED***: \
-   -d amount=___ \
-   -d currency=usd \
-   -d customer=___ \
-   -d destination=___ \
-   -d application_fee=___
-*/
-
-func (t *MealServlet) stripe_charge(booking *PopupBooking) {
-	// Get customer object, meal (to get the price), and host (to get stripe destination)
-	customer, err := GetStripeTokenByGuestIdAndLast4(t.db, booking.Guest_id, booking.Last4)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	popup, err := GetPopupById(t.db, booking.Popup_id)
-	if err != nil {
-		log.Println(err)
-		return	
-	}
-	meal, err := GetMealById(t.db, popup.Meal_id)
-	if err != nil {
-		log.Println(err)
-		return	
-	}
-	log.Println("Price in pennies: %d", int(GetMealPriceWithCommission(meal.Price) * 100))
-	log.Println("Price in pennies time seats: %d", int(GetMealPriceWithCommission(meal.Price) * 128) * int(booking.Seats))
-	host, err := GetHostById(t.db, meal.Host_id)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	price_pennies := meal.Price * 100
-	price_plus_commission := GetMealPriceWithCommission(meal.Price)
-	// calculate the tip
-	tip_multiplier := 1.00
-	seats := float64(booking.Seats)
-	review, err := GetReviewByGuestAndMealId(t.db, booking.Guest_id, meal.Id)
-	if review != nil {
-		tip_percent := (float64(review.Tip_percent) / float64(100))
-		log.Println("Found the review. Heres the tip i'm casting: ", tip_percent)
-		tip_multiplier += tip_percent
-	}
-	host_pay_per_plate := price_pennies * tip_multiplier
-	final_amount_float := price_plus_commission * seats * tip_multiplier
-	application_fee_float := final_amount_float - (host_pay_per_plate * seats)
-
-	client := &http.Client{}
-   	stripe_body := url.Values{
-		"amount": {strconv.Itoa(int(final_amount_float))},
-		"currency": {"usd"},
-		"customer": {customer.Stripe_token},
-		"destination": {host.Stripe_user_id},
-		"application_fee": {strconv.Itoa(int(application_fee_float))},
-	}
-	req, err := http.NewRequest(
-		"POST",
-		"https://api.stripe.com/v1/charges",
-		strings.NewReader(stripe_body.Encode()))
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.SetBasicAuth("***REMOVED***:", "")
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	log.Println(resp)
-	// TODO: react according to Stripe response!
-}
 
 /*
 curl --data "method=bookMeal&mealId=4&session=" https://yaychakula.com/api/meal
