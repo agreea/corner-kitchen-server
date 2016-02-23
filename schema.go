@@ -222,6 +222,7 @@ type PopupBooking struct {
 	Seats 	 		int64
 	Last4 	 		int64
 	Nudge_count 	int64
+	Meal_price 		float64
 	Last_nudge 		time.Time
 }
 
@@ -383,6 +384,40 @@ func GetHostBySession(db *sql.DB, session_manager *SessionManager, session_id st
 	return GetHostByGuestId(db, session.Guest.Id)
 }
 
+func GetNewHostStatus(db *sql.DB, host_id int64) (bool, error) {
+	total_revenue := float64(0)
+	meals, err := GetMealsForHost(db, host_id)
+	if err != nil {
+		log.Println(err)
+		return false, err
+	}
+	for _, meal := range meals {
+		// for each meal: get all popups
+		popups, err := GetPopupsForMeal(db, meal.Id)
+		if err != nil {
+			log.Println(err)
+			return false, err
+		}
+		for _, popup := range popups { // for each popup, get the bookings
+			bookings, err := GetBookingsForPopup(db, popup.Id)
+			if err != nil {
+				log.Println(err)
+				return false, err
+			}
+			for _, booking := range bookings { // for each booking, add the revenue contributed to the total
+				if booking.Last4 == 0 {
+					continue
+				}
+				total_revenue += float64(booking.Seats) * meal.Price
+				if total_revenue > 400 {
+					return false, nil
+				}
+			}
+		}
+	}
+	return true, nil
+}
+
 func GetUserByEmail(db *sql.DB, email string) (*UserData, error) {
 	row := db.QueryRow(`SELECT Id, Email, First_name, Last_name,
 		Password_salt, Password_hash,
@@ -407,19 +442,6 @@ func GetMealById(db *sql.DB, id int64) (*Meal, error) {
 	return readMealLine(row)
 }
 
-func GetMealsFromTimeWindow(db *sql.DB, window_starts time.Time, window_ends time.Time) ([]*Meal, error) {
-	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Processed, Published
-        FROM Meal 
-        WHERE Starts > ? AND Starts < ? AND Published = 1`, 
-        window_starts,
-        window_ends)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	return read_meal_rows(rows)
-}
-
 func GetMealsForHost(db *sql.DB, host_id int64) ([]*Meal, error) {
 	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Processed, Published
         FROM Meal 
@@ -429,7 +451,7 @@ func GetMealsForHost(db *sql.DB, host_id int64) ([]*Meal, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	meals, err := read_meal_rows(rows)
+	meals, err := read_meal_rows(db, rows)
 	if err != nil {
 		return nil, err
 	}
@@ -443,7 +465,7 @@ func GetMealsForHost(db *sql.DB, host_id int64) ([]*Meal, error) {
 	return meals, nil
 }
 
-func read_meal_rows(rows *sql.Rows) ([]*Meal, error) {
+func read_meal_rows(db *sql.DB, rows *sql.Rows) ([]*Meal, error) {
 	meals := make([]*Meal, 0)
 	for rows.Next() {
 		meal := new(Meal)
@@ -458,20 +480,19 @@ func read_meal_rows(rows *sql.Rows) ([]*Meal, error) {
 		); err != nil {
 			return nil, err
 		}
-		meal.Price = GetMealPriceWithCommission(meal.Price)
 		meals = append(meals, meal)
 	}
 	return meals, nil
 }
 
 // avoids double-charging if both qa and prod are running chronjobs
-func SetMealProcessed(db *sql.DB, meal_id int64) error{
+func SetPopupProcessed(db *sql.DB, popup_id int64) error{
 	_, err := db.Exec(`
-		UPDATE Meal
+		UPDATE Popup
 		SET Processed = 1
 		WHERE Id = ?
 		`,
-		meal_id,
+		popup_id,
 	)
 	if err != nil {
 		log.Println(err)
@@ -494,7 +515,8 @@ func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal_read, error) {
 	rows, err := db.Query(`
 		SELECT Id
 		FROM Popup
-		WHERE Rsvp_by > ? AND Id > 0`,
+		WHERE Rsvp_by > ? AND Id > 0
+		ORDER BY Rsvp_by DESC`,
 		time.Now(),
 	)
 	if err != nil {
@@ -514,6 +536,9 @@ func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal_read, error) {
 		if err != nil {
 			return nil, err
 		}
+		if (meal_reads_contains(popup.Meal_id, meal_reads)) {
+			continue
+		}
 		meal_read, err := GetMealCardDataById(db, popup.Meal_id)
 		if err != nil {
 			log.Println(err)
@@ -523,28 +548,43 @@ func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal_read, error) {
 	}
 	return meal_reads, nil
 }
-
+func meal_reads_contains(meal_id int64, meal_reads []*Meal_read) bool{
+	for _, meal_read := range meal_reads {
+		if meal_read.Id == meal_id {
+			return true
+		}
+	}
+	return false
+}
 // Returns meal objects with all fields necessary for display in a meal card
 func GetMealCardDataById(db *sql.DB, meal_id int64) (*Meal_read, error) {
 	meal, err := GetMealById(db, meal_id)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 	meal_data := new(Meal_read)
 	meal_data.Id = meal.Id
 	meal_data.Title = meal.Title
 	meal_data.Description = meal.Description
-	meal_data.Price = GetMealPriceWithCommission(meal.Price)
+	meal_data.Price, err = GetMealPrice(db, meal)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
 	meal_data.Pics, err = GetAllPicsForMeal(db, meal.Id)
 	if err != nil{ 
+		log.Println(err)
 		return nil, err
 	}
 	host, err := GetHostById(db, meal.Host_id)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 	host_as_guest, err := GetGuestById(db, host.Guest_id)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 	meal_data.Host_name = host_as_guest.First_name
@@ -556,14 +596,15 @@ func GetMealCardDataById(db *sql.DB, meal_id int64) (*Meal_read, error) {
 	meal_data.Host_id = host.Id
 	meal_data.Host_bio = host_as_guest.Bio
 	meal_data.Popups, err = GetPopupsForMeal(db, meal.Id)
+	meal_data.New_host, err = GetNewHostStatus(db, meal.Host_id)
 	if err != nil {
+		log.Println(err)
 		return nil, err
 	}
 	return meal_data, nil
 }
 
 func GetPopupsForMeal(db *sql.DB, meal_id int64) ([]*Popup, error) {
-	log.Println(meal_id)
 	rows, err := db.Query(`SELECT Id, Meal_id, Starts, Rsvp_by, Address, City, State, Capacity, Processed
         FROM Popup 
         WHERE Meal_id = ?`, meal_id,
@@ -602,6 +643,7 @@ func GetPopupsForMeal(db *sql.DB, meal_id int64) ([]*Popup, error) {
 		}
 		full_address := popup.Address + ", " + popup.City + ", " + popup.State
 		popup.Maps_url, err = GetStaticMapsUrlForMeal(db, full_address)
+		log.Println(full_address)
 		if err != nil {
 			log.Println(err)
 			return nil, err
@@ -620,6 +662,42 @@ func GetPopupById(db *sql.DB, popup_id int64) (*Popup, error) {
 	return readPopupLine(row)
 }
 
+func GetPopupsFromTimeWindow(db *sql.DB, window_starts time.Time, window_ends time.Time) ([]*Popup, error) {
+	rows, err := db.Query(`SELECT Id, Meal_id, Starts, Rsvp_by, Address, City, State, Capacity, Processed
+        FROM Popup 
+        WHERE Starts > ? AND Starts < ?`, 
+        window_starts,
+        window_ends)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	return read_popup_rows(rows)
+}
+
+func read_popup_rows(rows *sql.Rows) ([]*Popup, error) {
+	popups := make([]*Popup, 0)
+	for rows.Next() {
+		popup := new(Popup)
+		if err := rows.Scan(
+			&popup.Id,
+			&popup.Meal_id,
+			&popup.Starts,
+			&popup.Rsvp_by,
+			&popup.Address,
+			&popup.City,
+			&popup.State,
+			&popup.Capacity,
+			&popup.Processed,
+		); err != nil {
+			return nil, err
+		}
+		popups = append(popups, popup)
+	}
+	return popups, nil
+}
+
+
 func CreatePopup(db *sql.DB, popup *Popup) (sql.Result, error) {
 	return db.Exec(
 		`INSERT INTO Popup
@@ -637,15 +715,45 @@ func CreatePopup(db *sql.DB, popup *Popup) (sql.Result, error) {
 	)
 }
 func GetBookingById(db *sql.DB, booking_id int64) (*PopupBooking, error) {
-	row := db.QueryRow(`SELECT Id, Popup_id, Guest_id, Seats, Last4, Nudge_count, Last_nudge
+	row := db.QueryRow(`
+		SELECT Id, Popup_id, Guest_id, Seats, Last4, Nudge_count, Last_nudge, Meal_price
         FROM PopupBooking 
         WHERE Id = ?`, booking_id,
 	)
 	return readBookingLine(row)
 }
 
+func GetBookingsForPopup(db *sql.DB, popup_id int64) ([]*PopupBooking, error) {
+	rows, err := db.Query(`
+		SELECT Id, Popup_id, Guest_id, Seats, Last4, Nudge_count, Last_nudge, Meal_price
+		FROM PopupBooking
+		WHERE Popup_id = ?`, popup_id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	bookings := make([]*PopupBooking, 0)
+	for rows.Next() {
+		booking := new(PopupBooking)
+		if err := rows.Scan(
+			&booking.Id,
+			&booking.Popup_id,
+			&booking.Guest_id,
+			&booking.Seats,
+			&booking.Last4,
+			&booking.Nudge_count,
+			&booking.Last_nudge,
+			&booking.Meal_price,
+		); err != nil {
+			return nil, err
+		}
+		bookings = append(bookings, booking)
+	}
+	return bookings, nil	
+}
 func GetBookingByGuestAndPopupId(db *sql.DB, guest_id, popup_id int64) (*PopupBooking, error) {
-	row := db.QueryRow(`SELECT Id, Popup_id, Guest_id, Seats, Last4, Nudge_count, Last_nudge
+	row := db.QueryRow(`SELECT Id, Popup_id, Guest_id, Seats, Last4, Nudge_count, Last_nudge, Meal_price
         FROM PopupBooking 
         WHERE Guest_id = ? AND Popup_id = ?`, guest_id, popup_id,
 	)
@@ -655,7 +763,7 @@ func GetBookingByGuestAndPopupId(db *sql.DB, guest_id, popup_id int64) (*PopupBo
 func SavePopupBooking(db *sql.DB, booking *PopupBooking) error {
 	_, err := db.Exec(
 		`INSERT INTO PopupBooking
-		(Guest_id, Popup_id, Seats, Last4, Nudge_count, Last_nudge)
+		(Guest_id, Popup_id, Seats, Last4, Nudge_count, Last_nudge, Meal_price)
 		VALUES
 		(?, ?, ?, ?, ?, ?)`,
 		booking.Guest_id, 
@@ -663,7 +771,8 @@ func SavePopupBooking(db *sql.DB, booking *PopupBooking) error {
 		booking.Seats, 
 		booking.Last4, 
 		booking.Nudge_count, 
-		time.Now())
+		time.Now(),
+		booking.Meal_price)
 	return err
 }
 
@@ -1116,6 +1225,7 @@ func readPopupLine(row *sql.Row) (*Popup, error) {
 	); err != nil {
 		return nil, err
 	}
+	log.Println("Got the popup just fine")
 	return popup, nil
 }
 
@@ -1129,6 +1239,7 @@ func readBookingLine(row *sql.Row) (*PopupBooking, error) {
 		&booking.Last4,
 		&booking.Nudge_count,
 		&booking.Last_nudge,
+		&booking.Meal_price,
 	); err != nil {
 		return nil, err
 	}
