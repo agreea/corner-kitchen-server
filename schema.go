@@ -533,6 +533,7 @@ func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal_read, error) {
 			return nil, err
 		}
 		popup, err := GetPopupById(db, int64(popup_id))
+		console.log(popup_id)
 		if err != nil {
 			return nil, err
 		}
@@ -643,7 +644,6 @@ func GetPopupsForMeal(db *sql.DB, meal_id int64) ([]*Popup, error) {
 		}
 		full_address := popup.Address + ", " + popup.City + ", " + popup.State
 		popup.Maps_url, err = GetStaticMapsUrlForMeal(db, full_address)
-		log.Println(full_address)
 		if err != nil {
 			log.Println(err)
 			return nil, err
