@@ -533,7 +533,7 @@ func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal_read, error) {
 			return nil, err
 		}
 		popup, err := GetPopupById(db, int64(popup_id))
-		console.log(popup_id)
+		log.Println(popup_id)
 		if err != nil {
 			return nil, err
 		}
