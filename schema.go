@@ -393,12 +393,7 @@ func GetNewHostStatus(db *sql.DB, host_id int64) (bool, error) {
 	}
 	for _, meal := range meals {
 		// for each meal: get all popups
-		popups, err := GetPopupsForMeal(db, meal.Id)
-		if err != nil {
-			log.Println(err)
-			return false, err
-		}
-		for _, popup := range popups { // for each popup, get the bookings
+		for _, popup := range meal.Popups { // for each popup, get the bookings
 			bookings, err := GetBookingsForPopup(db, popup.Id)
 			if err != nil {
 				log.Println(err)
@@ -608,6 +603,7 @@ func GetMealCardDataById(db *sql.DB, meal_id int64) (*Meal_read, error) {
 }
 
 func GetPopupsForMeal(db *sql.DB, meal_id int64) ([]*Popup, error) {
+	log.Println("popups for meal: ", meal_id)
 	rows, err := db.Query(`SELECT Id, Meal_id, Starts, Rsvp_by, Address, City, State, Capacity, Processed
         FROM Popup 
         WHERE Meal_id = ?`, meal_id,
@@ -650,7 +646,7 @@ func GetPopupsForMeal(db *sql.DB, meal_id int64) ([]*Popup, error) {
 			log.Println(err)
 			return nil, err
 		}
-		log.Println("There was at least one popup")
+		log.Println("Popup successfully appended: ", popup.Id)
 		popups = append(popups, popup)
 	}
 	return popups, nil
