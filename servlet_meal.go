@@ -876,8 +876,7 @@ func (t *MealServlet) get_host_reviews(host_id int64) ([]*Review_read) {
 		review_read.First_name = guest.First_name
 		if guest.Prof_pic != "" {
 			review_read.Prof_pic_url = "https://yaychakula.com/img/" + guest.Prof_pic 
-		}
-		else if guest.Prof_pic == "" && guest.Facebook_id != "" {
+		} else if guest.Prof_pic == "" && guest.Facebook_id != "" {
 			review_read.Prof_pic_url = GetFacebookPic(guest.Facebook_id)
 		}
 		review_read.Rating = review.Rating
