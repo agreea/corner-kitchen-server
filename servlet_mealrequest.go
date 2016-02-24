@@ -230,10 +230,10 @@ func (t *MealRequestServlet) process_popup_charge_worker() {
 // TODO: handle failed charges...
 
 func (t *MealRequestServlet) process_meal_charges(){
-	// if server_config.Version.V != "prod" { // only run this routine on prod
-	// 	log.Println("Exiting meal_charge routine on qa")
-	// 	return
-	// }
+	if server_config.Version.V != "prod" { // only run this routine on prod
+		log.Println("Exiting meal_charge routine on qa")
+		return
+	}
 	window_starts := time.Now().Add(-time.Hour * 3)
 	window_ends := time.Now().Add(-time.Hour * 4)
 	popups, err := GetPopupsFromTimeWindow(t.db, window_starts, window_ends)
