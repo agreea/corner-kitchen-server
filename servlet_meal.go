@@ -874,7 +874,10 @@ func (t *MealServlet) get_host_reviews(host_id int64) ([]*Review_read) {
 			return nil
 		}
 		review_read.First_name = guest.First_name
-		review_read.Prof_pic_url = GetFacebookPic(guest.Facebook_id)
+		review_read.Prof_pic_url = guest.Prof_pic 
+		if guest.Prof_pic == "" && guest.Facebook_id != "" {
+			review_read.Prof_pic_url = GetFacebookPic(guest.Facebook_id)
+		}
 		review_read.Rating = review.Rating
 		review_read.Comment = review.Comment
 		review_read.Date = review.Date
