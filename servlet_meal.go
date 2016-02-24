@@ -783,10 +783,6 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	if err != nil {
 		log.Println(err)
 	}
-	// meal_data.Maps_url, err = GetStaticMapsUrlForMeal(t.db, meal.Address + ", " + meal.City + ", " + meal.State)
-	// if err != nil {
-	// 	log.Println(err)
-	// }
 	meal_data.Upcoming_meals, err = GetUpcomingMealsFromDB(t.db)
 	if err != nil {
 		log.Println(err)
