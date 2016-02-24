@@ -763,7 +763,7 @@ func SavePopupBooking(db *sql.DB, booking *PopupBooking) error {
 		`INSERT INTO PopupBooking
 		(Guest_id, Popup_id, Seats, Last4, Nudge_count, Last_nudge, Meal_price)
 		VALUES
-		(?, ?, ?, ?, ?, ?)`,
+		(?, ?, ?, ?, ?, ?, ?)`,
 		booking.Guest_id, 
 		booking.Popup_id,
 		booking.Seats, 
