@@ -513,7 +513,7 @@ func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal_read, error) {
 		SELECT Id
 		FROM Popup
 		WHERE Rsvp_by > ? AND Id > 0
-		ORDER BY Rsvp_by DESC`,
+		ORDER BY Rsvp_by ASC`,
 		time.Now(),
 	)
 	if err != nil {
