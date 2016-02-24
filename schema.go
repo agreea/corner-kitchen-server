@@ -448,6 +448,8 @@ func GetMealsForHost(db *sql.DB, host_id int64) ([]*Meal, error) {
         WHERE Host_id = ?`, 
         host_id)
 	if err != nil {
+		log.Println(err)
+		log.Println(host_id)
 		return nil, err
 	}
 	defer rows.Close()
