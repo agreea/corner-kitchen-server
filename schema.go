@@ -231,9 +231,10 @@ type Review struct {
 	Guest_id 	int64
 	Rating 		int64
 	Comment 	string
-	Meal_id 	int64
+	Popup_id 	int64
 	Date 		time.Time
 	Tip_percent int64
+	Suggestion 	string
 }
 
 type Pic struct {
@@ -437,6 +438,14 @@ func GetMealById(db *sql.DB, id int64) (*Meal, error) {
 	return readMealLine(row)
 }
 
+func GetMealByPopupId(db *sql.DB, popup_id int64) (*Meal, error) {
+	popup, err := GetPopupById(db, popup_id)
+	if err != nil {
+		return nil, err
+	}
+	return GetMealById(db, popup.Meal_id)
+}
+
 func GetMealsForHost(db *sql.DB, host_id int64) ([]*Meal, error) {
 	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Processed, Published
         FROM Meal 
@@ -497,15 +506,11 @@ func SetPopupProcessed(db *sql.DB, popup_id int64) error{
 	return err
 }
 
-func GetMealReviewByGuestIdAndMealId(db *sql.DB, guest_id int64, meal_id int64) (meal_review *Review, err error) {
-	row := db.QueryRow(`SELECT Id, Guest_id, Rating, Comment, Meal_id, Date, Tip_percent
+func GetMealReviewByGuestIdAndPopupId(db *sql.DB, guest_id int64, meal_id int64) (meal_review *Review, err error) {
+	row := db.QueryRow(`SELECT Id, Guest_id, Rating, Comment, Popup_id, Date, Tip_percent
         FROM HostReview
         WHERE Guest_id = ? AND Meal_id = ?`, guest_id, meal_id)
-	meal_review, err = readMealReviewLine(row)
-	if err != nil {
-		return nil, err
-	}
-	return meal_review, nil
+	return readReviewLine(row)
 }
 
 func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal_read, error) {
@@ -660,7 +665,7 @@ func GetPopupById(db *sql.DB, popup_id int64) (*Popup, error) {
 	return readPopupLine(row)
 }
 
-func GetPopupsFromTimeWindow(db *sql.DB, window_starts time.Time, window_ends time.Time) ([]*Popup, error) {
+func GetPopupsFromTimeWindow(db *sql.DB, window_starts, window_ends time.Time) ([]*Popup, error) {
 	rows, err := db.Query(`SELECT Id, Meal_id, Starts, Rsvp_by, Address, City, State, Capacity, Processed
         FROM Popup 
         WHERE Starts > ? AND Starts < ?`, 
@@ -828,54 +833,56 @@ func GetAttendeesForPopup(db *sql.DB, popup_id int64) ([]*AttendeeData, error) {
 }
 
 func GetReviewById(db *sql.DB, review_id int64) (*Review, error) {
-	row := db.QueryRow(`SELECT Id, Guest_id, Rating, Comment, Meal_id, Date, Tip_percent
+	row := db.QueryRow(`SELECT Id, Guest_id, Rating, Comment, Popup_id, Date, Tip_percent, Suggestion
         FROM HostReview
         WHERE Id = ?`, review_id)
-	meal_review, err := readMealReviewLine(row)
-	if err != nil {
-		return nil, err
-	}
-	return meal_review, nil
+	return readReviewLine(row)
 }
+
+/*
+UPDATE HostReview
+SET "Meal_id" = (SELECT "Id" FROM Popup WHERE "Meal_id" = (SELECT "Meal_id" FROM HostReview))
+*/
 func GetReviewsForHost(db *sql.DB, host_id int64) ([]*Review, error) {
-	rows, err := db.Query(`SELECT Id, Host_id, Price, Title
-        FROM Meal 
-        WHERE Host_id = ?`, host_id,
-	)
+	// get all meal ids associated with host
+	rows, err := db.Query(`SELECT Id FROM Meal WHERE Host_id = ?`, host_id,)
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
 	defer rows.Close()
 	host_reviews := make([]*Review, 0)
-	for rows.Next() { // construct each meal, get its reviews, and append them to all host reviews
-		meal := new(Meal)
+	for rows.Next() { // for each meal, get all associated popups.
+		meal_id := int64(0)
 		if err := rows.Scan(
-			&meal.Id,
-			&meal.Host_id,
-			&meal.Price,
-			&meal.Title,
+			&meal_id,
 		); err != nil {
 			log.Println(err)
 			return nil, err
 		}
-		meal_reviews, err := GetReviewsForMeal(db, meal.Id)
+		popups, err := GetPopupsForMeal(db, meal_id) 
 		if err != nil {
 			log.Println(err)
+			return nil, err
 		}
-		if meal_reviews != nil {
-			host_reviews = append(host_reviews, meal_reviews...)
+		for _, popup := range popups { // for each popup, get all associated reviews
+			popup_reviews, err := GetReviewsForPopup(db, popup.Id) 
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+			host_reviews = append(host_reviews, popup_reviews...)
 		}
 	}
 	return host_reviews, nil
 }
 
-func GetReviewsForMeal(db *sql.DB, meal_id int64) ([]*Review, error) {
+func GetReviewsForPopup(db *sql.DB, popup_id int64) ([]*Review, error) {
 	rows, err := db.Query(`
-		SELECT Id, Guest_id, Rating, Comment, Meal_id, Date, Tip_percent
+		SELECT Id, Guest_id, Rating, Comment, Popup_id, Date, Tip_percent, Suggestion
 		FROM HostReview
-		WHERE Meal_id = ?`,
-		meal_id,
+		WHERE Popup_id = ?`,
+		popup_id,
 	)
 	if err != nil {
 		return nil, err
@@ -890,9 +897,10 @@ func GetReviewsForMeal(db *sql.DB, meal_id int64) ([]*Review, error) {
 			&review.Guest_id,
 			&review.Rating,
 			&review.Comment,
-			&review.Meal_id,
+			&review.Popup_id,
 			&review.Date,
 			&review.Tip_percent,
+			&review.Suggestion,
 		); err != nil {
 			log.Println(err)
 			return nil, err
@@ -902,15 +910,15 @@ func GetReviewsForMeal(db *sql.DB, meal_id int64) ([]*Review, error) {
 	return reviews, nil
 }
 
-func GetReviewByGuestAndMealId(db *sql.DB, guest_id int64, meal_id int64) (*Review, error) {
+func GetReviewByGuestAndPopupId(db *sql.DB, guest_id int64, meal_id int64) (*Review, error) {
 	row := db.QueryRow(`
-		SELECT Id, Guest_id, Rating, Comment, Meal_id, Date, Tip_percent
+		SELECT Id, Guest_id, Rating, Comment, Popup_id, Date, Tip_percent, Suggestion
 		FROM HostReview
 		WHERE Guest_id = ? AND Meal_id = ?`,
 		guest_id,
 		meal_id,
 	)
-	return readMealReviewLine(row)
+	return readReviewLine(row)
 }
 
 func StoreLocation(db *sql.DB, lat, lng float64, full_address, polyline string) error {
@@ -1173,16 +1181,17 @@ func UpdateMeal(db *sql.DB, meal_draft *Meal) error {
 	return err
 }
 
-func readMealReviewLine(row *sql.Row) (*Review, error) {
+func readReviewLine(row *sql.Row) (*Review, error) {
 	review := new(Review)
 	if err := row.Scan(
 		&review.Id,
 		&review.Guest_id,
 		&review.Rating,
 		&review.Comment,
-		&review.Meal_id,
+		&review.Popup_id,
 		&review.Date,
 		&review.Tip_percent,
+		&review.Suggestion,
 	); err != nil {
 		return nil, err
 	}
@@ -1730,28 +1739,29 @@ func CreateMeal(db *sql.DB, meal_draft *Meal) (sql.Result, error) {
 	)
 }
 
-func SaveReview(db *sql.DB, guest_id int64, meal_id int64, rating int64, comment string, tip_percent int64) error {
+func SaveReview(db *sql.DB, review *Review) error {
 	_, err := db.Exec(
 		`INSERT INTO HostReview
-		(Guest_id, Meal_id, Rating, Comment, Date, Tip_percent)
+		(Guest_id, Popup_id, Rating, Comment, Suggestion, Date, Tip_percent)
 		VALUES
-		(?, ?, ?, ?, ?, ?)
+		(?, ?, ?, ?, ?, ?, ?)
 		`,
-		guest_id,
-		meal_id,
-		rating,
-		comment,
+		review.Guest_id,
+		review.Popup_id,
+		review.Rating,
+		review.Comment,
+		review.Suggestion,
 		time.Now(),
-		tip_percent,
+		review.Tip_percent,
 	)
 	if err == nil {
 		_, err := db.Exec(`
 			UPDATE PopupBooking
 			SET Nudge_count = -1
-			WHERE Guest_id = ? AND Meal_id = ?
+			WHERE Guest_id = ? AND Popup_id = ?
 			`,
-			guest_id,
-			meal_id,
+			review.Guest_id,
+			review.Popup_id,
 		)
 		return err
 	}
@@ -1774,7 +1784,11 @@ func SavePaymentToken(db *sql.DB, token *PaymentToken) error {
 }
 
 func SaveStripeToken(db *sql.DB, stripe_token string, last4 int64, guest_data *GuestData) error {
-	stripe.Key = "***REMOVED***"
+	if (server_config.Version.V == "prod") {
+		stripe.Key = "***REMOVED***"
+	} else {
+		stripe.Key = "***REMOVED***"
+	}
 	email, err := GetEmailForGuest(db, guest_data.Id)
 	if err != nil {
 		return err

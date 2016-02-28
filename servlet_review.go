@@ -36,7 +36,7 @@ func NewReviewServlet(server_config *Config, session_manager *SessionManager, tw
 
 func (t *ReviewServlet) nudge_review_worker(){
 	for {
-		if server_config.Version.V == "qa" {
+		if server_config.Version.V != "prod" {
 			log.Println("Continuing as qa. Not filling out email")
 			time.Sleep(time.Hour * 100)
 			break
@@ -216,26 +216,8 @@ func (t *ReviewServlet) notify_attendee_to_review(guest_id int64, meal_id int64)
 	// get the guest
 	// 
 }
-// curl -d 'to=destination@example.com&amp;toname=Destination&amp;subject=Example Subject&amp;text=testingtextbody&amp;from=info@domain.com&amp;api_user=agree&amp;api_key=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' https://api.sendgrid.com/api/mail.send.json
-// Secret key: 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
 
-// worker goes like this:
-
-// get all the meals that started between 2.5 and 3.5 hours ago
-// get all the guests for all those meals
-// contact all the guests with review links for that meal
-// contact goes like this:
-// if you have their phone number, text them
-// else send them an email
-// sleep for 1 hour.
-
-// TODO: getReviewForm()
-// TODO: check that star rating is set on front end
-// TODO: build a form for new meals.
-// takes meal id returns host, meal title....
-// curl --data "method=getUpcomingMeals" https://qa.yaychakula.com/api/meal
-func (t *ReviewServlet) LeaveReview(r *http.Request) *ApiResult {
-	// get the session's guest
+func (t *ReviewServlet) GetReviewData(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	valid, session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
@@ -249,38 +231,157 @@ func (t *ReviewServlet) LeaveReview(r *http.Request) *ApiResult {
 	popup_id, err := strconv.ParseInt(popup_id_s, 10, 64)
 	if err != nil {
 		log.Println(err)
-		return APIError("Malformed meal ID", 400)
+		return APIError("Malformed popup ID", 400)
 	}
-	popup, err := GetPopupById(t.db, popup_id)
+	// if popup.Starts > moment() return error
 	// check that the guest had requested the meal
-	_, err = GetBookingByGuestAndPopupId(t.db, session.Guest.Id, popup_id)
+	booking, err := GetBookingByGuestAndPopupId(t.db, session.Guest.Id, popup_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("You can only review meals you have attended", 400)
+	}
+	meal, err := GetMealByPopupId(t.db, popup_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("You can only review meals you have attended", 400)		
+	}
+	host, err := GetHostById(t.db, meal.Host_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not locate host", 500)		
+	}
+	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not locate host", 500)		
+	}
+
+	meal_read := new(Meal_read)
+	meal_read.Title = meal.Title
+	meal_read.Host_name = host_as_guest.First_name
+	meal_read.Price = booking.Meal_price
+	return APISuccess(meal_read)
+}
+// curl -d 'to=destination@example.com&amp;toname=Destination&amp;subject=Example Subject&amp;text=testingtextbody&amp;from=info@domain.com&amp;api_user=agree&amp;api_key=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' https://api.sendgrid.com/api/mail.send.json
+// Secret key: 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
+
+// worker goes like this:
+
+// get all the meals that started between 2.5 and 3.5 hours ago
+// get all the guests for all those meals
+// contact all the guests with review links for that meal
+// contact goes like this:
+// if you have their phone number, text them
+// else send them an email
+// sleep for 1 hour.
+// curl --data "method=ChargeTip&reviewId=37" https://qa.yaychakula.com/api/review
+func (t *ReviewServlet) ChargeTip(r *http.Request) *ApiResult {
+	review_id_s := r.Form.Get("reviewId")
+	review_id, err := strconv.ParseInt(review_id_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed review ID", 400)
+	}
+	review, err := GetReviewById(t.db, review_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Could not locate review", 400)
+	}
+	booking, err := GetBookingByGuestAndPopupId(t.db, review.Guest_id, review.Popup_id)
+	err = t.charge_tip(review.Tip_percent, booking)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to charge tip", 500)
+	}
+	return APISuccess("OK")
+}
+// TODO: getReviewForm()
+// TODO: check that star rating is set on front end
+// takes meal id returns host, meal title....
+// curl --data "method=leaveReview&comment=blah&suggestion=blahblabla&rating=5&tipPercent=20&session=1234&popupId=15" https://qa.yaychakula.com/api/review
+func (t *ReviewServlet) PostReview(r *http.Request) *ApiResult {
+	// get the session's guest
+	session_id := r.Form.Get("session")
+	valid, session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Couldn't locate guest", 400)
+	}
+	if !valid {
+		return APIError("Invalid session", 400)
+	}
+	review := new(Review)
+	review.Guest_id = session.Guest.Id
+	popup_id_s := r.Form.Get("popupId")
+	review.Popup_id, err = strconv.ParseInt(popup_id_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed popup ID", 400)
+	}
+	// TODO: if popup.Starts > moment() return error
+	// check that the guest had requested the meal
+	booking, err := GetBookingByGuestAndPopupId(t.db, session.Guest.Id, review.Popup_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("You can only review meals you have attended", 400)
 	}
 	// check the table: have they left a review already?
-	review, err := GetMealReviewByGuestIdAndMealId(t.db, session.Guest.Id, popup.Meal_id)
-	if review != nil {
+	saved_review, err := GetMealReviewByGuestIdAndPopupId(t.db, session.Guest.Id, review.Popup_id)
+	if saved_review != nil {
 		return APIError("You only review a meal once. That's the motto, #YORAMO", 400)
 	}
-	rating_s := r.Form.Get("rating")
-	rating, err := strconv.ParseInt(rating_s, 10, 64)
+	rating_s := r.Form.Get("Rating")
+	review.Rating, err = strconv.ParseInt(rating_s, 10, 64)
 	if err != nil {
 		log.Println(err)
 		return APIError("Malformed rating", 400)
 	}
-	tip_percent_s := r.Form.Get("tipPercent")
-	tip_percent, err := strconv.ParseInt(tip_percent_s, 10, 64)
+	tip_percent_s := r.Form.Get("TipPercent")
+	review.Tip_percent, err = strconv.ParseInt(tip_percent_s, 10, 64)
 	if err != nil {
 		log.Println(err)
 		return APIError("Malformed tip percent", 400)
 	}
-	comment := r.Form.Get("comment")
-	err = SaveReview(t.db, session.Guest.Id, popup.Meal_id, rating, comment, tip_percent)
+	// StripeCharge tip %
+	if review.Tip_percent != 0 {
+		err = t.charge_tip(review.Tip_percent, booking)
+		if err != nil {
+			log.Println(err)
+			return APIError("Failed to charge tip.", 500)
+		}
+	}
+	review.Comment = r.Form.Get("Comment")
+	review.Suggestion = r.Form.Get("Suggestion")
+	err = SaveReview(t.db, review)
 	if err != nil {
+		log.Println(err)
 		return APIError("Failed to save review. Please try again.", 500)
 	}
 	return APISuccess("OK")
+}
+
+func (t *ReviewServlet) charge_tip(tip_percent int64, booking *PopupBooking) error {
+	tip_percent_float := float64(tip_percent) / float64(100)
+	total_tip := tip_percent_float * booking.Meal_price * float64(booking.Seats)
+	meal, err := GetMealByPopupId(t.db, booking.Popup_id)
+	if err != nil {
+		return err
+	}
+	host_tip := meal.Price * tip_percent_float
+	chakula_fee := total_tip - host_tip + 0.3
+	customer, err := GetStripeTokenByGuestIdAndLast4(t.db, booking.Guest_id, booking.Last4)
+	if err != nil {
+		return err
+	}
+	host, err := GetHostById(t.db, meal.Host_id)
+	if err != nil {
+		return err
+	}
+	PostStripeCharge(int(total_tip * 100), 
+		int(chakula_fee * 100), 
+		customer.Stripe_token, 
+		host.Stripe_user_id)
+	return nil
 }
 
 func (t *ReviewServlet) Get(r *http.Request) *ApiResult {
@@ -301,7 +402,7 @@ func (t *ReviewServlet) Get(r *http.Request) *ApiResult {
 		log.Println(err)
 		return nil
 	}
-	meal, err := GetMealById(t.db, review.Meal_id)
+	meal, err := GetMealByPopupId(t.db, review.Popup_id)
 	if err != nil {
 		log.Println(err)
 		return nil
@@ -311,7 +412,7 @@ func (t *ReviewServlet) Get(r *http.Request) *ApiResult {
 	review_read.Rating = review.Rating
 	review_read.Comment = review.Comment
 	review_read.Date = review.Date
-	review_read.Meal_id = review.Meal_id
+	review_read.Meal_id = meal.Id
 	review_read.Meal_title = meal.Title
 	return APISuccess(review_read)
 }

@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"errors"
 )
 
 type MealRequestServlet struct {
@@ -196,17 +197,12 @@ func (t *MealRequestServlet) email_guest(booking *PopupBooking) error {
 		log.Println(err)
 		return err
 	}
-	meal_price, err := GetMealPrice(t.db, meal)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
 	subject := fmt.Sprintf("%s Welcomed You to %s!", host_as_guest.First_name, meal.Title)
 	html :=fmt.Sprintf("<p>Get excited!</p><p>The dinner is at %s, %s, %s, %s</p>" + 
 		"<p>Please reply to this email if you need any help.</p>" +
 		"<p>View the meal again <a href=https://yaychakula.com/meal/%d" + 
 		">here</a></p>" +
-		"<p>Your card will be charged $%.2f.</p>" + 
+		"<p>Your card will be charged $%.2f after the meal.</p>" + 
 		"<p>Peace, love and full stomachs,</p>" +
 		"<p>Chakula</p>", 
 		BuildTime(popup.Starts), 
@@ -214,28 +210,32 @@ func (t *MealRequestServlet) email_guest(booking *PopupBooking) error {
 		popup.City,
 		popup.State, 
 		meal.Id,
-		meal_price)
+		booking.Meal_price * float64(booking.Seats))
 	SendEmail(guest_email, subject, html)
 	return nil
 }
 
 func (t *MealRequestServlet) process_popup_charge_worker() {
 	// get all meals that happened 7 - 8 days ago
+	if server_config.Version.V != "prod" { // only run this routine on prod
+		log.Println("Exiting meal_charge routine on qa")
+		return
+	}	
 	for {
 		t.process_meal_charges()
 		time.Sleep(time.Hour)
 	}
 }
-
+// curl --data "method=ProcessMealCharges"
+func (t *MealRequestServlet) ProcessMealCharges(r *http.Request) *ApiResult {
+	t.process_meal_charges()
+	return APISuccess("Ok")
+}
 // TODO: handle failed charges...
 
 func (t *MealRequestServlet) process_meal_charges(){
-	if server_config.Version.V != "prod" { // only run this routine on prod
-		log.Println("Exiting meal_charge routine on qa")
-		return
-	}
-	window_starts := time.Now().Add(-time.Hour * 3)
-	window_ends := time.Now().Add(-time.Hour * 4)
+	window_starts := time.Now().Add(-time.Hour * 72)
+	window_ends := time.Now().Add(-time.Hour * 48)
 	popups, err := GetPopupsFromTimeWindow(t.db, window_starts, window_ends)
 	if err != nil {
 		log.Println(err)
@@ -248,13 +248,17 @@ func (t *MealRequestServlet) process_meal_charges(){
 		bookings, err := GetBookingsForPopup(t.db, popup.Id)
 		if err != nil {
 			log.Println(err)
+			continue
 		}
-		t.process_bookings(bookings)
+		err = t.process_bookings(bookings)
+		if err != nil {
+			return
+		}
 		SetPopupProcessed(t.db, popup.Id)
-		t.notify_host_payment_processed(popup)
+		t.notify_host_payment_processed(popup) // TO QA
 	}
 }
-
+// TO QA
 func (t *MealRequestServlet) notify_host_payment_processed(popup *Popup) {
 	meal, err := GetMealById(t.db, popup.Meal_id)
 	if err != nil {
@@ -276,22 +280,46 @@ func (t *MealRequestServlet) notify_host_payment_processed(popup *Popup) {
 		log.Println(err)
 		return
 	}
+	bookings, err := GetBookingsForPopup(t.db, popup.Id)
 	subject := "Processed: " + meal.Title
 	html := "<p>Chakula processed the payments for the meal you held at " + BuildTime(popup.Starts) + ".</p>" +
+			"<p>Final payout:</p>" +
+			t.get_guest_list_receipt_html(bookings, meal) +
 			"<p>Please be advised that <strong>Stripe still has to clear the payments</strong> before the funds are transferred to your account." +
 			"This should take no more than 4 business days</p>" +
-			"<p>To check the status of your funds please log into your <a href='https://stripe.com'>stripe account</a></p>" +
+			"<p>To check the status of your funds please log into your <a href='https://dashboard.stripe.com/login'>stripe account</a></p>" +
 			"<p>If you have any further questions, contact Agree at agree@yaychakula.com</p>" +
 			"<p>Sincerely,</p>" +
 			"<p>Chakula</p>"
 	SendEmail(host_as_guest.Email, subject, html)
 }
 
-func (t *MealRequestServlet) process_bookings(bookings []*PopupBooking) {
+// TO QA
+func (t *MealRequestServlet) get_guest_list_receipt_html(bookings []*PopupBooking, meal *Meal) string {
+	html := ""
+	total := float64(0)
 	for _, booking := range bookings {
-		// create stripe charge
-		t.charge_booking(booking)
+		guest, err := GetGuestById(t.db, booking.Guest_id)
+		if err != nil {
+			log.Println(err)
+			return ""
+		}
+		html += 
+			fmt.Sprintf("<p> %s: %d seats</p>", guest.First_name, booking.Seats)
+		total += meal.Price * float64(booking.Seats)
 	}
+	html += fmt.Sprintf("<p> Total: $%.2f</p>", total)
+	return html
+}
+
+func (t *MealRequestServlet) process_bookings(bookings []*PopupBooking) error {
+	for _, booking := range bookings {
+		err := t.charge_booking(booking)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 /*
@@ -314,6 +342,10 @@ type StripeCharge struct {
 
 /* 
 curl --data "method=ChargeBooking&id=63&key=***REMOVED***" https://qa.yaychakula.com/api/mealrequest
+curl https://connect.stripe.com/oauth/token \
+   -d client_secret=***REMOVED*** \
+   -d refresh_token=REFRESH_TOKEN \
+   -d grant_type=refresh_token
 */
 func (t *MealRequestServlet) ChargeBooking(r *http.Request) *ApiResult {
 	booking_id_s := r.Form.Get("id")
@@ -346,43 +378,38 @@ curl https://api.stripe.com/v1/charges \
    -d destination=___ \
    -d application_fee=___
 */
-
-func (t *MealRequestServlet) charge_booking(booking *PopupBooking) {
+// qa'd
+func (t *MealRequestServlet) charge_booking(booking *PopupBooking) error {
 	// Get customer object, meal (to get the price), and host (to get stripe destination)
 	if booking.Last4 == 0 { // skip dummy and complementary bookings
-		return
+		return nil
 	}
 	customer, err := GetStripeTokenByGuestIdAndLast4(t.db, booking.Guest_id, booking.Last4)
 	if err != nil {
 		log.Println(err)
-		return
+		return err
 	}
-	popup, err := GetPopupById(t.db, booking.Popup_id)
+	meal, err := GetMealByPopupId(t.db, booking.Popup_id)
 	if err != nil {
 		log.Println(err)
-		return	
-	}
-	meal, err := GetMealById(t.db, popup.Meal_id)
-	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 	host, err := GetHostById(t.db, meal.Host_id)
 	if err != nil {
 		log.Println(err)
-		return
+		return err
 	}
 	host_price_pennies := meal.Price * 100
 	seats := float64(booking.Seats)
 	total_pennies := int(booking.Meal_price * seats * 100)
 	chakula_fee_pennies := total_pennies - int(host_price_pennies * seats)
-	log.Println("Price in pennies: %d", host_price_pennies)
-	log.Println("Total in pennies: %d", total_pennies)
-	log.Println("Chakula fee in pennies: %d", chakula_fee_pennies)
-	PostStripeCharge(total_pennies, chakula_fee_pennies, customer.Stripe_token, host.Stripe_user_id)
+	log.Println("Price in pennies: ", host_price_pennies)
+	log.Println("Total in pennies: ", total_pennies)
+	log.Println("Chakula fee in pennies: ", chakula_fee_pennies)
+	return PostStripeCharge(total_pennies, chakula_fee_pennies, customer.Stripe_token, host.Stripe_user_id)
 }
 
-func PostStripeCharge(total, chakula_fee int, customer_token, host_account string) {
+func PostStripeCharge(total, chakula_fee int, customer_token, host_account string) error {
 	client := &http.Client{}
    	stripe_body := url.Values{
 		"amount": {strconv.Itoa(total)},
@@ -397,7 +424,7 @@ func PostStripeCharge(total, chakula_fee int, customer_token, host_account strin
 		strings.NewReader(stripe_body.Encode()))
 	if err != nil {
 		log.Println(err)
-		return
+		return err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	if server_config.Version.V == "prod" {
@@ -408,10 +435,12 @@ func PostStripeCharge(total, chakula_fee int, customer_token, host_account strin
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
-		return
+		return err
 	}
-	log.Println(resp)
-	// TODO: react according to Stripe response!
+	if resp.StatusCode != 200 {
+		return errors.New(resp.Status)
+	}
+	return nil
 }
 
 func BuildTime(ts time.Time) string {
