@@ -24,7 +24,6 @@ type MealServlet struct {
 	random          *rand.Rand
 }
 
-
 type Meal_read struct {
 	Id 				int64
 	Title 			string
@@ -145,6 +144,7 @@ type Attendee_read struct {
 	First_name 		string
 	Prof_pic_url	string
 	Seats 			int64
+	Bio 			string
 }
 
 // curl --data "method=GetMealAttendees&mealId=3" https://qa.yaychakula.com/api/meal
@@ -165,6 +165,7 @@ func (t *MealServlet) get_popup_attendees(meal_id int64) ([]*Attendee_read, erro
     		attendee_read.Prof_pic_url = GetFacebookPic(attendee.Guest.Facebook_id)
     	}
     	attendee_read.Seats = attendee.Seats
+    	attendee_read.Bio = as_guest.Bio
     	attendee_reads = append(attendee_reads, attendee_read)
 	}
 	return attendee_reads, nil
@@ -868,7 +869,7 @@ func (t *MealServlet) get_host_reviews(host_id int64) ([]*Review_read) {
 			log.Println(err)
 			return nil
 		}
-		meal, err := GetMealById(t.db, review.Meal_id)
+		meal, err := GetMealByPopupId(t.db, review.Popup_id)
 		if err != nil {
 			log.Println(err)
 			return nil
@@ -882,7 +883,7 @@ func (t *MealServlet) get_host_reviews(host_id int64) ([]*Review_read) {
 		review_read.Rating = review.Rating
 		review_read.Comment = review.Comment
 		review_read.Date = review.Date
-		review_read.Meal_id = review.Meal_id
+		review_read.Meal_id = meal.Id
 		review_read.Meal_title = meal.Title
 		review_reads = append(review_reads, review_read)
 	}
