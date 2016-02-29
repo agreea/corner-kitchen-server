@@ -108,6 +108,7 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.Println("Starting API server")
 
+
 	/*
 	 * Load Configuration
 	 */
