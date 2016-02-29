@@ -24,5 +24,9 @@ SID = "***REMOVED***"
 Token = "***REMOVED***"
 From = "8452432425"
 
+[SendGrid]
+User = "agree"
+Pass = "***REMOVED***"
+
 [Version]
 V = "qa"

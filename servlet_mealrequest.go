@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 	"errors"
+    "github.com/sendgrid/sendgrid-go"
 )
 
 type MealRequestServlet struct {
@@ -18,6 +19,8 @@ type MealRequestServlet struct {
 	server_config   *Config
 	twilio_queue    chan *SMS
 	session_manager *SessionManager
+	sg_client 		*sendgrid.SGClient // sendGrid client
+
 }
 
 type MealRequestRead struct {
@@ -37,13 +40,15 @@ func NewMealRequestServlet(server_config *Config, session_manager *SessionManage
 	t.db = db
 	t.session_manager = session_manager
 	t.twilio_queue = twilio_queue
+	t.sg_client = sendgrid.NewSendGridClient(server_config.SendGrid.User, server_config.SendGrid.Pass)
+
 	// start worker
 	go t.process_popup_charge_worker()
 	return t
 }
 
 /* 
-curl --data "method=BookPopup&session=f1caa66a-3351-48db-bcb3-d76bdc644634&popupId=15&seats=2&last4=1234" https://qa.yaychakula.com/api/meal
+curl --data "method=BookPopup&session=f1caa66a-3351-48db-bcb3-d76bdc644634&popupId=36&seats=2&last4=4242" https://qa.yaychakula.com/api/meal
 */
 func (t *MealRequestServlet) BookPopup(r *http.Request) *ApiResult{
 	popup_id_s := r.Form.Get("popupId")
@@ -118,6 +123,12 @@ func (t *MealRequestServlet) record_booking(guest *GuestData, popup *Popup, coun
 		log.Println(err)
 		return APIError("Failed to notify guest", 500)
 	}
+	// err = t.notify_host(saved_booking)
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return APIError("Failed to notify guest", 500)
+	// }
+
 	return APISuccess(saved_booking)
 }
 
@@ -141,6 +152,11 @@ func (t *MealRequestServlet) notify_guest(booking *PopupBooking) (error) {
 	return err
 }
 
+// func (t *MealRequestServlet) notify_host(booking *PopupBooking) (error) {
+// 	// Let them see 
+// 	// 
+// 	// 
+// }
 // Called to let them know if they made it
 func (t *MealRequestServlet) text_guest(phone string, booking *PopupBooking) (error) {
 	popup, err := GetPopupById(t.db, booking.Popup_id)
@@ -197,21 +213,50 @@ func (t *MealRequestServlet) email_guest(booking *PopupBooking) error {
 		log.Println(err)
 		return err
 	}
-	subject := fmt.Sprintf("%s Welcomed You to %s!", host_as_guest.First_name, meal.Title)
-	html :=fmt.Sprintf("<p>Get excited!</p><p>The dinner is at %s, %s, %s, %s</p>" + 
+
+	subject := fmt.Sprintf("%s Welcomed You to %s!", 
+			host_as_guest.First_name, 
+			meal.Title)
+	html := "<p>Get excited!</p><p>The dinner is at :time, :address, :city, :state</p>" + 
 		"<p>Please reply to this email if you need any help.</p>" +
-		"<p>View the meal again <a href=https://yaychakula.com/meal/%d" + 
+		"<p>View the meal again <a href=https://yaychakula.com/meal/:meal_id" + 
 		">here</a></p>" +
-		"<p>Your card will be charged $%.2f after the meal.</p>" + 
+		"<p>Your card will be charged $:price after the meal.</p>" + 
 		"<p>Peace, love and full stomachs,</p>" +
-		"<p>Chakula</p>", 
-		BuildTime(popup.Starts), 
-		popup.Address, 
-		popup.City,
-		popup.State, 
-		meal.Id,
-		booking.Meal_price * float64(booking.Seats))
-	SendEmail(guest_email, subject, html)
+		"<p>Chakula</p>"
+
+	message := sendgrid.NewMail()
+    message.AddTo(guest_email)
+    message.AddToName(guest.First_name)
+    message.SetSubject(subject)
+    message.SetHTML(html)
+    message.SetFrom("meals@yaychakula.com")
+
+    message.AddSubstitution(":time", BuildTime(popup.Starts))
+    message.AddSubstitution(":address", popup.Address)
+    message.AddSubstitution(":city", popup.City)
+    message.AddSubstitution(":state", popup.State)
+    message.AddSubstitution(":meal_id", string(meal.Id))
+    message.AddSubstitution(":price", 
+    	fmt.Sprintf("%.2f", booking.Meal_price * float64(booking.Seats)))
+    if err := t.sg_client.Send(message); err != nil {
+        return err
+    }
+
+	// // html :=fmt.Sprintf("<p>Get excited!</p><p>The dinner is at %s, %s, %s, %s</p>" + 
+	// // 	"<p>Please reply to this email if you need any help.</p>" +
+	// // 	"<p>View the meal again <a href=https://yaychakula.com/meal/%d" + 
+	// // 	">here</a></p>" +
+	// // 	"<p>Your card will be charged $%.2f after the meal.</p>" + 
+	// // 	"<p>Peace, love and full stomachs,</p>" +
+	// // 	"<p>Chakula</p>", 
+	// // 	BuildTime(popup.Starts), 
+	// // 	popup.Address, 
+	// // 	popup.City,
+	// // 	popup.State, 
+	// // 	meal.Id,
+	// // 	booking.Meal_price * float64(booking.Seats))
+	// SendEmail(guest_email, subject, html)
 	return nil
 }
 
@@ -226,11 +271,11 @@ func (t *MealRequestServlet) process_popup_charge_worker() {
 		time.Sleep(time.Hour)
 	}
 }
-// curl --data "method=ProcessMealCharges"
-func (t *MealRequestServlet) ProcessMealCharges(r *http.Request) *ApiResult {
-	t.process_meal_charges()
-	return APISuccess("Ok")
-}
+// // curl --data "method=ProcessMealCharges"
+// func (t *MealRequestServlet) ProcessMealCharges(r *http.Request) *ApiResult {
+// 	t.process_meal_charges()
+// 	return APISuccess("Ok")
+// }
 // TODO: handle failed charges...
 
 func (t *MealRequestServlet) process_meal_charges(){
@@ -250,17 +295,22 @@ func (t *MealRequestServlet) process_meal_charges(){
 			log.Println(err)
 			continue
 		}
-		err = t.process_bookings(bookings)
-		if err != nil {
+		if err = t.process_bookings(bookings); err != nil {
 			return
 		}
 		SetPopupProcessed(t.db, popup.Id)
 		t.notify_host_payment_processed(popup) // TO QA
 	}
 }
+
 // TO QA
-func (t *MealRequestServlet) notify_host_payment_processed(popup *Popup) {
+func (t *MealRequestServlet) notify_host_payment_processed(popup *Popup) {	
 	meal, err := GetMealById(t.db, popup.Meal_id)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	bookings, err := GetBookingsForPopup(t.db, popup.Id)
 	if err != nil {
 		log.Println(err)
 		return
@@ -280,7 +330,6 @@ func (t *MealRequestServlet) notify_host_payment_processed(popup *Popup) {
 		log.Println(err)
 		return
 	}
-	bookings, err := GetBookingsForPopup(t.db, popup.Id)
 	subject := "Processed: " + meal.Title
 	html := "<p>Chakula processed the payments for the meal you held at " + BuildTime(popup.Starts) + ".</p>" +
 			"<p>Final payout:</p>" +

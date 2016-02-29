@@ -43,6 +43,10 @@ type Config struct {
 		Token string
 		From  string
 	}
+	SendGrid struct {
+		User string
+		Pass string
+	}
 	Version struct {
 		V string
 	}
