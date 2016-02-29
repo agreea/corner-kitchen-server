@@ -367,6 +367,11 @@ func (t *ReviewServlet) charge_tip(tip_percent int64, booking *PopupBooking) err
 	if err != nil {
 		return err
 	}
+	guest, err := GetGuestById(t.db, booking.Guest_id)
+	if err != nil {
+		return err
+	}
+	description := guest.First_name + "'s gratuity for " + meal.Title
 	host_tip := meal.Price * tip_percent_float
 	chakula_fee := total_tip - host_tip + 0.3
 	customer, err := GetStripeTokenByGuestIdAndLast4(t.db, booking.Guest_id, booking.Last4)
@@ -380,7 +385,8 @@ func (t *ReviewServlet) charge_tip(tip_percent int64, booking *PopupBooking) err
 	PostStripeCharge(int(total_tip * 100), 
 		int(chakula_fee * 100), 
 		customer.Stripe_token, 
-		host.Stripe_user_id)
+		host.Stripe_user_id,
+		description)
 	return nil
 }
 

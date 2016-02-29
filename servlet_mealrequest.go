@@ -361,7 +361,7 @@ func (t *MealRequestServlet) notify_host_payment_processed(popup *Popup) {
 			"<p>If you have any further questions, contact Agree at agree@yaychakula.com</p>" +
 			"<p>Sincerely,</p>" +
 			"<p>Chakula</p>"
-	if server_config.Version.V == "prod" {
+	if server_config.Version.V != "prod" {
 		subject = "[TESTING]" + subject
 		html = "<p><strong>THIS IS A TEST. This does reflect actual activity related to your Chakula account.</strong></p>"
 	}
@@ -463,6 +463,11 @@ func (t *MealRequestServlet) charge_booking(booking *PopupBooking) error {
 		log.Println(err)
 		return err
 	}
+	guest, err := GetGuestById(t.db, booking.Guest_id)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
 	meal, err := GetMealByPopupId(t.db, booking.Popup_id)
 	if err != nil {
 		log.Println(err)
@@ -480,10 +485,15 @@ func (t *MealRequestServlet) charge_booking(booking *PopupBooking) error {
 	log.Println("Price in pennies: ", host_price_pennies)
 	log.Println("Total in pennies: ", total_pennies)
 	log.Println("Chakula fee in pennies: ", chakula_fee_pennies)
-	return PostStripeCharge(total_pennies, chakula_fee_pennies, customer.Stripe_token, host.Stripe_user_id)
+	description := guest.First_name + "'s payment for " + meal.Title
+	return PostStripeCharge(total_pennies, 
+		chakula_fee_pennies, 
+		customer.Stripe_token, 
+		host.Stripe_user_id,
+		description)
 }
 
-func PostStripeCharge(total, chakula_fee int, customer_token, host_account string) error {
+func PostStripeCharge(total, chakula_fee int, customer_token, host_account, description string) error {
 	client := &http.Client{}
    	stripe_body := url.Values{
 		"amount": {strconv.Itoa(total)},
@@ -491,6 +501,7 @@ func PostStripeCharge(total, chakula_fee int, customer_token, host_account strin
 		"customer": {customer_token},
 		"destination": {host_account},
 		"application_fee": {strconv.Itoa(chakula_fee)},
+		"description": {description},
 	}
 	req, err := http.NewRequest(
 		"POST",
