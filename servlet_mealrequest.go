@@ -289,7 +289,9 @@ func (t *MealRequestServlet) process_meal_charges(){
 		t.process_popup(popup)
 	}
 }
-
+/*
+curl --data "method=ProcessPopup&popupId=16" https://yaychakula.com/api/mealrequest
+*/
 func (t *MealRequestServlet) ProcessPopup(r *http.Request) *ApiResult {
 	popup_id_s := r.Form.Get("popupId")
 	popup_id, err := strconv.ParseInt(popup_id_s, 10, 64)
@@ -298,12 +300,16 @@ func (t *MealRequestServlet) ProcessPopup(r *http.Request) *ApiResult {
 		return APIError("Malformed popup ID", 400)
 	}
 	popup, err := GetPopupById(t.db, popup_id)
-	if err = t.process_popup(popup); err != nil {
+	if err != nil {
 		log.Println(err)
-		return APIError("Failed to process popup", 400)
+		return APIError("Invalid popup ID", 400)
 	}
 	if popup.Processed == 1 {
 		return APISuccess("Already processed")
+	}
+	if err = t.process_popup(popup); err != nil {
+		log.Println(err)
+		return APIError("Failed to process popup", 400)
 	}
 	return APISuccess("OK")
 }
