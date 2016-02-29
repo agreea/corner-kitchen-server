@@ -363,7 +363,9 @@ func (t *MealRequestServlet) notify_host_payment_processed(popup *Popup) {
 			"<p>Chakula</p>"
 	if server_config.Version.V != "prod" {
 		subject = "[TESTING]" + subject
-		html = "<p><strong>THIS IS A TEST. This does reflect actual activity related to your Chakula account.</strong></p>"
+		html = "<p><strong>THIS IS A TEST. " + 
+				"This does reflect actual activity related to your Chakula account.</strong></p>" +
+				html
 	}
 	SendEmail(host_as_guest.Email, subject, html)
 }
