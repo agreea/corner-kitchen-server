@@ -302,7 +302,7 @@ func (t *MealRequestServlet) ProcessPopup(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Failed to process popup", 400)
 	}
-	if popup.Processed {
+	if popup.Processed == 1 {
 		return APISuccess("Already processed")
 	}
 	return APISuccess("OK")
