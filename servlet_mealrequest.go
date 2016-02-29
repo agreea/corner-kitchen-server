@@ -20,7 +20,6 @@ type MealRequestServlet struct {
 	twilio_queue    chan *SMS
 	session_manager *SessionManager
 	sg_client 		*sendgrid.SGClient // sendGrid client
-
 }
 
 type MealRequestRead struct {
