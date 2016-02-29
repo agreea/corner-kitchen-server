@@ -286,20 +286,42 @@ func (t *MealRequestServlet) process_meal_charges(){
 		return
 	}
 	for _, popup := range popups {
-		if (popup.Processed == 1) { // skip the processed meals
-			continue
-		}
-		bookings, err := GetBookingsForPopup(t.db, popup.Id)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		if err = t.process_bookings(bookings); err != nil {
-			return
-		}
-		SetPopupProcessed(t.db, popup.Id)
-		t.notify_host_payment_processed(popup) // TO QA
+		t.process_popup(popup)
 	}
+}
+
+func (t *MealRequestServlet) ProcessPopup(r *http.Request) *ApiResult {
+	popup_id_s := r.Form.Get("popupId")
+	popup_id, err := strconv.ParseInt(popup_id_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed popup ID", 400)
+	}
+	popup, err := GetPopupById(t.db, popup_id)
+	if err = t.process_popup(popup); err != nil {
+		log.Println(err)
+		return APIError("Failed to process popup", 400)
+	}
+	if popup.Processed {
+		return APISuccess("Already processed")
+	}
+	return APISuccess("OK")
+}
+
+func (t *MealRequestServlet) process_popup(popup *Popup) error {
+	if (popup.Processed == 1) { // skip the processed meals
+		return nil
+	}
+	bookings, err := GetBookingsForPopup(t.db, popup.Id)
+	if err != nil {
+		return err
+	}
+	if err = t.process_bookings(bookings); err != nil {
+		return err
+	}
+	SetPopupProcessed(t.db, popup.Id)
+	t.notify_host_payment_processed(popup) // TO QA
+	return nil
 }
 
 // TO QA
@@ -339,6 +361,10 @@ func (t *MealRequestServlet) notify_host_payment_processed(popup *Popup) {
 			"<p>If you have any further questions, contact Agree at agree@yaychakula.com</p>" +
 			"<p>Sincerely,</p>" +
 			"<p>Chakula</p>"
+	if server_config.Version.V == "prod" {
+		subject = "[TESTING]" + subject
+		html = "<p><strong>THIS IS A TEST. This does reflect actual activity related to your Chakula account.</strong></p>"
+	}
 	SendEmail(host_as_guest.Email, subject, html)
 }
 
