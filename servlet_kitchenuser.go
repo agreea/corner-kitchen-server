@@ -473,14 +473,20 @@ func (t *KitchenUserServlet) GetForEdit(r *http.Request) *ApiResult {
 	if key != "12q4lkjLK99JnfalsmfFDfdkd" {
 		session.Guest.Facebook_long_token = "nah b"
 	}
+	guest := session.Guest
 	host, err := GetHostByGuestId(t.db, session.Guest.Id)
-	session.Guest.Is_host = (host != nil)
+	guest.Is_host = (host != nil)
 	// error checking here doesn't matter
-	session.Guest.Email, err = GetEmailForGuest(t.db, session.Guest.Id)
-	session.Guest.Phone, err = GetPhoneForGuest(t.db, session.Guest.Id)
-	session.Guest.Phone_verified, err = GetPhoneStatus(t.db, session.Guest.Id)
-	session.Guest.Email_verified, err = GetEmailStatus(t.db, session.Guest.Id)
-	return APISuccess(session.Guest)
+	guest.Email, err = GetEmailForGuest(t.db, guest.Id)
+	guest.Phone, err = GetPhoneForGuest(t.db, guest.Id)
+	guest.Phone_verified, err = GetPhoneStatus(t.db, guest.Id)
+	guest.Email_verified, err = GetEmailStatus(t.db, guest.Id)
+	guest.Last4s, err = GetLast4sForGuest(t.db, guest.Id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to retrieve guest data", 500)
+	}
+	return APISuccess(guest)
 }
 
 /*
