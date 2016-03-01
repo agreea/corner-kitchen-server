@@ -423,7 +423,7 @@ type StripeCharge struct {
 }
 
 /* 
-curl --data "method=ChargeBooking&id=63&key=***REMOVED***" https://qa.yaychakula.com/api/mealrequest
+curl --data "method=ChargeBooking&id=44&key=***REMOVED***" https://yaychakula.com/api/mealrequest
 curl https://connect.stripe.com/oauth/token \
    -d client_secret=***REMOVED*** \
    -d refresh_token=REFRESH_TOKEN \
