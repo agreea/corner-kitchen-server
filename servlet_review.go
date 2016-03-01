@@ -274,7 +274,7 @@ func (t *ReviewServlet) GetReviewData(r *http.Request) *ApiResult {
 // if you have their phone number, text them
 // else send them an email
 // sleep for 1 hour.
-// curl --data "method=ChargeTip&reviewId=37" https://qa.yaychakula.com/api/review
+// curl --data "method=ChargeTip&reviewId=26" https://yaychakula.com/api/review
 func (t *ReviewServlet) ChargeTip(r *http.Request) *ApiResult {
 	review_id_s := r.Form.Get("reviewId")
 	review_id, err := strconv.ParseInt(review_id_s, 10, 64)
