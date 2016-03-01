@@ -164,6 +164,7 @@ type GuestData struct {
 	Email          		string
 	Phone_verified 		bool
 	Email_verified 		bool
+	Last4s 				[]int64
 }
 
 type FacebookResp struct {
