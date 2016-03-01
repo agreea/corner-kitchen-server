@@ -10,6 +10,8 @@ import (
 	"time"
 	"net/url"
 	"strings"
+    "github.com/sendgrid/sendgrid-go"
+    "io/ioutil"
 )
 
 type ReviewServlet struct {
@@ -17,6 +19,7 @@ type ReviewServlet struct {
 	server_config   *Config
 	session_manager *SessionManager
 	twilio_queue    chan *SMS
+	sg_client 		*sendgrid.SGClient // sendGrid client
 }
 
 
@@ -30,6 +33,8 @@ func NewReviewServlet(server_config *Config, session_manager *SessionManager, tw
 	t.db = db
 	t.session_manager = session_manager
 	t.twilio_queue = twilio_queue
+	t.sg_client = sendgrid.NewSendGridClient(server_config.SendGrid.User, server_config.SendGrid.Pass)
+
 	// go t.nudge_review_worker()
 	return t
 }
@@ -183,20 +188,12 @@ func (t *ReviewServlet) notify_attendee_to_review(guest_id int64, meal_id int64)
 		log.Println(err)
 		return
 	}
-
 	guest, err := GetGuestById(t.db, guest_id)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-
-	host, err := GetHostById(t.db, meal.Host_id)
-	if err != nil {
-		log.Println(err)
-		return		
-	}
-
-	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
+	host_as_guest, err := GetGuestByHostId(t.db, meal.Host_id)
 	if err != nil {
 		log.Println(err)
 		return		
@@ -245,17 +242,11 @@ func (t *ReviewServlet) GetReviewData(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("You can only review meals you have attended", 400)		
 	}
-	host, err := GetHostById(t.db, meal.Host_id)
+	host_as_guest, err := GetGuestByHostId(t.db, meal.Host_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Could not locate host", 500)		
 	}
-	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
-	if err != nil {
-		log.Println(err)
-		return APIError("Could not locate host", 500)		
-	}
-
 	meal_read := new(Meal_read)
 	meal_read.Title = meal.Title
 	meal_read.Host_name = host_as_guest.First_name
@@ -274,7 +265,7 @@ func (t *ReviewServlet) GetReviewData(r *http.Request) *ApiResult {
 // if you have their phone number, text them
 // else send them an email
 // sleep for 1 hour.
-// curl --data "method=ChargeTip&reviewId=26" https://yaychakula.com/api/review
+// curl --data "method=ChargeTip&reviewId=34" https://yaychakula.com/api/review
 func (t *ReviewServlet) ChargeTip(r *http.Request) *ApiResult {
 	review_id_s := r.Form.Get("reviewId")
 	review_id, err := strconv.ParseInt(review_id_s, 10, 64)
@@ -357,6 +348,7 @@ func (t *ReviewServlet) PostReview(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Failed to save review. Please try again.", 500)
 	}
+	t.notify_host(review)
 	return APISuccess("OK")
 }
 
@@ -389,6 +381,108 @@ func (t *ReviewServlet) charge_tip(tip_percent int64, booking *PopupBooking) err
 		host.Stripe_user_id,
 		description)
 	return nil
+}
+// /*
+// curl --data "method=TestNotifyHost&reviewId=0" https://qa.yaychakula.com
+// */
+// func (t *ReviewServlet) TestNotifyHost(r *http.Request) *ApiResult {
+// 	review_id_s := r.Form.Get("reviewId")
+// 	review_id, err := strconv.ParseInt(review_id_s, 10, 64)
+// 	if err != nil {
+// 		log.Println(err)
+// 		return APIError("Malformed review ID", 400)
+// 	}
+// 	review, err := GetReviewById(t.db, review_id)
+// 	if err != nil {
+// 		log.Println(err)
+// 		return APIError("Malformed review ID", 400)
+// 	}
+//     if err := t.notify_host(review); err != nil {
+// 		log.Println(err)
+//         return APIError("Could not notify host", 500)
+//     }
+//     return APISuccess("OK")
+// }
+
+func (t *ReviewServlet) notify_host(review *Review) error {
+	meal, err := GetMealByPopupId(t.db, review.Popup_id)
+	if err != nil {
+		return err
+	}
+	message, err := t.build_review_notif_email(meal, review)
+	if err != nil {
+		return err
+	}
+    message = t.append_tip_section(message, review, meal)
+    message = t.append_suggestion_section(message, review)
+    if err := t.sg_client.Send(message); err != nil {
+        return err
+    }
+    return nil
+}
+
+func (t *ReviewServlet) build_review_notif_email(meal *Meal, review *Review) (*sendgrid.SGMail, error) {
+	host_as_guest, err := GetGuestByHostId(t.db, meal.Host_id)
+	if err != nil {
+		return nil, err
+	}	
+	guest, err := GetGuestById(t.db, review.Guest_id)
+	if err != nil {
+		return nil, err
+	}
+	host_email, err := GetEmailForGuest(t.db, host_as_guest.Id)
+	if err != nil {
+		return nil, err
+	}
+	html_buf, err := ioutil.ReadFile("review_email.html")
+	if err != nil {
+		return nil, err
+	}
+	subject := "You Have a New Review from " + guest.First_name
+	html := string(html_buf)
+	if server_config.Version.V != "prod" {
+		subject = "[TESTING] " + subject
+		html = "<p><strong>This is a test message and does not reflect" +
+			" activity on your Chakula account</strong></p>" + html
+	}
+	message := sendgrid.NewMail()
+    message.AddTo(host_email)
+    message.AddToName(host_as_guest.First_name)
+    message.SetSubject(subject)
+    message.SetHTML(html)
+    message.SetFrom("reviews@yaychakula.com")
+    message.AddSubstitution(":guest", guest.First_name)
+    message.AddSubstitution(":comment", review.Comment)
+    message.AddSubstitution(":host_id", fmt.Sprintf("%d", meal.Host_id))
+    // message.AddSubstitution(":review_id", 0) // TODO: add review id to review passed in
+    return message, nil
+
+}
+func (t *ReviewServlet) append_tip_section(message *sendgrid.SGMail, review *Review, meal *Meal) *sendgrid.SGMail {
+    if (review.Tip_percent > 0) {
+		tip_amount := float64(review.Tip_percent)/float64(100) * meal.Price
+		gratuity_section := 
+			fmt.Sprintf("<h4>Gratuity<h4><p>$%.2f (%d percent)</p>",
+				tip_amount, 
+				review.Tip_percent)
+    	message.AddSubstitution("{gratuity}", gratuity_section)
+    } else {
+    	message.AddSubstitution("{gratuity}", "")
+    }
+    return message
+}
+
+func (t *ReviewServlet) append_suggestion_section(message *sendgrid.SGMail, review *Review) *sendgrid.SGMail {
+    if (review.Suggestion != "") {
+    	message.AddSubstitution("{suggestion}", 
+    		"<h4>Suggestion<h4>" +
+    		"<p>This will only be visible to you</p>" +
+    		"<p>:suggestion<p>")
+    	message.AddSubstitution(":suggestion", review.Suggestion)
+    } else {
+    	message.AddSubstitution("{suggestion}", "")
+    }
+    return message
 }
 
 func (t *ReviewServlet) Get(r *http.Request) *ApiResult {
