@@ -6,7 +6,6 @@ import (
 	"github.com/stripe/stripe-go/customer"
 	"time"
 	"log"
-	"errors"
 	"io/ioutil"
 	"encoding/base64"
 	"syscall"
@@ -354,9 +353,10 @@ func GetGuestFollowsHost(db *sql.DB, guest_id, host_id int64)(bool) {
 		host_id)
 	follow_id := 0
 	log.Println("About to scan row")
-	if err := row.Scan(&follow_id); err != nil {
+	if err := row.Scan(&follow_id); err == sql.ErrNoRows {
 		return false
 	}
+	log.Println(follow_id)
 	return true
 }
 
@@ -376,12 +376,9 @@ func GetHostById(db *sql.DB, id int64) (*HostData, error) {
 }
 
 func GetHostBySession(db *sql.DB, session_manager *SessionManager, session_id string) (*HostData, error) {
-	valid, session, err := session_manager.GetGuestSession(session_id)
+	session, err := session_manager.GetGuestSession(session_id)
 	if err != nil {
-		return nil, errors.New("Couldn't locate guest")
-	}
-	if !valid {
-		return nil, errors.New("Invalid session")
+		return nil, err
 	}
 	return GetHostByGuestId(db, session.Guest.Id)
 }
@@ -513,6 +510,40 @@ func GetMealReviewByGuestIdAndPopupId(db *sql.DB, guest_id int64, meal_id int64)
         WHERE Guest_id = ? AND Meal_id = ?`, guest_id, meal_id)
 	return readReviewLine(row)
 }
+
+// func GetUpcomingAttendingMealsForGuest(db *sql.DB, guest_id int64) ([]*Meal_read, error) {
+// 	// get all bookings' popup ids for guest
+// 	// get popups in popup table where id is in attendingpopup_ids
+// 	attending_popup_ids, err := GetUpcomingPopupsForMeal(db, guest_id)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	in_clause := "in (?," + strings.Repeat(",?", len(attending_popup_ids)-1) + ")"
+// 	popup_rows, err := db.Query(`SELECT Id, Meal_id, Starts, Rsvp_by, Address, City, State, Capacity, Processed
+//         FROM Popup 
+//         WHERE Starts > ? AND Id ` + in_clause, attending_popup_ids...)
+// }
+
+// func GetAttendingPopupIdsForGuest(db *sql.DB, guest_id int64) ([]int64, error) {
+// 	attending_popup_id_rows, err := db.Query(`
+// 		SELECT Popup_id
+// 		FROM PopupBooking
+// 		WHERE Guest_id = ?`,
+// 		guest_id,
+// 	)
+// 	attending_popup_ids := make([]int64, 0)
+// 	defer attending_popup_id_rows.Close()
+// 	for rows.Next() {
+// 		popup_id := 0
+// 		if err := rows.Scan(
+// 			&popup_id,
+// 		); err != nil {
+// 			return attending_popup_ids, err
+// 		}
+// 		attending_popup_ids = append(attending_popup_ids, popup_id)
+// 	}
+// 	return attending_popup_ids, nil
+// }
 
 func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal_read, error) {
 	rows, err := db.Query(`

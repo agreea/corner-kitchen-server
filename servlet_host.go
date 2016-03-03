@@ -61,13 +61,10 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 	log.Println("=======Stripe Connect called======")
 	auth := r.Form.Get("auth")
 	session_id := r.Form.Get("session")
-	valid, session, err := t.session_manager.GetGuestSession(session_id)
+	session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Could not locate guest", 400)
-	}
-	if !valid {
-		return APIError("Invalid session", 400)
 	}
 	guest := session.Guest
 	host, err := GetHostByGuestId(t.db, guest.Id)
@@ -100,15 +97,11 @@ func (t *HostServlet) StripeConnect(r *http.Request) *ApiResult {
 
 func (t *HostServlet) Get(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
-	valid, session, err := t.session_manager.GetGuestSession(session_id)
+	session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Couldn't locate guest", 400)
 	}
-	if !valid {
-		return APIError("Invalid session", 400)
-	}
-
 	host, err := GetHostByGuestId(t.db, session.Guest.Id)
 	if err != nil {
 		log.Println(err)
@@ -121,16 +114,34 @@ func (t *HostServlet) Get(r *http.Request) *ApiResult {
 	host.Stripe_refresh_token = ""
 	return APISuccess(host)
 }
-
-func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
+func (t *HostServlet) FollowHost(r *http.Request) *ApiResult {
+	// get session
 	session_id := r.Form.Get("session")
-	valid, session, err := t.session_manager.GetGuestSession(session_id)
+	session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Couldn't locate guest", 400)
 	}
-	if !valid {
-		return APIError("Invalid session", 400)
+	host_id_s := r.Form.Get("hostId")
+	host_id, err := strconv.ParseInt(host_id_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed host ID", 400)
+	}
+	if follows_host := GetGuestFollowsHost(t.db, session.Guest.Id, host_id); !follows_host {
+		if err := RecordFollowHost(t.db, session.Guest.Id, host_id); err != nil {
+			log.Println(err)
+			return APIError("Failed to record follow", 400)
+		}
+	}
+	return APISuccess("OK")
+}
+func (t *HostServlet) UpdateHost(r *http.Request) *ApiResult {
+	session_id := r.Form.Get("session")
+	session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Couldn't locate guest", 400)
 	}
 	guest := session.Guest
 	host, err := GetHostByGuestId(t.db, guest.Id)
@@ -186,8 +197,8 @@ func (t *HostServlet) GetProfile(r *http.Request) *ApiResult {
 	if (session_id == "") {
 		host_prof.Follows = false
 	}
-	valid, session, err := t.session_manager.GetGuestSession(session_id)
-	if (err != nil || !valid) {
+	session, err := t.session_manager.GetGuestSession(session_id)
+	if (err != nil) {
 		host_prof.Follows = false	
 	} else {
 		host_prof.Follows = GetGuestFollowsHost(t.db, session.Guest.Id, host_id)
@@ -268,13 +279,10 @@ curl --data "method=GetHost&session=c12c1704-d2b0-4af5-83eb-a562afcfe277"  https
 */
 func (t *HostServlet) GetHost(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
-	valid, session, err := t.session_manager.GetGuestSession(session_id)
+	session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Couldn't locate guest", 400)
-	}
-	if !valid {
-		return APIError("Invalid session", 400)
 	}
 	host_as_guest := session.Guest
 	host_as_guest.Email, err = GetEmailForGuest(t.db, host_as_guest.Id)
