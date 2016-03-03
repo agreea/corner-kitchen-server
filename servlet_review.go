@@ -216,13 +216,10 @@ func (t *ReviewServlet) notify_attendee_to_review(guest_id int64, meal_id int64)
 
 func (t *ReviewServlet) GetReviewData(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
-	valid, session, err := t.session_manager.GetGuestSession(session_id)
+	session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Couldn't locate guest", 400)
-	}
-	if !valid {
-		return APIError("Invalid session", 400)
 	}
 	popup_id_s := r.Form.Get("popupId")
 	popup_id, err := strconv.ParseInt(popup_id_s, 10, 64)
@@ -293,13 +290,10 @@ func (t *ReviewServlet) ChargeTip(r *http.Request) *ApiResult {
 func (t *ReviewServlet) PostReview(r *http.Request) *ApiResult {
 	// get the session's guest
 	session_id := r.Form.Get("session")
-	valid, session, err := t.session_manager.GetGuestSession(session_id)
+	session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Couldn't locate guest", 400)
-	}
-	if !valid {
-		return APIError("Invalid session", 400)
 	}
 	review := new(Review)
 	review.Guest_id = session.Guest.Id
@@ -434,7 +428,7 @@ func (t *ReviewServlet) build_review_notif_email(meal *Meal, review *Review) (*s
 	if err != nil {
 		return nil, err
 	}
-	html_buf, err := ioutil.ReadFile("review_email.html")
+	html_buf, err := ioutil.ReadFile("html/review_email.html")
 	if err != nil {
 		return nil, err
 	}

@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	_ "github.com/go-sql-driver/mysql"
 	"code.google.com/p/go-uuid/uuid"
+    "github.com/sendgrid/sendgrid-go"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -25,7 +26,7 @@ type KitchenUserServlet struct {
 	server_config   *Config
 	session_manager *SessionManager
 	twilio_queue    chan *SMS
-
+	sg_client 		*sendgrid.SGClient // sendGrid client
 }
 
 func NewKitchenUserServlet(server_config *Config, session_manager *SessionManager, twilio_queue chan *SMS) *KitchenUserServlet {
@@ -34,6 +35,7 @@ func NewKitchenUserServlet(server_config *Config, session_manager *SessionManage
 	t.twilio_queue = twilio_queue
 	t.session_manager = session_manager
 	t.server_config = server_config
+	t.sg_client = sendgrid.NewSendGridClient(server_config.SendGrid.User, server_config.SendGrid.Pass)
 
 	db, err := sql.Open("mysql", server_config.GetSqlURI())
 	if err != nil {
@@ -64,12 +66,9 @@ func (t *KitchenUserServlet) get_panic_message(session_id, url, client_prof stri
 	log.Println("ALERT: Prod failed to load. Client profile: " + client_prof)
 	log.Println("Url: " + url)
 	if session_id != "" {
-		session_exists, session, err := t.session_manager.GetGuestSession(session_id)
+		session, err := t.session_manager.GetGuestSession(session_id)
 		if err != nil {
 			log.Println(err)
-			return message
-		}
-		if !session_exists {
 			return message
 		}
 		log.Println(fmt.Sprintf("Guest_id: %d", session.Guest.Id))
@@ -90,8 +89,8 @@ func (t *KitchenUserServlet) AddStripe(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
 	stripe_token := r.Form.Get("stripeToken")
 	last4_s := r.Form.Get("last4")
-	session_exists, kitchenSession, err := t.session_manager.GetGuestSession(session_id)
-	if !session_exists {
+	session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
 		return APIError("Invalid Session", 400)
 	}
 	last4, err := strconv.ParseInt(last4_s, 10, 64)
@@ -99,7 +98,7 @@ func (t *KitchenUserServlet) AddStripe(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Invalid last 4 digits", 400)
 	}
-	guestData := kitchenSession.Guest
+	guestData := session.Guest
 
 	err = SaveStripeToken(t.db, stripe_token, last4, guestData)
 	if err != nil {
@@ -113,13 +112,10 @@ curl --data "method=GetLast4s&session=f1caa66a-3351-48db-bcb3-d76bdc644634" http
 */
 func (t *KitchenUserServlet) GetLast4s(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
-	session_exists, kitchenSession, err := t.session_manager.GetGuestSession(session_id)
+	kitchenSession, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Could not process session", 400)
-	}
-	if !session_exists {
-		return APIError("Session invalid", 400)
 	}
 	last4s, err := GetLast4sForGuest(t.db, kitchenSession.Guest.Id)
 	if err != nil {
@@ -177,13 +173,10 @@ func (t *KitchenUserServlet) LoginFb(r *http.Request) *ApiResult {
 
 func (t *KitchenUserServlet) FbConnect(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
-	session_exists, session, err := t.session_manager.GetGuestSession(session_id)
+	session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Could not locate user", 400)
-	}
-	if !session_exists {
-		return APIError("Invalid session", 400)
 	}
 	fbToken := r.Form.Get("fbToken")
 	resp, err := t.get_fb_data_for_token(fbToken)
@@ -422,13 +415,10 @@ curl --data "method=Get&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf" https://qa
 */
 func (t *KitchenUserServlet) Get(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
-	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Internal Server Error", 500)
-	}
-	if !session_valid {
-		return APIError("Session has expired. Please log in again", 400)
 	}
 	guest := session.Guest
 	key := r.Form.Get("key")
@@ -461,13 +451,10 @@ curl --data "method=GetForEdit&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf" htt
 
 func (t *KitchenUserServlet) GetForEdit(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
-	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Internal Server Error", 500)
-	}
-	if !session_valid {
-		return APIError("Session has expired. Please log in again", 400)
 	}
 	key := r.Form.Get("key")
 	if key != "12q4lkjLK99JnfalsmfFDfdkd" {
@@ -494,13 +481,10 @@ curl --data "method=UserFollows&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&hos
 */
 func (t *KitchenUserServlet) UserFollows(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
-	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Internal Server Error", 500)
-	}
-	if !session_valid {
-		return APIError("Session has expired. Please log in again", 400)
 	}
 	host_id_s := r.Form.Get("hostId")
 	host_id, err := strconv.ParseInt(host_id_s, 10, 64)
@@ -521,13 +505,10 @@ func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 		log.Println("Tried to delete user without key: " + session_id)
 		return APIError("Command failed", 500)
 	}
-	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Internal Server Error", 500)
-	}
-	if !session_valid {
-		return APIError("Session has expired. Please log in again", 400)
 	}
 	_, err = t.db.Exec("DELETE FROM Guest WHERE Id = ?", session.Guest.Id)
 	_, err = t.db.Exec("DELETE FROM GuestEmail WHERE Guest_id = ?", session.Guest.Id)
@@ -541,13 +522,10 @@ func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 
 func (t *KitchenUserServlet) UpdateProfPic(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
-	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
-		return APIError("Internal Server Error", 500)
-	}
-	if !session_valid {
-		return APIError("Session has expired. Please log in again", 400)
+		return APIError("Could not locate session. Please log out and log in and try again", 500)
 	}
 	pic := r.Form.Get("pic")
 	file_name, err := CreatePicFile(pic)
@@ -567,13 +545,10 @@ curl --data "method=UpdateGuest&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&bio
 */
 func (t *KitchenUserServlet) UpdateGuest(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
-	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Internal Server Error", 500)
-	}
-	if !session_valid {
-		return APIError("Session has expired. Please log in again", 400)
 	}
 	sent_email := r.Form.Get("Email")
 	bio := r.Form.Get("Bio")
@@ -599,13 +574,10 @@ curl --data "method=UpdateEmail&session=08534f5c-04cd-4d37-9675-b0dc71c0ddaf&ema
 */
 func (t *KitchenUserServlet) UpdateEmail(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
-	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Internal Server Error", 500)
-	}
-	if !session_valid {
-		return APIError("Session has expired. Please log in again", 400)
 	}
 	email := r.Form.Get("email")
 	err = t.update_email(email, session.Guest.Id)
@@ -622,21 +594,28 @@ func (t *KitchenUserServlet) update_email(email string, guest_id int64) error {
 	if err != nil {
 		return err
 	}
-	html := fmt.Sprintf("<p>Please click the link below to confirm the email you registered with Chakula</p>" +
-			"<a href='https://yaychakula.com/confirm_email?Id=%d&Code=%s'>Confirm your email</a>",
-			guest_id, code)
-	SendEmail(email, "Confirm your Chakula Email", html)
-	return nil
-} 
+	html_buf, err := ioutil.ReadFile("html/confirm_email.html")
+	if err != nil {
+		return err
+	}
+	html := string(html_buf)
+	message := sendgrid.NewMail()
+    message.AddTo(email)
+    message.SetSubject("Confirm your Chakula Email")
+    message.SetHTML(html)
+    message.SetFrom("meals@yaychakula.com")
+
+    message.AddSubstitution(":guest_id", fmt.Sprintf("%d", guest_id))
+    message.AddSubstitution(":code", code)
+   	return t.sg_client.Send(message)
+}
+
 func (t *KitchenUserServlet) UpdateBio(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
-	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Internal Server Error", 500)
-	}
-	if !session_valid {
-		return APIError("Session has expired. Please log in again", 400)
 	}
 	bio := r.Form.Get("bio")
 	err = UpdateBio(t.db, bio, session.Guest.Id)
@@ -678,13 +657,10 @@ curl --data "method=UpdatePhone&session=be8cd866-4ac0-4552-be7c-4a7accadc69b&pho
 */
 func (t *KitchenUserServlet) UpdatePhone(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
-	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Internal Server Error", 500)
-	}
-	if !session_valid {
-		return APIError("Session has expired. Please log in again", 400)
 	}
 	phone := r.Form.Get("phone")
 	generated_pin := t.random.Int()%10000
@@ -707,13 +683,10 @@ curl --data "method=VerifyPhone&session=be8cd866-4ac0-4552-be7c-4a7accadc69b&pin
 */
 func (t *KitchenUserServlet) VerifyPhone(r *http.Request) *ApiResult {
 	session_id := r.Form.Get("session")
-	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Internal Server Error", 500)
-	}
-	if !session_valid {
-		return APIError("Session has expired. Please log in again", 400)
 	}
 	pin_s := r.Form.Get("pin")
 	sent_pin, err := strconv.ParseInt(pin_s, 10, 64)

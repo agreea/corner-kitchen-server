@@ -6,6 +6,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"time"
+	"errors"
 )
 
 type SessionManager struct {
@@ -103,44 +104,44 @@ func (t *SessionManager) DestroySession(session_uuid string) error {
 
 // Fetch the session specified by a UUID. Returns whether the session exists,
 // the session (if it exists) and an error.
-func (t *SessionManager) GetSession(session_uuid string) (session_exists bool, session *Session, err error) {
+func (t *SessionManager) GetSession(session_uuid string) (session *Session, err error) {
 	err = nil
 
 	// If it wasn't loaded into the cache, check if it's in the database.
 	in_db, uid, expires, err := t.get_session_from_db(session_uuid)
 	if err != nil {
-		return false, nil, err
+		return nil, err
 	}
 	if in_db {
 		// Load the session back into the cache and return it
 		UserSession := new(Session)
 		UserSession.User, err = GetUserById(t.db, uid)
 		if err != nil {
-			return false, nil, err
+			return nil, err
 		}
 		UserSession.Expires = expires
-		return true, UserSession, nil
+		return UserSession, nil
 	}
 	// If it isn't in cache or DB, return false.
-	return false, nil, nil
+	return nil, errors.New("Could not locate session in DB")
 }
 
-func (t *SessionManager) GetGuestSession(session_uuid string) (session_exists bool, session *KitchenSession, err error) {
+func (t *SessionManager) GetGuestSession(session_uuid string) (session *KitchenSession, err error) {
 	err = nil
 	in_db, uid, expires, err := t.get_guest_session_from_db(session_uuid)
 	if err != nil {
-		return false, nil, err
+		return nil, err
 	}
 	if in_db {
 		GuestSession := new(KitchenSession)
 		GuestSession.Guest, err = GetGuestById(t.db, uid)
 		if err != nil {
-			return false, nil, err
+			return nil, err
 		}
 		GuestSession.Expires = expires
-		return true, GuestSession, nil
+		return GuestSession, nil
 	} else {
-		return false, nil, nil
+		return nil, errors.New("Could not locate session in DB")
 	}
 }
 

@@ -12,6 +12,7 @@ import (
 	"time"
 	"errors"
     "github.com/sendgrid/sendgrid-go"
+    "io/ioutil"
 )
 
 type MealRequestServlet struct {
@@ -57,8 +58,9 @@ func (t *MealRequestServlet) BookPopup(r *http.Request) *ApiResult{
 	}
 	popup, err := GetPopupById(t.db, popup_id)
 	session_id := r.Form.Get("session")
-	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
-	if err != nil || !session_valid {
+	session, err := t.session_manager.GetGuestSession(session_id)
+	if err != nil {
+		log.Println(err)
 		return APIError("Couldn't process request", 400)
 	}
 	last4_s := r.Form.Get("last4")
@@ -80,12 +82,9 @@ func (t *MealRequestServlet) BookPopup(r *http.Request) *ApiResult{
 			log.Println(err)
 			return APIError("Could not process follow", 500)
 		}
-		host, err := GetHostById(t.db, meal.Host_id)
-		if err != nil {
-			log.Println(err)
-			return APIError("Could not process follow", 500)
+		if followsHost := GetGuestFollowsHost(t.db, session.Guest.Id, meal.Host_id); !followsHost {
+			RecordFollowHost(t.db, session.Guest.Id, meal.Host_id)
 		}
-		RecordFollowHost(t.db, session.Guest.Id, host.Id)
 	}
 	_, err = GetBookingByGuestAndPopupId(t.db, session.Guest.Id, popup_id)
 	if err == sql.ErrNoRows {
@@ -185,6 +184,22 @@ func (t *MealRequestServlet) text_guest(phone string, booking *PopupBooking) (er
 	return nil
 }
 
+func (t *MealRequestServlet) TestEmailGuest(r *http.Request) *ApiResult {
+	booking_id_s := r.Form.Get("bookingId")
+	booking_id, err := strconv.ParseInt(booking_id_s, 10, 64)
+	if err != nil {
+		return APIError("Malformed popup ID", 400)
+	}
+	booking, err := GetBookingById(t.db, booking_id)
+	if err != nil {
+		return APIError("Failed to retrieve booking", 500)
+	}
+	if err := t.email_guest(booking); err != nil {
+		return APIError("Failed to send email", 500)
+	}
+	return APISuccess("OK")
+}
+
 func (t *MealRequestServlet) email_guest(booking *PopupBooking) error {
 	popup, err := GetPopupById(t.db, booking.Popup_id)
 	meal, err := GetMealById(t.db, popup.Meal_id)
@@ -216,14 +231,11 @@ func (t *MealRequestServlet) email_guest(booking *PopupBooking) error {
 	subject := fmt.Sprintf("%s Welcomed You to %s!", 
 			host_as_guest.First_name, 
 			meal.Title)
-	html := "<p>Get excited!</p><p>The dinner is at :time, :address, :city, :state</p>" + 
-		"<p>Please reply to this email if you need any help.</p>" +
-		"<p>View the meal again <a href=https://yaychakula.com/meal/:meal_id" + 
-		">here</a></p>" +
-		"<p>Your card will be charged $:price after the meal.</p>" + 
-		"<p>Peace, love and full stomachs,</p>" +
-		"<p>Chakula</p>"
-
+	html_buf, err := ioutil.ReadFile("html/meal_confirmation.html")
+	if err != nil {
+		return err
+	}
+	html := string(html_buf)
 	message := sendgrid.NewMail()
     message.AddTo(guest_email)
     message.AddToName(guest.First_name)
@@ -235,28 +247,10 @@ func (t *MealRequestServlet) email_guest(booking *PopupBooking) error {
     message.AddSubstitution(":address", popup.Address)
     message.AddSubstitution(":city", popup.City)
     message.AddSubstitution(":state", popup.State)
-    message.AddSubstitution(":meal_id", string(meal.Id))
+    message.AddSubstitution(":meal_id", fmt.Sprintf("%d", meal.Id))
     message.AddSubstitution(":price", 
     	fmt.Sprintf("%.2f", booking.Meal_price * float64(booking.Seats)))
-    if err := t.sg_client.Send(message); err != nil {
-        return err
-    }
-
-	// // html :=fmt.Sprintf("<p>Get excited!</p><p>The dinner is at %s, %s, %s, %s</p>" + 
-	// // 	"<p>Please reply to this email if you need any help.</p>" +
-	// // 	"<p>View the meal again <a href=https://yaychakula.com/meal/%d" + 
-	// // 	">here</a></p>" +
-	// // 	"<p>Your card will be charged $%.2f after the meal.</p>" + 
-	// // 	"<p>Peace, love and full stomachs,</p>" +
-	// // 	"<p>Chakula</p>", 
-	// // 	BuildTime(popup.Starts), 
-	// // 	popup.Address, 
-	// // 	popup.City,
-	// // 	popup.State, 
-	// // 	meal.Id,
-	// // 	booking.Meal_price * float64(booking.Seats))
-	// SendEmail(guest_email, subject, html)
-	return nil
+    return t.sg_client.Send(message)
 }
 
 func (t *MealRequestServlet) process_popup_charge_worker() {
@@ -326,54 +320,71 @@ func (t *MealRequestServlet) process_popup(popup *Popup) error {
 		return err
 	}
 	SetPopupProcessed(t.db, popup.Id)
-	t.notify_host_payment_processed(popup) // TO QA
-	return nil
+	return t.notify_host_payment_processed(popup) // TO QA
 }
 
-// TO QA
-func (t *MealRequestServlet) notify_host_payment_processed(popup *Popup) {	
-	meal, err := GetMealById(t.db, popup.Meal_id)
+func (t *MealRequestServlet) TestNotifyHostPayment(r *http.Request) *ApiResult {
+	popup_id_s := r.Form.Get("popupId")
+	popup_id, err := strconv.ParseInt(popup_id_s, 10, 64)
 	if err != nil {
 		log.Println(err)
-		return
+		return APIError("Malformed popup ID", 400)
+	}
+	popup, err := GetPopupById(t.db, popup_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Invalid popup ID", 400)
+	}
+	if err := t.notify_host_payment_processed(popup); err != nil {
+		log.Println(err)
+		return APIError("Coud not notify host", 400)
+	}
+	return APISuccess("OK")
+}
+
+// WORKING
+func (t *MealRequestServlet) notify_host_payment_processed(popup *Popup) error {	
+	meal, err := GetMealById(t.db, popup.Meal_id)
+	if err != nil {
+		return err
 	}
 	bookings, err := GetBookingsForPopup(t.db, popup.Id)
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
-	host, err := GetHostById(t.db, meal.Host_id)
+	host_as_guest, err := GetGuestByHostId(t.db, meal.Host_id)
 	if err != nil {
-		log.Println(err)
-		return
-	}
-	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
-	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 	host_as_guest.Email, err = GetEmailForGuest(t.db, host_as_guest.Id)
 	if err != nil {
-		log.Println(err)
-		return
+		return err
 	}
 	subject := "Processed: " + meal.Title
-	html := "<p>Chakula processed the payments for the meal you held at " + BuildTime(popup.Starts) + ".</p>" +
-			"<p>Final payout:</p>" +
-			t.get_guest_list_receipt_html(bookings, meal) +
-			"<p>Please be advised that <strong>Stripe still has to clear the payments</strong> before the funds are transferred to your account." +
-			"This should take no more than 4 business days</p>" +
-			"<p>To check the status of your funds please log into your <a href='https://dashboard.stripe.com/login'>stripe account</a></p>" +
-			"<p>If you have any further questions, contact Agree at agree@yaychakula.com</p>" +
-			"<p>Sincerely,</p>" +
-			"<p>Chakula</p>"
+	html_buf, err := ioutil.ReadFile("html/notify_host_popup_processed.html")
+	if err != nil {
+		return err
+	}
+	html := string(html_buf)
 	if server_config.Version.V != "prod" {
 		subject = "[TESTING]" + subject
 		html = "<p><strong>THIS IS A TEST. " + 
 				"This does reflect actual activity related to your Chakula account.</strong></p>" +
 				html
 	}
-	SendEmail(host_as_guest.Email, subject, html)
+	message := sendgrid.NewMail()
+    message.AddTo(host_as_guest.Email)
+    message.AddToName(host_as_guest.First_name)
+    message.SetSubject(subject)
+    message.SetHTML(html)
+    message.SetFrom("meals@yaychakula.com")
+    message.AddSubstitution(":time", BuildTime(popup.Starts))
+    invoice_html := t.get_guest_list_receipt_html(bookings, meal)
+    message.AddSubstitution("{invoice_list}", invoice_html)
+    if err := t.sg_client.Send(message); err != nil {
+        return err
+    }
+    return nil
 }
 
 // TO QA

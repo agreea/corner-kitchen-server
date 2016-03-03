@@ -95,16 +95,71 @@ func NewMealServlet(server_config *Config, session_manager *SessionManager) *Mea
 /*
 curl --data "method=getUpcomingMeals" https://yaychakula.com/api/meal
 */
+// type Home_Meals struct {
+// 	Upcoming_meals 	[]*Meal_read
+// 	Attending_meals []*Meal_read
+// }
+
+// func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
+// 	home_meals := new(Home_Meals)
+// 	home_meals.Upcoming_meals, err := GetUpcomingMealsFromDB(t.db)
+// 	if err != nil {
+// 		log.Println(err)
+// 		return APIError("Failed to retrieve meals", 500)
+// 	}
+// 	session_id := r.Form.Get("session")
+// 	if session == "" {
+// 		return APISuccess(upcoming_meals)
+// 	}
+// 	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+// 	if err != nil {
+// 		log.Println(err)
+// 		return APIError("Failed to retrieve meals", 500)
+// 	}
+// 	if !session_valid {
+// 		log.Println(session_valid)
+// 		return nil, err
+// 	}
+// 	home_meals.Attending_meals := GetUpcomingAttendingMealsForGuest(t.db, session.Guest.Id)
+// 	// get session
+// 	// if there is one get attending meals for that guest 
+// 	// append them to upcoming_meals, OR create a custom "home page struct" to store attending meals and upcoming meals
+// 	return APISuccess(upcoming_meals)
+
+// 	// get all the meals where RSVP time > now
+// 	// return the array
+// }
+
 func (t *MealServlet) GetUpcomingMeals(r *http.Request) *ApiResult {
+	// home_meals := new(Home_Meals)
 	upcoming_meals, err := GetUpcomingMealsFromDB(t.db)
 	if err != nil {
 		log.Println(err)
 		return APIError("Failed to retrieve meals", 500)
 	}
+	// session_id := r.Form.Get("session")
+	// if session == "" {
+	// 	return APISuccess(upcoming_meals)
+	// }
+	// session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	// if err != nil {
+	// 	log.Println(err)
+	// 	return APIError("Failed to retrieve meals", 500)
+	// }
+	// if !session_valid {
+	// 	log.Println(session_valid)
+	// 	return nil, err
+	// }
+	// home_meals.Attending_meals := GetUpcomingAttendingMealsForGuest(t.db, session.Guest.Id)
+	// get session
+	// if there is one get attending meals for that guest 
+	// append them to upcoming_meals, OR create a custom "home page struct" to store attending meals and upcoming meals
 	return APISuccess(upcoming_meals)
+
 	// get all the meals where RSVP time > now
 	// return the array
 }
+
 
 func GetMealPriceById(db *sql.DB, meal_id int64) (float64, error) {
 	meal, err := GetMealById(db, meal_id)
@@ -798,20 +853,19 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 			log.Println(err)
 			return APIError("Could not load meal", 400)
 		}
+		log.Println(meal_data.Follows_host)
 	}
+	log.Println(meal_data.Follows_host)
 	return APISuccess(meal_data)
 }
 
 func (t *MealServlet) getMealWithGuestInfo(meal_data *Meal_read, meal *Meal, session_id string) (*Meal_read, error) {
-	session_valid, session, err := t.session_manager.GetGuestSession(session_id)
+	session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		return nil, err
 	}
-	if !session_valid {
-		log.Println(session_valid)
-		return nil, err
-	}
 	meal_data.Follows_host = GetGuestFollowsHost(t.db, session.Guest.Id, meal_data.Host_id)
+	log.Println(meal_data.Follows_host)
 	meal_data.Cards, err = GetLast4sForGuest(t.db, session.Guest.Id) 
 	for i, popup := range meal_data.Popups {
 		attendees, err := GetAttendeesForPopup(t.db, popup.Id)
