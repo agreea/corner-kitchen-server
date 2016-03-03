@@ -630,7 +630,7 @@ func GetMealCardDataById(db *sql.DB, meal_id int64) (*Meal_read, error) {
 	}
 	meal_data.Host_id = host.Id
 	meal_data.Host_bio = host_as_guest.Bio
-	meal_data.Popups, err = GetPopupsForMeal(db, meal.Id)
+	meal_data.Popups, err = GetUpcomingPopupsForMeal(db, meal.Id)
 	meal_data.New_host, err = GetNewHostStatus(db, meal.Host_id)
 	if err != nil {
 		log.Println(err)
@@ -638,9 +638,19 @@ func GetMealCardDataById(db *sql.DB, meal_id int64) (*Meal_read, error) {
 	}
 	return meal_data, nil
 }
-
+func GetUpcomingPopupsForMeal(db *sql.DB, meal_id int64) ([]*Popup, error) {
+	rows, err := db.Query(`SELECT Id, Meal_id, Starts, Rsvp_by, Address, City, State, Capacity, Processed
+        FROM Popup 
+        WHERE Meal_id = ? AND Rsvp_by > ?`, meal_id, time.Now(),
+	)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	defer rows.Close()
+	return read_popup_rows(rows, db)
+}
 func GetPopupsForMeal(db *sql.DB, meal_id int64) ([]*Popup, error) {
-	log.Println("popups for meal: ", meal_id)
 	rows, err := db.Query(`SELECT Id, Meal_id, Starts, Rsvp_by, Address, City, State, Capacity, Processed
         FROM Popup 
         WHERE Meal_id = ?`, meal_id,
@@ -650,43 +660,7 @@ func GetPopupsForMeal(db *sql.DB, meal_id int64) ([]*Popup, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	popups := make([]*Popup, 0)
-	for rows.Next() { // construct each meal, get its reviews, and append them to all host reviews
-		popup := new(Popup)
-		if err := rows.Scan(
-			&popup.Id,
-			&popup.Meal_id,
-			&popup.Starts,
-			&popup.Rsvp_by,
-			&popup.Address,
-			&popup.City,
-			&popup.State,
-			&popup.Capacity,
-			&popup.Processed,
-		); err != nil {
-			log.Println(err)
-			return nil, err
-		}
-		attendees, err := GetAttendeesForPopup(db, popup.Id)
-		if err != nil {
-			log.Println(err)
-			return nil, err
-		}
-		popup.Attendees, err = get_attendee_reads_for_attendees(attendees)
-		if err != nil {
-			log.Println(err)
-			return nil, err
-		}
-		full_address := popup.Address + ", " + popup.City + ", " + popup.State
-		popup.Maps_url, err = GetStaticMapsUrlForMeal(db, full_address)
-		if err != nil {
-			log.Println(err)
-			return nil, err
-		}
-		log.Println("Popup successfully appended: ", popup.Id)
-		popups = append(popups, popup)
-	}
-	return popups, nil
+	return read_popup_rows(rows, db)
 }
 
 func GetPopupById(db *sql.DB, popup_id int64) (*Popup, error) {
@@ -707,10 +681,10 @@ func GetPopupsFromTimeWindow(db *sql.DB, window_starts, window_ends time.Time) (
 		return nil, err
 	}
 	defer rows.Close()
-	return read_popup_rows(rows)
+	return read_popup_rows(rows, db)
 }
 
-func read_popup_rows(rows *sql.Rows) ([]*Popup, error) {
+func read_popup_rows(rows *sql.Rows, db *sql.DB) ([]*Popup, error) {
 	popups := make([]*Popup, 0)
 	for rows.Next() {
 		popup := new(Popup)
@@ -725,6 +699,22 @@ func read_popup_rows(rows *sql.Rows) ([]*Popup, error) {
 			&popup.Capacity,
 			&popup.Processed,
 		); err != nil {
+			return nil, err
+		}
+		attendees, err := GetAttendeesForPopup(db, popup.Id)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		popup.Attendees, err = get_attendee_reads_for_attendees(attendees)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		full_address := popup.Address + ", " + popup.City + ", " + popup.State
+		popup.Maps_url, err = GetStaticMapsUrlForMeal(db, full_address)
+		if err != nil {
+			log.Println(err)
 			return nil, err
 		}
 		popups = append(popups, popup)
