@@ -830,7 +830,7 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	}
 	// get the data from the db and populate the fields required for a listing
 	meal_data, err := GetMealCardDataById(t.db, meal.Id)
-	meal_data.Popups, err = GetPopupsForMeal(t.db, meal.Id)
+	meal_data.Popups, err = GetUpcomingPopupsForMeal(t.db, meal.Id)
 	if err != nil && err != sql.ErrNoRows {
 		log.Println(err)
 		return APIError("Failed to load attendees", 500)
