@@ -496,10 +496,15 @@ func (t *KitchenUserServlet) UserFollows(r *http.Request) *ApiResult {
 }
 
 /*
-curl --data "method=Delete&session=3f5c97f4-318f-4d4d-9090-f54b27f9a31b&key=***REMOVED***" https://yaychakula.com/api/kitchenuser
+curl --data "method=Delete&Id=136&key=***REMOVED***" https://yaychakula.com/api/kitchenuser
 */
 func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
-	session_id := r.Form.Get("session")
+	guest_id_s := r.Form.Get("Id")
+	guest_id, err := strconv.ParseInt(guest_id_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed Guest Id", 400)
+	}
 	private_key := r.Form.Get("key")
 	if private_key != "***REMOVED***" {
 		log.Println("Tried to delete user without key: " + session_id)
@@ -510,9 +515,9 @@ func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Internal Server Error", 500)
 	}
-	_, err = t.db.Exec("DELETE FROM Guest WHERE Id = ?", session.Guest.Id)
-	_, err = t.db.Exec("DELETE FROM GuestEmail WHERE Guest_id = ?", session.Guest.Id)
-	_, err = t.db.Exec("DELETE FROM GuestPhone WHERE Guest_id = ?", session.Guest.Id)
+	_, err = t.db.Exec("DELETE FROM Guest WHERE Id = ?", guest_id)
+	_, err = t.db.Exec("DELETE FROM GuestEmail WHERE Guest_id = ?", guest_id)
+	_, err = t.db.Exec("DELETE FROM GuestPhone WHERE Guest_id = ?", guest_id)
 	if err != nil {
 		log.Println(err)
 		return APIError("Internal Server Error", 500)
