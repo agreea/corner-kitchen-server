@@ -511,39 +511,63 @@ func GetMealReviewByGuestIdAndPopupId(db *sql.DB, guest_id int64, meal_id int64)
 	return readReviewLine(row)
 }
 
-// func GetUpcomingAttendingMealsForGuest(db *sql.DB, guest_id int64) ([]*Meal_read, error) {
-// 	// get all bookings' popup ids for guest
-// 	// get popups in popup table where id is in attendingpopup_ids
-// 	attending_popup_ids, err := GetUpcomingPopupsForMeal(db, guest_id)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	in_clause := "in (?," + strings.Repeat(",?", len(attending_popup_ids)-1) + ")"
-// 	popup_rows, err := db.Query(`SELECT Id, Meal_id, Starts, Rsvp_by, Address, City, State, Capacity, Processed
-//         FROM Popup 
-//         WHERE Starts > ? AND Id ` + in_clause, attending_popup_ids...)
-// }
+func GetUpcomingAttendingMealsForGuest(db *sql.DB, guest_id int64) ([]*Meal_read, error) {
+	// get all bookings' popup ids for guest
+	// get popups in popup table where id is in attendingpopup_ids
+	attending_popup_ids, err := GetAttendingPopupIdsForGuest(db, guest_id)
+	if err != nil {
+		return nil, err
+	}
+	in_clause := "in (?," + strings.Repeat(",?", len(attending_popup_ids)-1) + ")"
+	popup_rows, err := db.Query(`SELECT Id, Meal_id, Starts, Rsvp_by, Address, City, State, Capacity, Processed
+        FROM Popup 
+        WHERE Id ` + in_clause, attending_popup_ids...)
+	if err != nil {
+		return nil, err
+	}
+	popups, err := read_popup_rows(popup_rows, db)
+	if err != nil {
+		return nil, err
+	}
+	meal_reads := make([]*Meal_read, 0)
+	for _, popup := range popups {
+		// get the meal for that popup?
+		meal_read, err := GetMealCardDataById(db, popup.Meal_id)
+		if err != nil {
+			return nil, err
+		}
+		meal_reads = append(meal_reads, meal_read)
+	}
+	return meal_reads, nil
+}
 
-// func GetAttendingPopupIdsForGuest(db *sql.DB, guest_id int64) ([]int64, error) {
-// 	attending_popup_id_rows, err := db.Query(`
-// 		SELECT Popup_id
-// 		FROM PopupBooking
-// 		WHERE Guest_id = ?`,
-// 		guest_id,
-// 	)
-// 	attending_popup_ids := make([]int64, 0)
-// 	defer attending_popup_id_rows.Close()
-// 	for rows.Next() {
-// 		popup_id := 0
-// 		if err := rows.Scan(
-// 			&popup_id,
-// 		); err != nil {
-// 			return attending_popup_ids, err
-// 		}
-// 		attending_popup_ids = append(attending_popup_ids, popup_id)
-// 	}
-// 	return attending_popup_ids, nil
-// }
+func GetAttendingPopupIdsForGuest(db *sql.DB, guest_id int64) ([]interface{}, error) {
+	rows, err := db.Query(`
+		SELECT Popup_id
+		FROM PopupBooking
+		WHERE Guest_id = ?`,
+		guest_id,
+	)
+	if err != nil {
+		return nil, err
+	}
+	attending_popup_ids_slice := make([]int64, 0)
+	defer rows.Close()
+	for rows.Next() {
+		popup_id := int64(0)
+		if err := rows.Scan(
+			&popup_id,
+		); err != nil {
+			return nil, err
+		}
+		attending_popup_ids_slice = append(attending_popup_ids_slice, popup_id)
+	}
+	 attending_popup_ids  := make([]interface{}, len(attending_popup_ids_slice))
+	for i, d := range attending_popup_ids_slice {
+	    attending_popup_ids[i] = d
+	}
+	return attending_popup_ids, nil
+}
 
 func GetUpcomingMealsFromDB(db *sql.DB) ([]*Meal_read, error) {
 	rows, err := db.Query(`
