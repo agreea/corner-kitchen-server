@@ -29,7 +29,8 @@ User = "agree"
 Pass = "***REMOVED***"
 
 [HTML]
-User = "agree"
+Path = "/opt/api/prod/html/"
+
 
 [Version]
 V = "prod"
