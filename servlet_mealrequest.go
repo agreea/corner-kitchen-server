@@ -183,18 +183,23 @@ func (t *MealRequestServlet) text_guest(phone string, booking *PopupBooking) (er
 	t.twilio_queue <- msg
 	return nil
 }
-
+/*
+curl --data "method=TestEmailGuest&bookingId=68" https://qa.yaychakula.com/api/mealrequest
+*/
 func (t *MealRequestServlet) TestEmailGuest(r *http.Request) *ApiResult {
 	booking_id_s := r.Form.Get("bookingId")
 	booking_id, err := strconv.ParseInt(booking_id_s, 10, 64)
 	if err != nil {
-		return APIError("Malformed popup ID", 400)
+		log.Println(err)
+		return APIError("Malformed booking ID", 400)
 	}
 	booking, err := GetBookingById(t.db, booking_id)
 	if err != nil {
+		log.Println(err)
 		return APIError("Failed to retrieve booking", 500)
 	}
 	if err := t.email_guest(booking); err != nil {
+		log.Println(err)
 		return APIError("Failed to send email", 500)
 	}
 	return APISuccess("OK")
@@ -231,7 +236,7 @@ func (t *MealRequestServlet) email_guest(booking *PopupBooking) error {
 	subject := fmt.Sprintf("%s Welcomed You to %s!", 
 			host_as_guest.First_name, 
 			meal.Title)
-	html_buf, err := ioutil.ReadFile("html/meal_confirmation.html")
+	html_buf, err := ioutil.ReadFile(server_config.HTML.Path + "meal_confirmation.html")
 	if err != nil {
 		return err
 	}

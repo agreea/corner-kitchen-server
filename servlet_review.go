@@ -113,7 +113,7 @@ func (t *ReviewServlet) nudge_attendee(meal *Meal, booking *PopupBooking, host_a
 	if booking.Nudge_count > 1 {
 		subject = "Reminder: " + subject
 	}
-	html_buf, err := ioutil.ReadFile("html/review_nudge.html")
+	html_buf, err := ioutil.ReadFile(server_config.HTML.Path + "review_nudge.html")
 	if err != nil {
 		return err
 	}
@@ -421,7 +421,7 @@ func (t *ReviewServlet) build_review_notif_email(meal *Meal, review *Review) (*s
 	if err != nil {
 		return nil, err
 	}
-	html_buf, err := ioutil.ReadFile("html/review_email.html")
+	html_buf, err := ioutil.ReadFile(server_config.HTML.Path + "review_email.html")
 	if err != nil {
 		return nil, err
 	}

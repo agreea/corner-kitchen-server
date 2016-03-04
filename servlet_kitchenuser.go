@@ -594,7 +594,7 @@ func (t *KitchenUserServlet) update_email(email string, guest_id int64) error {
 	if err != nil {
 		return err
 	}
-	html_buf, err := ioutil.ReadFile("html/confirm_email.html")
+	html_buf, err := ioutil.ReadFile(server_config.HTML.Path + "confirm_email.html")
 	if err != nil {
 		return err
 	}
