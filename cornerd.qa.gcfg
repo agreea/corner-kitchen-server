@@ -28,5 +28,8 @@ From = "8452432425"
 User = "agree"
 Pass = "***REMOVED***"
 
+[HTML]
+Path = "/opt/api/prod/html/"
+
 [Version]
 V = "qa"
