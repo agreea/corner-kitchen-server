@@ -322,6 +322,9 @@ func (t *MealRequestServlet) process_popup(popup *Popup) error {
 	SetPopupProcessed(t.db, popup.Id)
 	return t.notify_host_payment_processed(popup) // TO QA
 }
+/*
+curl --data "method=TestNotifyHostPayment&popupId=1" https://yaychakula.com/api/mealrequest
+*/
 
 func (t *MealRequestServlet) TestNotifyHostPayment(r *http.Request) *ApiResult {
 	popup_id_s := r.Form.Get("popupId")
@@ -361,7 +364,7 @@ func (t *MealRequestServlet) notify_host_payment_processed(popup *Popup) error {
 		return err
 	}
 	subject := "Processed: " + meal.Title
-	html_buf, err := ioutil.ReadFile("html/notify_host_popup_processed.html")
+	html_buf, err := ioutil.ReadFile(server_config.HTML.Path + "notify_host_popup_processed.html")
 	if err != nil {
 		return err
 	}
