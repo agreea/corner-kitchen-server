@@ -507,13 +507,8 @@ func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 	}
 	private_key := r.Form.Get("key")
 	if private_key != "***REMOVED***" {
-		log.Println("Tried to delete user without key: " + session_id)
+		log.Println("Tried to delete user without key: " + guest_id)
 		return APIError("Command failed", 500)
-	}
-	session, err := t.session_manager.GetGuestSession(session_id)
-	if err != nil {
-		log.Println(err)
-		return APIError("Internal Server Error", 500)
 	}
 	_, err = t.db.Exec("DELETE FROM Guest WHERE Id = ?", guest_id)
 	_, err = t.db.Exec("DELETE FROM GuestEmail WHERE Guest_id = ?", guest_id)
