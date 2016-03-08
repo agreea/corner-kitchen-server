@@ -496,7 +496,7 @@ func (t *KitchenUserServlet) UserFollows(r *http.Request) *ApiResult {
 }
 
 /*
-curl --data "method=Delete&Id=136&key=***REMOVED***" https://yaychakula.com/api/kitchenuser
+curl --data "method=Delete&Id=140&key=***REMOVED***" https://yaychakula.com/api/kitchenuser
 */
 func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 	guest_id_s := r.Form.Get("Id")

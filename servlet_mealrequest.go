@@ -116,39 +116,36 @@ func (t *MealRequestServlet) record_booking(guest *GuestData, popup *Popup, coun
 		return APIError("Couldn't process booking. Please try again", 500)
 	}
 	// Notifies guest that they're attending the meal, with all relevant info
-	err = t.notify_guest(saved_booking)
-	if err != nil {
+	if err = t.send_guest_confirmation(saved_booking); err != nil {
 		log.Println(err)
 		return APIError("Failed to notify guest", 500)
 	}
-	// err = t.notify_host(saved_booking)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	return APIError("Failed to notify guest", 500)
-	// }
-
+	if err = t.notify_host_booking(saved_booking); err != nil {
+		log.Println(err)
+		return APIError("Failed to notify guest", 500)
+	}
 	return APISuccess(saved_booking)
 }
 
-func (t *MealRequestServlet) notify_guest(booking *PopupBooking) (error) {
-	guest, err := GetGuestById(t.db, booking.Guest_id)
-	if err != nil {
-		log.Println(err)
-		return err
-	}
-	phone, err := GetPhoneForGuest(t.db, guest.Id)
-	if err != nil {
-		log.Println(err)
-	}
-	if phone != "" {
-		err := t.text_guest(phone, booking)
-		if err != nil {
-			return err
-		}
-	} 
-	err = t.email_guest(booking)
-	return err
-}
+// func (t *MealRequestServlet) notify_guest(booking *PopupBooking) (error) {
+// 	guest, err := GetGuestById(t.db, booking.Guest_id)
+// 	if err != nil {
+// 		log.Println(err)
+// 		return err
+// 	}
+// 	phone, err := GetPhoneForGuest(t.db, guest.Id)
+// 	if err != nil {
+// 		log.Println(err)
+// 	}
+// 	if phone != "" {
+// 		err := t.text_guest(phone, booking)
+// 		if err != nil {
+// 			return err
+// 		}
+// 	} 
+// 	err = t.send_guest_confirmation(booking)
+// 	return err
+// }
 
 // func (t *MealRequestServlet) notify_host(booking *PopupBooking) (error) {
 // 	// Let them see 
@@ -156,6 +153,7 @@ func (t *MealRequestServlet) notify_guest(booking *PopupBooking) (error) {
 // 	// 
 // }
 // Called to let them know if they made it
+
 func (t *MealRequestServlet) text_guest(phone string, booking *PopupBooking) (error) {
 	popup, err := GetPopupById(t.db, booking.Popup_id)
 	meal, err := GetMealById(t.db, popup.Meal_id)
@@ -198,38 +196,32 @@ func (t *MealRequestServlet) TestEmailGuest(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Failed to retrieve booking", 500)
 	}
-	if err := t.email_guest(booking); err != nil {
+	if err := t.send_guest_confirmation(booking); err != nil {
 		log.Println(err)
 		return APIError("Failed to send email", 500)
 	}
 	return APISuccess("OK")
 }
 
-func (t *MealRequestServlet) email_guest(booking *PopupBooking) error {
+func (t *MealRequestServlet) send_guest_confirmation(booking *PopupBooking) error {
 	popup, err := GetPopupById(t.db, booking.Popup_id)
+	if err != nil {
+		return err
+	}
 	meal, err := GetMealById(t.db, popup.Meal_id)
 	if err != nil {
-		log.Println(err)
 		return err
 	}
-	host, err := GetHostById(t.db, meal.Host_id)
+	host_as_guest, err := GetGuestByHostId(t.db, meal.Host_id)
 	if err != nil {
-		log.Println(err)
-		return err
-	}
-	host_as_guest, err := GetGuestById(t.db, host.Guest_id)
-	if err != nil {
-		log.Println(err)
 		return err
 	}
 	guest, err := GetGuestById(t.db, booking.Guest_id)
 	if err != nil {
-		log.Println(err)
 		return err
 	}
 	guest_email, err := GetEmailForGuest(t.db, guest.Id)
 	if err != nil {
-		log.Println(err)
 		return err
 	}
 
@@ -258,6 +250,90 @@ func (t *MealRequestServlet) email_guest(booking *PopupBooking) error {
     return t.sg_client.Send(message)
 }
 
+func (t *MealRequestServlet) TestNotifyHostBooking(r *http.Request) *ApiResult {
+	booking_id_s := r.Form.Get("bookingId")
+	booking_id, err := strconv.ParseInt(booking_id_s, 10, 64)
+	if err != nil {
+		log.Println(err)
+		return APIError("Malformed booking ID", 400)
+	}
+	booking, err := GetBookingById(t.db, booking_id)
+	if err != nil {
+		log.Println(err)
+		return APIError("Invalid booking ID", 400)
+	}
+	if err := t.notify_host_booking(booking); err != nil {
+		log.Println(err)
+		return APIError("Coud not notify host", 400)
+	}
+	return APISuccess("OK")
+}
+
+func (t *MealRequestServlet) notify_host_booking(booking *PopupBooking) error {
+	// get the host as guest
+	// get the host-guest's email
+	// get the guest information
+	// get the html template
+	// fill in the substitutions
+	meal, err := GetMealByPopupId(t.db, booking.Popup_id)
+	if err != nil {
+		return err
+	}
+	host_as_guest, err := GetGuestByHostId(t.db, meal.Host_id)
+	if err != nil {
+		return err
+	}
+	host_email, err := GetEmailForGuest(t.db, host_as_guest.Id)
+	if err != nil {
+		return err
+	}
+	attendee, err := GetGuestById(t.db, booking.Guest_id)
+	if err != nil {
+		return err
+	}
+	subject := fmt.Sprintf("New Booking for %s!", meal.Title)
+	html_buf, err := ioutil.ReadFile(server_config.HTML.Path + "notify_host_booking.html")
+	if err != nil {
+		return err
+	}
+	html := string(html_buf)
+	if server_config.Version.V != "prod" {
+		html = "<p><strong>This is a test message that does not apply to any activity on your Chakula account</strong></p>" +
+				html
+		subject = "[TEST] " + subject
+	}
+	message := sendgrid.NewMail()
+    message.AddTo(host_email)
+    message.AddToName(host_as_guest.First_name)
+    message.SetSubject(subject)
+    message.SetHTML(html)
+    message.SetFrom("meals@yaychakula.com")
+    message.AddSubstitution(":meal_name", meal.Title)
+    message.AddSubstitution(":guest_name", attendee.First_name)
+    message.AddSubstitution(":seat_count", fmt.Sprintf("%d", booking.Seats))
+    guestlist_html, err := t.generate_guestlist_html_for_popup(booking.Popup_id)
+    if err != nil {
+    	return err
+    }
+    message.AddSubstitution("{guest_list}", guestlist_html)
+    return t.sg_client.Send(message)
+}
+
+func (t *MealRequestServlet) generate_guestlist_html_for_popup(popup_id int64) (string, error) {
+	// get guests for popup
+	attendees, err := GetAttendeesForPopup(t.db, popup_id)
+	if err != nil {
+		return "", err
+	}
+	guestlist_html := ""
+	for _, attendee := range attendees {
+		guestlist_html += 
+			fmt.Sprintf("<p><span style='font-family:lucida sans unicode,lucida grande,sans-serif;'>" + 
+				"%s, %d seats</p>",
+				attendee.Guest.First_name, attendee.Seats)
+	}
+	return guestlist_html, nil
+}
 func (t *MealRequestServlet) process_popup_charge_worker() {
 	// get all meals that happened 7 - 8 days ago
 	if server_config.Version.V != "prod" { // only run this routine on prod
