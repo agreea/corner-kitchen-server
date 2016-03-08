@@ -240,6 +240,7 @@ func (t *ReviewServlet) GetReviewData(r *http.Request) *ApiResult {
 	meal_read := new(Meal_read)
 	meal_read.Title = meal.Title
 	meal_read.Host_name = host_as_guest.First_name
+	meal_read.Host_id = meal.Host_id
 	meal_read.Price = booking.Meal_price
 	return APISuccess(meal_read)
 }
