@@ -512,17 +512,11 @@ func GetMealReviewByGuestIdAndPopupId(db *sql.DB, guest_id int64, meal_id int64)
 }
 
 func GetUpcomingAttendingMealsForGuest(db *sql.DB, guest_id int64) ([]*Meal_read, error) {
-	// get all bookings' popup ids for guest
-	// get popups in popup table where id is in attendingpopup_ids
 	attending_popup_ids, err := GetAttendingPopupIdsForGuest(db, guest_id)
 	if err != nil {
 		return nil, err
 	}
 	in_clause := "in (?" + strings.Repeat(",?", len(attending_popup_ids)-1) + ")"
-	// now := make([]interface{}, 1)
-	// now[0] = time.Now()
-	// query_args := append(now, attending_popup_ids)
-	log.Println(in_clause)
 	popup_rows, err := db.Query(`SELECT Id, Meal_id, Starts, Rsvp_by, Address, City, State, Capacity, Processed
         FROM Popup 
         WHERE Starts > DATE(NOW()) AND Id ` + in_clause, attending_popup_ids...)
@@ -535,7 +529,6 @@ func GetUpcomingAttendingMealsForGuest(db *sql.DB, guest_id int64) ([]*Meal_read
 	}
 	meal_reads := make([]*Meal_read, 0)
 	for _, popup := range popups {
-		// get the meal for that popup?
 		meal_read, err := GetMealCardDataById(db, popup.Meal_id)
 		if err != nil {
 			return nil, err
