@@ -447,7 +447,8 @@ func GetMealByPopupId(db *sql.DB, popup_id int64) (*Meal, error) {
 func GetMealsForHost(db *sql.DB, host_id int64) ([]*Meal, error) {
 	rows, err := db.Query(`SELECT Id, Host_id, Price, Title, Description, Processed, Published
         FROM Meal 
-        WHERE Host_id = ?`, 
+        WHERE Host_id = ?
+		ORDER BY Id DESC`, 
         host_id)
 	if err != nil {
 		log.Println(err)
@@ -512,9 +513,14 @@ func GetMealReviewByGuestIdAndPopupId(db *sql.DB, guest_id int64, meal_id int64)
 }
 
 func GetUpcomingAttendingMealsForGuest(db *sql.DB, guest_id int64) ([]*Meal_read, error) {
+	meal_reads := make([]*Meal_read, 0)
+	log.Println("GetUpcomingAttendingMealsForGuest start")
 	attending_popup_ids, err := GetAttendingPopupIdsForGuest(db, guest_id)
 	if err != nil {
 		return nil, err
+	}
+	if (len(attending_popup_ids) == 0){
+		return meal_reads, nil
 	}
 	in_clause := "in (?" + strings.Repeat(",?", len(attending_popup_ids)-1) + ")"
 	popup_rows, err := db.Query(`SELECT Id, Meal_id, Starts, Rsvp_by, Address, City, State, Capacity, Processed
@@ -527,7 +533,6 @@ func GetUpcomingAttendingMealsForGuest(db *sql.DB, guest_id int64) ([]*Meal_read
 	if err != nil {
 		return nil, err
 	}
-	meal_reads := make([]*Meal_read, 0)
 	for _, popup := range popups {
 		meal_read, err := GetMealCardDataById(db, popup.Meal_id)
 		if err != nil {
@@ -536,6 +541,7 @@ func GetUpcomingAttendingMealsForGuest(db *sql.DB, guest_id int64) ([]*Meal_read
 		meal_read.Popups = []*Popup{popup}
 		meal_reads = append(meal_reads, meal_read)
 	}
+	log.Println("GetUpcomingAttendingMealsForGuest end")
 	return meal_reads, nil
 }
 
