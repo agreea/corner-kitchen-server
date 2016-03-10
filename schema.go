@@ -185,7 +185,7 @@ type Meal struct {
 	Title   		string
 	Description		string
 	Processed 		int64
-	Published 		int64
+	Published 		bool
 	// go fields
 	Pics 			[]*Pic
 	Popups 			[]*Popup
