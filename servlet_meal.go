@@ -798,6 +798,9 @@ func encode(oldCoordinate float64, factor float64) string {
 	output = output + runeC
 	return output
 }
+/*
+curl --data "method=GetAttendingMeals" https://qa.yaychakula.com/api/meal
+*/
 
 func (t *MealServlet) GetAttendingMeals(r *http.Request) *ApiResult {
 	meals, err := GetUpcomingAttendingMealsForGuest(t.db, 9)
