@@ -519,10 +519,13 @@ func GetUpcomingAttendingMealsForGuest(db *sql.DB, guest_id int64) ([]*Meal_read
 		return nil, err
 	}
 	in_clause := "in (?" + strings.Repeat(",?", len(attending_popup_ids)-1) + ")"
+	now := make([]interface{}, 1)
+	now[0] = time.Now()
+	query_args := append(now, attending_popup_ids)
 	log.Println(in_clause)
 	popup_rows, err := db.Query(`SELECT Id, Meal_id, Starts, Rsvp_by, Address, City, State, Capacity, Processed
         FROM Popup 
-        WHERE Starts > ? AND Id ` + in_clause, time.Now(), attending_popup_ids...)
+        WHERE Starts > ? AND Id ` + in_clause, query_args...)
 	if err != nil {
 		return nil, err
 	}
