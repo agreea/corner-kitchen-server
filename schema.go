@@ -533,6 +533,7 @@ func GetUpcomingAttendingMealsForGuest(db *sql.DB, guest_id int64) ([]*Meal_read
 		if err != nil {
 			return nil, err
 		}
+		meal_read.Popups = []*Popup{popup}
 		meal_reads = append(meal_reads, meal_read)
 	}
 	return meal_reads, nil
