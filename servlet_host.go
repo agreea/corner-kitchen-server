@@ -225,7 +225,7 @@ func (t *HostServlet) GetProfile(r *http.Request) *ApiResult {
 	}
 	public_meals := make([]*Meal, 0)
 	for _, meal := range all_meals {
-		if meal.Published == 1 {
+		if meal.Published {
 			public_meals = append(public_meals, meal)
 		}
 	}

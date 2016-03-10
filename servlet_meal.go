@@ -42,6 +42,7 @@ type Meal_read struct {
 	Host_id 		int64
 	Cards 			[]int64
 	New_host 		bool
+	Published 		bool
 	Attendees 		[]*Attendee_read
 	Starts			time.Time
 	Rsvp_by			time.Time
@@ -373,7 +374,7 @@ func (t *MealServlet) DeleteMeal(r *http.Request) *ApiResult {
 	}
 	popups, _ := GetPopupsForMeal(t.db, meal_id)
 	for _, popup := range popups {
-		if meal.Published == 1 && popup.Attendees != nil && len(popup.Attendees) > 0 {
+		if meal.Published && popup.Attendees != nil && len(popup.Attendees) > 0 {
 			return APIError("You cannot delete a published meal. Please contact agree@yaychakula.com if you need assistance.", 400)
 		}
 	}
@@ -825,11 +826,9 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 		log.Println(err)
 		return APIError("Invalid meal ID", 400)
 	}
-	if meal.Published != 1 {
-		return APIError("Invalid meal ID", 400)
-	}
 	// get the data from the db and populate the fields required for a listing
 	meal_data, err := GetMealCardDataById(t.db, meal.Id)
+	meal_data.Published = meal.Published
 	meal_data.Popups, err = GetUpcomingPopupsForMeal(t.db, meal.Id)
 	if err != nil && err != sql.ErrNoRows {
 		log.Println(err)
@@ -847,6 +846,10 @@ func (t *MealServlet) GetMeal(r *http.Request) *ApiResult{
 	session_id := r.Form.Get("session")
 	if session_id == "" {
 		meal_data.Status = "NONE"
+		if !meal.Published {
+			log.Println("tried to access unpublished meal without session")
+			return APIError("Could not load meal", 400)
+		}
 	} else {
 		meal_data, err = t.getMealWithGuestInfo(meal_data, meal, session_id)
 		if err != nil {
@@ -863,6 +866,16 @@ func (t *MealServlet) getMealWithGuestInfo(meal_data *Meal_read, meal *Meal, ses
 	session, err := t.session_manager.GetGuestSession(session_id)
 	if err != nil {
 		return nil, err
+	}
+	if !meal.Published {
+		host, err := GetHostByGuestId(t.db, session.Guest.Id)
+		if err != nil {
+			log.Println(err)
+			return nil, err
+		}
+		if host.Id != meal.Host_id {
+			return nil, errors.New("This is not your meal")
+		}
 	}
 	meal_data.Follows_host = GetGuestFollowsHost(t.db, session.Guest.Id, meal_data.Host_id)
 	log.Println(meal_data.Follows_host)
