@@ -799,7 +799,18 @@ func encode(oldCoordinate float64, factor float64) string {
 	return output
 }
 
-
+func (t *MealServlet) GetAttendingMeals(r *http.Request) *ApiResult {
+	meals, err := GetUpcomingAttendingMealsForGuest(t.db, 9)
+	if err != nil {
+		log.Println(err)
+		return APIError("Error", 500)
+	}
+	meal_ids := make([]int64, 0)
+	for _, meal := range meals {
+		meal_ids = append(meal_ids, meal.Id)
+	}
+	return APISuccess(meal_ids)
+}
 /*
 curl --data "method=bookMeal&mealId=4&session=" https://yaychakula.com/api/meal
 */
