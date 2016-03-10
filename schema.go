@@ -522,7 +522,7 @@ func GetUpcomingAttendingMealsForGuest(db *sql.DB, guest_id int64) ([]*Meal_read
 	log.Println(in_clause)
 	popup_rows, err := db.Query(`SELECT Id, Meal_id, Starts, Rsvp_by, Address, City, State, Capacity, Processed
         FROM Popup 
-        WHERE Id ` + in_clause, attending_popup_ids...)
+        WHERE Starts > ? AND Id ` + in_clause, time.Now(), attending_popup_ids...)
 	if err != nil {
 		return nil, err
 	}
