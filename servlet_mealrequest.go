@@ -43,7 +43,7 @@ func NewMealRequestServlet(server_config *Config, session_manager *SessionManage
 	t.sg_client = sendgrid.NewSendGridClient(server_config.SendGrid.User, server_config.SendGrid.Pass)
 
 	// start worker
-	go t.process_popup_charge_worker()
+	// go t.process_popup_charge_worker()
 	return t
 }
 
@@ -518,7 +518,7 @@ type StripeCharge struct {
 }
 
 /* 
-curl --data "method=ChargeBooking&id=44&key=***REMOVED***" https://yaychakula.com/api/mealrequest
+curl --data "method=ChargeBooking&id=78&key=***REMOVED***" https://yaychakula.com/api/mealrequest
 curl https://connect.stripe.com/oauth/token \
    -d client_secret=***REMOVED*** \
    -d refresh_token=REFRESH_TOKEN \
@@ -529,7 +529,7 @@ func (t *MealRequestServlet) ChargeBooking(r *http.Request) *ApiResult {
 	booking_id, err := strconv.ParseInt(booking_id_s, 10, 64)
 	if err != nil {
 		log.Println(err)
-		return APIError("Ya fucked up", 400)
+		return APIError("Processing error", 400)
 	}
 
 	key := r.Form.Get("key")
