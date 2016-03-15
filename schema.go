@@ -1849,7 +1849,7 @@ func SaveStripeToken(db *sql.DB, stripe_token string, last4 int64, guest_data *G
 		Email: guest_data.Email,
 	}
 	log.Println(stripe_token)
-	customerParams.SetSource(stripe_token) // obtained with Stripe.js
+	customerParams.SetSource(stripe_token)
 	c, err := customer.New(customerParams)
 	if err != nil {
 		log.Println(err)
