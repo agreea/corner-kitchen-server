@@ -5,6 +5,11 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"net/http"
+	"code.google.com/p/go-uuid/uuid"
+	"io/ioutil"
+	"encoding/base64"
+	"syscall"
+	"os"
 )
 
 type GifServlet struct {
@@ -34,10 +39,39 @@ func (t *GifServlet) Upload(r *http.Request) *ApiResult {
 	log.Println(gif_str)
 	return APISuccess("OK")
 
-	// file_name, err := CreatePicFile(gif_str)
-	// if err != nil {
-	// 	log.Println(err)
+	file_name, err := CreatePicFile(gif_str)
+	if err != nil {
+		log.Println(err)
+		return APIError("Failed to create GIF", 500)
+	}
+	return APISuccess("https://yaychakula.com/img/" + file_name)
+}
 
-	// }
-	// return APISuccess("https://yaychakula.com/img/" + file_name)
+func CreateGifFile(pic_as_string string) (string, error) {
+	data, err := base64.StdEncoding.DecodeString(pic_as_string)
+	if err != nil {
+		return "", err
+	}
+	// generate the file name and address
+	file_name := uuid.New() + ".gif"
+	file_address := "/var/www/prod/img/" + file_name
+	log.Println(file_name)
+	syscall.Umask(022)
+	err = ioutil.WriteFile(file_address, data, os.FileMode(int(0664)))
+	if err != nil {
+		return "", err
+	} else {
+		file, err := os.Open(file_address)
+     	if err != nil {
+         // handle the error here
+         return "", err
+     	}
+     	defer file.Close()
+	   stat, err := file.Stat()
+	   if err != nil {
+	       return "", err
+	   }
+	   log.Println(stat)
+	}
+	return file_name, nil
 }
