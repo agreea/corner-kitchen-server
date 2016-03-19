@@ -31,9 +31,13 @@ func (t *GifServlet) Upload(r *http.Request) *ApiResult {
 	// get your permissions right
 	// return the URL
 	gif_str := r.Form.Get("gif")
-	file_name, err := CreatePicFile(gif_str)
-	if err != nil {
-		log.Println(err)
-	}
-	return APISuccess("https://yaychakula.com/img/" + file_name)
+	log.Println(gif_str)
+	return APISuccess("OK")
+
+	// file_name, err := CreatePicFile(gif_str)
+	// if err != nil {
+	// 	log.Println(err)
+
+	// }
+	// return APISuccess("https://yaychakula.com/img/" + file_name)
 }
