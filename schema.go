@@ -1964,7 +1964,7 @@ func CreatePicFile(pic_as_string string) (string, error) {
 	// extract the file ending from the json encoded string data
 	file_ending := strings.Split(pic_s_split[0], "image/")[1]
 	file_ending = strings.Replace(file_ending, ";", "", 1) // drop the "images/"
-			// generate the file name and address
+	// generate the file name and address
 	file_name := uuid.New() + "." + file_ending
 	file_address := "/var/www/prod/img/" + file_name
 	log.Println(file_name)
