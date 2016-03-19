@@ -36,7 +36,7 @@ func (t *GifServlet) Upload(r *http.Request) *ApiResult {
 	// get your permissions right
 	// return the URL
 	gif_str := r.Form.Get("gif")
-	file_name, err := CreatePicFile(gif_str)
+	file_name, err := CreateGifFile(gif_str)
 	if err != nil {
 		log.Println(err)
 		return APIError("Failed to create GIF", 500)
