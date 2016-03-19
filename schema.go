@@ -1954,7 +1954,7 @@ func SetOwnerForTruck(db *sql.DB, truck_id int64, user_id int64) error {
 
 
 // Global Utility Functions:
-
+// NOTE: does not parse image data from iOS.
 func CreatePicFile(pic_as_string string) (string, error) {
 	pic_s_split := strings.Split(string(pic_as_string), "base64,")
 	data, err := base64.StdEncoding.DecodeString(pic_s_split[1])
