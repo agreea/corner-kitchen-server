@@ -5,12 +5,12 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"log"
 	"net"
-	"net/http"
+	// "net/http"
 	"code.google.com/p/go-uuid/uuid"
 	"io/ioutil"
 	// "strings"
 	// "bufio"
-	"encoding/base64"
+	// "encoding/base64"
 	"syscall"
 	"os"
 )
@@ -51,7 +51,7 @@ func (t *GifServlet) upload_listen(){
 func handleRequest(conn net.Conn) {
   // Make a buffer to hold incoming data.
   buf := make([]byte, 15000000)
-  log.println("handling request")
+  log.Println("handling request")
   // en
   // Read the incoming connection into the buffer.
   _, err := conn.Read(buf)
@@ -63,25 +63,25 @@ func handleRequest(conn net.Conn) {
     log.Println(err)
   }
   // Send a response back to person contacting us.
-  conn.Write(filename)
+  conn.Write([]byte(filename))
   // Close the connection when you're done with it.
   conn.Close()
 }
 
-func (t *GifServlet) Upload(r *http.Request) *ApiResult {
-	// get gif
-	// write to file
-	// get your permissions right
-	// return the URL
-	gif_str := r.Form.Get("gif")
-	log.Println(gif_str)
-	file_name, err := CreateGifFile(gif_str)
-	if err != nil {
-		log.Println(err)
-		return APIError("Failed to create GIF", 500)
-	}
-	return APISuccess("https://yaychakula.com/img/" + file_name)
-}
+// func (t *GifServlet) Upload(r *http.Request) *ApiResult {
+// 	// get gif
+// 	// write to file
+// 	// get your permissions right
+// 	// return the URL
+// 	gif_str := r.Form.Get("gif")
+// 	log.Println(gif_str)
+// 	file_name, err := CreateGifFile(gif_str)
+// 	if err != nil {
+// 		log.Println(err)
+// 		return APIError("Failed to create GIF", 500)
+// 	}
+// 	return APISuccess("https://yaychakula.com/img/" + file_name)
+// }
 
 func CreateGifFile(data []byte) (string, error) {
 	// generate the file name and address
@@ -89,7 +89,7 @@ func CreateGifFile(data []byte) (string, error) {
 	file_address := "/var/www/prod/img/" + file_name
 	log.Println(file_name)
 	syscall.Umask(022)
-	err = ioutil.WriteFile(file_address, data, os.FileMode(int(0664)))
+	err := ioutil.WriteFile(file_address, data, os.FileMode(int(0664)))
 	if err != nil {
 		return "", err
 	} else {
