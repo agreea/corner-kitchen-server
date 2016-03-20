@@ -4,9 +4,12 @@ import (
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"log"
+	"net"
 	"net/http"
 	"code.google.com/p/go-uuid/uuid"
 	"io/ioutil"
+	// "strings"
+	// "bufio"
 	"encoding/base64"
 	"syscall"
 	"os"
@@ -24,10 +27,44 @@ func NewGifServlet(server_config *Config) *GifServlet {
 
 	db, err := sql.Open("mysql", server_config.GetSqlURI())
 	if err != nil {
-		log.Fatal("NewTruckServlet", "Failed to open database:", err)
+		log.Fatal("New Gif servlet", "Failed to open database:", err)
 	}
 	t.db = db
+	go t.upload_listen()
 	return t
+}
+
+func (t *GifServlet) upload_listen(){
+  // listen on all interfaces
+  ln, _ := net.Listen("tcp", "127.0.0.1:1337")
+
+  // accept connection on port
+  conn, _ := ln.Accept()
+  defer ln.Close()
+  // run loop forever (or until ctrl-c)
+  for {
+    go handleRequest(conn)
+  }
+
+}
+
+func handleRequest(conn net.Conn) {
+  // Make a buffer to hold incoming data.
+  buf := make([]byte, 1024)
+  // en
+  // Read the incoming connection into the buffer.
+  _, err := conn.Read(buf)
+  if err != nil {
+    log.Println(err)
+  }
+  filename, err := CreateGifFile(buf)
+  if err != nil {
+    log.Println(err)
+  }
+  // Send a response back to person contacting us.
+  conn.Write(filename)
+  // Close the connection when you're done with it.
+  conn.Close()
 }
 
 func (t *GifServlet) Upload(r *http.Request) *ApiResult {
@@ -45,11 +82,7 @@ func (t *GifServlet) Upload(r *http.Request) *ApiResult {
 	return APISuccess("https://yaychakula.com/img/" + file_name)
 }
 
-func CreateGifFile(pic_as_string string) (string, error) {
-	data, err := base64.StdEncoding.DecodeString(pic_as_string)
-	if err != nil {
-		return "", err
-	}
+func CreateGifFile(data []byte) (string, error) {
 	// generate the file name and address
 	file_name := uuid.New() + ".gif"
 	file_address := "/var/www/prod/img/" + file_name
