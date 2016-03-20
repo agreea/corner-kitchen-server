@@ -50,7 +50,8 @@ func (t *GifServlet) upload_listen(){
 
 func handleRequest(conn net.Conn) {
   // Make a buffer to hold incoming data.
-  buf := make([]byte, 1024)
+  buf := make([]byte, 15000000)
+  log.println("handling request")
   // en
   // Read the incoming connection into the buffer.
   _, err := conn.Read(buf)
