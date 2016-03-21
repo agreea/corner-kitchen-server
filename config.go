@@ -52,6 +52,14 @@ type Config struct {
 	HTML struct {
 		Path string
 	}
+
+	Stripe struct {
+		Key string
+	}
+
+	Image struct {
+		Path string
+	}
 	
 	Version struct {
 		V string
