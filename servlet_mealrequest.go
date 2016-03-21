@@ -228,7 +228,7 @@ func (t *MealRequestServlet) send_guest_confirmation(booking *PopupBooking) erro
 	subject := fmt.Sprintf("%s Welcomed You to %s!", 
 			host_as_guest.First_name, 
 			meal.Title)
-	html_buf, err := ioutil.ReadFile(server_config.HTML.Path + "meal_confirmation.html")
+	html_buf, err := ioutil.ReadFile(t.server_config.HTML.Path + "meal_confirmation.html")
 	if err != nil {
 		return err
 	}
@@ -292,7 +292,7 @@ func (t *MealRequestServlet) notify_host_booking(booking *PopupBooking) error {
 		return err
 	}
 	subject := fmt.Sprintf("New Booking for %s!", meal.Title)
-	html_buf, err := ioutil.ReadFile(server_config.HTML.Path + "notify_host_booking.html")
+	html_buf, err := ioutil.ReadFile(t.server_config.HTML.Path + "notify_host_booking.html")
 	if err != nil {
 		return err
 	}
@@ -546,16 +546,6 @@ func (t *MealRequestServlet) ChargeBooking(r *http.Request) *ApiResult {
 	return APISuccess("OKEN")
 }
 
-/*
-curl https://api.stripe.com/v1/charges \
-   -u ***REMOVED***: \
-   -d amount=___ \
-   -d currency=usd \
-   -d customer=___ \
-   -d destination=___ \
-   -d application_fee=___
-*/
-// qa'd
 func (t *MealRequestServlet) charge_booking(booking *PopupBooking) error {
 	// Get customer object, meal (to get the price), and host (to get stripe destination)
 	if booking.Last4 == 0 { // skip dummy and complementary bookings
@@ -615,11 +605,7 @@ func PostStripeCharge(total, chakula_fee int, customer_token, host_account, desc
 		return err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	if server_config.Version.V == "prod" {
-		req.SetBasicAuth("***REMOVED***:", "")
-	} else {
-		req.SetBasicAuth("***REMOVED***:", "")
-	}
+	req.SetBasicAuth(server_config.Stripe.Key + ":", "")
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err)

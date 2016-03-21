@@ -251,7 +251,7 @@ func (t *HostServlet) GetProfile(r *http.Request) *ApiResult {
 
 func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
 	resp, err := http.PostForm("https://connect.stripe.com/oauth/token",
-		url.Values{"client_secret": {"***REMOVED***"},
+		url.Values{"client_secret": {server_config.Stripe.Key},
 			"code": {auth},
 			"grant_type": {"authorization_code"},
 		})

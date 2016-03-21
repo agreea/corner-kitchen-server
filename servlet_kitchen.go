@@ -73,7 +73,7 @@ func MailChimpRegister(email string, wants_to_host bool, db *sql.DB) error {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth("agree", "b416eeb8b04228134e959d333675a950-us10")
+	req.SetBasicAuth(server_config.Mailchimp.User, server_config.Mailchimp.Pass)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Println(err)

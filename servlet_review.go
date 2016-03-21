@@ -150,8 +150,8 @@ curl -X POST https://api.sendgrid.com/api/mail.send.json -d api_user=agree -d ap
 func SendEmail(email_address string, subject string, html string) {
 	client := &http.Client{}
    	sendgrid_body := url.Values{
-		"api_user": {"agree"},
-		"api_key": {"***REMOVED***"},
+		"api_user": {server_config.SendGrid.User},
+		"api_key": {server_config.SendGrid.Pass},
 		"to": {email_address},
 		"toname":{"Chakula"},
 		"subject": {subject},
