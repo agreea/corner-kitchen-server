@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"sort"
-	"time"
+	// "time"
 	"bytes"
 	"path/filepath"
 	"image/gif"
@@ -35,16 +35,16 @@ func NewGifServlet(server_config *Config) *GifServlet {
 	}
 	t.db = db
 	// set the HTTP server to another planet idk FUCK
-	read_timeout, err := time.ParseDuration(server_config.Network.ReadTimeout)
-	write_timeout, err := time.ParseDuration(server_config.Network.WriteTimeout)
+	// read_timeout, err := time.ParseDuration(server_config.Network.ReadTimeout)
+	// write_timeout, err := time.ParseDuration(server_config.Network.WriteTimeout)
 
-	http_server = http.Server{
-		Addr:           "0.0.0.0:1337",
-		Handler:        t,
-		ReadTimeout:    read_timeout * 3,
-		WriteTimeout:   write_timeout * 3,
-		MaxHeaderBytes: 1 << 20,
-	}
+	// http_server = http.Server{
+	// 	Addr:           "0.0.0.0:1337",
+	// 	Handler:        t,
+	// 	ReadTimeout:    read_timeout * 3,
+	// 	WriteTimeout:   write_timeout * 3,
+	// 	MaxHeaderBytes: 1 << 20,
+	// }
 	return t
 }
 
