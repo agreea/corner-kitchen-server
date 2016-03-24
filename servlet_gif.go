@@ -122,7 +122,6 @@ func (t *GifServlet) Upload(r *http.Request) *ApiResult {
 	return APISuccess("OK")
 }
 
-
 func (t *GifServlet) write_video(buf []byte) (string, error) {
 	// generate the file name and address
 	// TODO: retrieve file type from the header
