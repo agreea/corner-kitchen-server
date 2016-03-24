@@ -34,7 +34,6 @@ func NewGifServlet(server_config *Config) *GifServlet {
 		log.Fatal("New Gif servlet", "Failed to open database:", err)
 	}
 	t.db = db
-	// set the HTTP server to another planet idk FUCK
 	// read_timeout, err := time.ParseDuration(server_config.Network.ReadTimeout)
 	// write_timeout, err := time.ParseDuration(server_config.Network.WriteTimeout)
 	// http_server = http.Server{
@@ -231,27 +230,3 @@ func (t *GifServlet) get_gif_from_dir(directory_name string) gif.GIF {
     }
 	return outGif
 }
-// func CreateGifFile(data []byte) (string, error) {
-// 	// generate the file name and address
-// 	file_name := uuid.New() + ".gif"
-// 	file_address := "/var/www/prod/img/" + file_name
-// 	log.Println(file_name)
-// 	syscall.Umask(022)
-// 	err := ioutil.WriteFile(file_address, data, os.FileMode(int(0664)))
-// 	if err != nil {
-// 		return "", err
-// 	} else {
-// 		file, err := os.Open(file_address)
-//      	if err != nil {
-//          // handle the error here
-//          return "", err
-//      	}
-//      	defer file.Close()
-// 	   stat, err := file.Stat()
-// 	   if err != nil {
-// 	       return "", err
-// 	   }
-// 	   log.Println(stat)
-// 	}
-// 	return file_name, nil
-// }
