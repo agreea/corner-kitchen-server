@@ -75,8 +75,7 @@ func init_server() {
 	api_handler.AddServlet("/host", NewHostServlet(&server_config, session_manager, twilio_messagequeue))
 	api_handler.AddServlet("/meal", NewMealServlet(&server_config, session_manager))
 	api_handler.AddServlet("/review", NewReviewServlet(&server_config, session_manager, twilio_messagequeue))
-	// api_handler.AddServlet("/gif", NewGifServlet(&server_config))
-	
+
 	// Start listening to HTTP requests
 	if err := http_server.ListenAndServe(); err != nil {
 		log.Fatalln("Fatal Error: ListenAndServe: ", err.Error())

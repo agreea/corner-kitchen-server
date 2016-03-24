@@ -380,8 +380,8 @@ func (t *KitchenUserServlet) get_fb_data_for_token(fb_token string) (fbresponse 
 // store it with the user
 func (t *KitchenUserServlet) get_fb_long_token(fb_token string) (long_token string, expires int, err error) {
 	resp, err := http.Get("https://graph.facebook.com/oauth/access_token?" +
-							"grant_type=fb_exchange_token&client_id=828767043907424" +				
-							"&client_secret="+ server_config.Facebook.Key + "&fb_exchange_token=" + fb_token)
+							"grant_type=fb_exchange_token&client_id=828767043907424" +
+							"&client_secret=***REMOVED***&fb_exchange_token=" + fb_token)
 	if err != nil {
 		return "",0, err
 	} else {

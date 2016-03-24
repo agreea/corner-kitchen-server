@@ -192,10 +192,28 @@ func (t *MealServlet) get_popup_attendees(meal_id int64) ([]*Attendee_read, erro
 	return attendee_reads, nil
 }
 
+/* 
+	Review object:
+	First_name
+	Profile_pic
+	Rating
+	Comment
+	Date
+	Meal name
+	Meal id
+*/
+
+// get guest from session
+// write it in the db
+// voila
 /*
 curl --data "method=leaveReview&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mealId=3&rating=5
 				&comment=Food was delicious. I absolutely love Izzie's Cuban food." https://qa.yaychakula.com/api/review
 */
+
+// SENDGRID API KEY: ***REMOVED***
+// SENDGRID PASSWORD: ***REMOVED***
+// curl -X POST https://api.sendgrid.com/api/mail.send.json -d api_user=agree -d api_key=***REMOVED*** -d to="agree.ahmed@gmail.com" -d toname=Agree -d subject=Testing -d text="Hey Agree, Can you let me know if this worked?" -d from=agree@yaychakula.com
 
 // curl --data "method=getMealDraft&mealId=3&session=f1caa66a-3351-48db-bcb3-d76bdc644634" https://qa.yaychakula.com/api/meal
 func (t* MealServlet) GetMealDraft(r *http.Request) *ApiResult {
@@ -212,7 +230,6 @@ func (t* MealServlet) GetMealDraft(r *http.Request) *ApiResult {
 		log.Println(err)
 		return APIError("Malformed meal id", 400)
 	}
-	
 	// make sure the host id matches the meal draft
 	meal_draft, err := GetMealById(t.db, meal_id)
 	if err != nil {
@@ -456,6 +473,7 @@ func (t *MealServlet) SaveMealDraft(r *http.Request) *ApiResult {
 	}
 	pics := r.Form.Get("Pictures")
 	jsonBlob := []byte(pics)
+	log.Println(pics)
 	err = t.process_pics(jsonBlob, id)
 	if err != nil {
 		log.Println(err)

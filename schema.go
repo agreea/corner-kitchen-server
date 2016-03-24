@@ -1834,7 +1834,11 @@ func SavePaymentToken(db *sql.DB, token *PaymentToken) error {
 }
 
 func SaveStripeToken(db *sql.DB, stripe_token string, last4 int64, guest_data *GuestData) error {
-	stripe.Key = server_config.Stripe.Key
+	if (server_config.Version.V == "prod") {
+		stripe.Key = "***REMOVED***"
+	} else {
+		stripe.Key = "***REMOVED***"
+	}
 	email, err := GetEmailForGuest(db, guest_data.Id)
 	if err != nil {
 		return err
@@ -1960,9 +1964,9 @@ func CreatePicFile(pic_as_string string) (string, error) {
 	// extract the file ending from the json encoded string data
 	file_ending := strings.Split(pic_s_split[0], "image/")[1]
 	file_ending = strings.Replace(file_ending, ";", "", 1) // drop the "images/"
-	// generate the file name and address
+			// generate the file name and address
 	file_name := uuid.New() + "." + file_ending
-	file_address := server_config.Image.Path + file_name
+	file_address := "/var/www/prod/img/" + file_name
 	log.Println(file_name)
 	syscall.Umask(022)
 	err = ioutil.WriteFile(file_address, data, os.FileMode(int(0664)))

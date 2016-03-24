@@ -8,6 +8,4 @@ all:
 	go get "github.com/stripe/stripe-go"
 	go get "github.com/sendgrid/smtpapi-go"
 	go get "github.com/sendgrid/sendgrid-go"
-	go get "github.com/disintegration/imaging"
-
 	go build -o cornerd -ldflags "-X main.build_version ${VERSION}${VERSION_DIRTY}"

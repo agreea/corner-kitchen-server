@@ -53,21 +53,6 @@ type Config struct {
 		Path string
 	}
 	
-	Stripe struct {
-		Key string
-	}
-
-	Mailchimp struct {
-		User string
-		Pass string
-	}
-	Facebook struct {
-		Key string
-	}
-	Image struct {
-		Path string
-	}
-
 	Version struct {
 		V string
 	}

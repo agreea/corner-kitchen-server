@@ -31,14 +31,5 @@ Pass = "***REMOVED***"
 [HTML]
 Path = "/opt/api/prod/html/"
 
-[Stripe]
-Key = ***REMOVED***"
-
-[Facebook]
-Key ="***REMOVED***"
-
-[Image]
-Path = "/var/www/prod/img/"
-
 [Version]
 V = "qa"
