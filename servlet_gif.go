@@ -37,7 +37,6 @@ func NewGifServlet(server_config *Config) *GifServlet {
 	// set the HTTP server to another planet idk FUCK
 	// read_timeout, err := time.ParseDuration(server_config.Network.ReadTimeout)
 	// write_timeout, err := time.ParseDuration(server_config.Network.WriteTimeout)
-
 	// http_server = http.Server{
 	// 	Addr:           "0.0.0.0:1337",
 	// 	Handler:        t,
