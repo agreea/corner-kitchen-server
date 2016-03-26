@@ -31,6 +31,18 @@ Pass = "***REMOVED***"
 [HTML]
 Path = "/opt/api/prod/html/"
 
+[Stripe]
+Key = "***REMOVED***"
+
+[Facebook]
+Key ="***REMOVED***"
+
+[Mailchimp]
+User = "agree"
+Pass = "b416eeb8b04228134e959d333675a950-us10"
+
+[Image]
+Path = "/var/www/prod/img/"
 
 [Version]
 V = "prod"

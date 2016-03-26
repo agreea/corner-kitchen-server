@@ -49,6 +49,21 @@ type Config struct {
 		Pass string
 	}
 
+	Stripe struct {
+		Key string
+	}
+
+	Mailchimp struct {
+		User string
+		Pass string
+	}
+
+	Facebook struct {
+		Key string
+	}
+	Image struct {
+		Path string
+	}
 	HTML struct {
 		Path string
 	}
