@@ -577,7 +577,7 @@ func GetAllMealsFromDB(db *sql.DB) ([]*Meal_read, error) {
 	rows, err := db.Query(`
 		SELECT Id
 		FROM Popup
-		ORDER BY Rsvp_by ASC`,
+		ORDER BY Rsvp_by DESC`,
 	)
 	if err != nil {
 		log.Println(err)
