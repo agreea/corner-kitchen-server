@@ -204,9 +204,6 @@ curl --data "method=leaveReview&session=f1caa66a-3351-48db-bcb3-d76bdc644634&mea
 				&comment=Food was delicious. I absolutely love Izzie's Cuban food." https://qa.yaychakula.com/api/review
 */
 
-// SENDGRID API KEY: ***REMOVED***
-// SENDGRID PASSWORD: ***REMOVED***
-
 // curl --data "method=getMealDraft&mealId=3&session=f1caa66a-3351-48db-bcb3-d76bdc644634" https://qa.yaychakula.com/api/meal
 func (t* MealServlet) GetMealDraft(r *http.Request) *ApiResult {
 	// get session

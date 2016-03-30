@@ -1,6 +1,10 @@
 [Mysql]
 mysqlUser = "corner-kitchen"
+<<<<<<< HEAD
 mysqlPassword = "new_super_secure_chakula_password_for_agree"
+=======
+mysqlPassword = "QL2Nz2sUP3UX2EMM"
+>>>>>>> b03e22af010d66301bff1320479d3ffb53b2e9e7
 mysqlIPProto = "tcp"
 mysqlServerAddr = "127.0.0.1"
 mysqlServerPort = "3306"

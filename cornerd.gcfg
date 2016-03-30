@@ -39,7 +39,11 @@ Key =""
 
 [Mailchimp]
 User = "agree"
+<<<<<<< HEAD
 Pass = "b416eeb8b04228134e959d333675a950-us10"
+=======
+Pass = ""
+>>>>>>> b03e22af010d66301bff1320479d3ffb53b2e9e7
 
 [Image]
 Path = "/var/www/prod/img/"
