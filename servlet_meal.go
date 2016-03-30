@@ -31,10 +31,6 @@ type Meal_read struct {
 	Host_name 		string
 	Host_pic		string
 	Host_bio		string
-	Address 		string
-	City 			string
-	State 			string
-	Open_spots 		int64
 	Price			float64
 	Status 			string
 	Maps_url 		string
@@ -43,9 +39,6 @@ type Meal_read struct {
 	Cards 			[]int64
 	New_host 		bool
 	Published 		bool
-	Attendees 		[]*Attendee_read
-	Starts			time.Time
-	Rsvp_by			time.Time
 	Pics 			[]*Pic
 	Meal_reviews	[]*Review
 	Host_reviews 	[]*Review_read
