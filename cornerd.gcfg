@@ -1,9 +1,9 @@
 [Mysql]
 mysqlUser = "corner-kitchen"
-mysqlPassword = ""
+mysqlPassword = "QL2Nz2sUP3UX2EMM"
 mysqlIPProto = "tcp"
 mysqlServerAddr = "127.0.0.1"
-mysqlServerPort = ""
+mysqlServerPort = "3306"
 mysqlDatabase = "corner-kitchen"
 
 [Logging]
@@ -39,7 +39,7 @@ Key =""
 
 [Mailchimp]
 User = "agree"
-Pass = ""
+Pass = "b416eeb8b04228134e959d333675a950-us10"
 
 [Image]
 Path = "/var/www/prod/img/"
