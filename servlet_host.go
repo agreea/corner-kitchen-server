@@ -49,7 +49,7 @@ https://connect.stripe.com/oauth/authorize?response_type=code&client_id=ca_6n8Sh
 curl --data "method=StripeConnect&session=c12c1704-d2b0-4af5-83eb-a562afcfe277&auth=ac_6ygyqZ4QBFVNl5s7z7VgEVULAMFaNoT7"  https://yaychakula.com/api/host
 
 curl https://api.stripe.com/v1/charges \
-   -u ***REMOVED***: \
+   -u sk_live_6DdxsleLP40YnpsFATA1ZJCg: \
    -d amount=___ \
    -d currency=usd \
    -d customer=___ \
@@ -251,7 +251,7 @@ func (t *HostServlet) GetProfile(r *http.Request) *ApiResult {
 
 func (t *HostServlet) stripe_auth(auth string) (map[string]interface{}, error) {
 	resp, err := http.PostForm("https://connect.stripe.com/oauth/token",
-		url.Values{"client_secret": {"***REMOVED***"},
+		url.Values{"client_secret": {"sk_live_6DdxsleLP40YnpsFATA1ZJCg"},
 			"code": {auth},
 			"grant_type": {"authorization_code"},
 		})

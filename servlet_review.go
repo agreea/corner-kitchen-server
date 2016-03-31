@@ -144,7 +144,7 @@ func SendEmail(email_address string, subject string, html string) {
 	client := &http.Client{}
    	sendgrid_body := url.Values{
 		"api_user": {"agree"},
-		"api_key": {"***REMOVED***"},
+		"api_key": {"cornerkitchen-sdbh2Q9jSeuf_tmVRvXczw"},
 		"to": {email_address},
 		"toname":{"Chakula"},
 		"subject": {subject},

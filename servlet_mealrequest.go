@@ -501,7 +501,7 @@ func (t *MealRequestServlet) process_bookings(bookings []*PopupBooking) error {
 
 /*
 curl https://api.stripe.com/v1/charges \
-   -u ***REMOVED***: \
+   -u sk_live_6DdxsleLP40YnpsFATA1ZJCg: \
    -d amount=___ \
    -d currency=usd \
    -d customer=___ \
@@ -518,9 +518,9 @@ type StripeCharge struct {
 }
 
 /* 
-curl --data "method=ChargeBooking&id=78&key=***REMOVED***" https://yaychakula.com/api/mealrequest
+curl --data "method=ChargeBooking&id=78&key=askjasdasdfasdf43fDFGj4tF2345d34nfnrj3333lsdfjLLKJd" https://yaychakula.com/api/mealrequest
 curl https://connect.stripe.com/oauth/token \
-   -d client_secret=***REMOVED*** \
+   -d client_secret=sk_test_PsKvXuwitPqYwpR7hPse4PFk \
    -d refresh_token=REFRESH_TOKEN \
    -d grant_type=refresh_token
 */
@@ -533,7 +533,7 @@ func (t *MealRequestServlet) ChargeBooking(r *http.Request) *ApiResult {
 	}
 
 	key := r.Form.Get("key")
-	if key != "***REMOVED***" {
+	if key != "askjasdasdfasdf43fDFGj4tF2345d34nfnrj3333lsdfjLLKJd" {
 		return APIError("Error", 400)
 	}
 
@@ -548,7 +548,7 @@ func (t *MealRequestServlet) ChargeBooking(r *http.Request) *ApiResult {
 
 /*
 curl https://api.stripe.com/v1/charges \
-   -u ***REMOVED***: \
+   -u sk_live_6DdxsleLP40YnpsFATA1ZJCg: \
    -d amount=___ \
    -d currency=usd \
    -d customer=___ \
@@ -616,9 +616,9 @@ func PostStripeCharge(total, chakula_fee int, customer_token, host_account, desc
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	if server_config.Version.V == "prod" {
-		req.SetBasicAuth("***REMOVED***:", "")
+		req.SetBasicAuth("sk_live_6DdxsleLP40YnpsFATA1ZJCg:", "")
 	} else {
-		req.SetBasicAuth("***REMOVED***:", "")
+		req.SetBasicAuth("sk_test_PsKvXuwitPqYwpR7hPse4PFk:", "")
 	}
 	resp, err := client.Do(req)
 	if err != nil {

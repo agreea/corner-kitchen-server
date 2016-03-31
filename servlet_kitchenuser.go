@@ -381,7 +381,7 @@ func (t *KitchenUserServlet) get_fb_data_for_token(fb_token string) (fbresponse 
 func (t *KitchenUserServlet) get_fb_long_token(fb_token string) (long_token string, expires int, err error) {
 	resp, err := http.Get("https://graph.facebook.com/oauth/access_token?" +
 							"grant_type=fb_exchange_token&client_id=828767043907424" +
-							"&client_secret=***REMOVED***&fb_exchange_token=" + fb_token)
+							"&client_secret=9969b5fdef2c36569cef2165270e9ff4&fb_exchange_token=" + fb_token)
 	if err != nil {
 		return "",0, err
 	} else {
@@ -496,7 +496,7 @@ func (t *KitchenUserServlet) UserFollows(r *http.Request) *ApiResult {
 }
 
 /*
-curl --data "method=Delete&Id=140&key=***REMOVED***" https://yaychakula.com/api/kitchenuser
+curl --data "method=Delete&Id=140&key=" https://yaychakula.com/api/kitchenuser
 */
 func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 	guest_id_s := r.Form.Get("Id")
@@ -506,7 +506,7 @@ func (t *KitchenUserServlet) Delete(r *http.Request) *ApiResult {
 		return APIError("Malformed Guest Id", 400)
 	}
 	private_key := r.Form.Get("key")
-	if private_key != "***REMOVED***" {
+	if private_key != "67lk1j2345lkjd4jSA.NL.KAasdfnlAJml" {
 		log.Println("Tried to delete user without key: ", guest_id)
 		return APIError("Command failed", 500)
 	}

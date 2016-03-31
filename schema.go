@@ -1877,9 +1877,9 @@ func SavePaymentToken(db *sql.DB, token *PaymentToken) error {
 
 func SaveStripeToken(db *sql.DB, stripe_token string, last4 int64, guest_data *GuestData) error {
 	if (server_config.Version.V == "prod") {
-		stripe.Key = "***REMOVED***"
+		stripe.Key = "sk_live_6DdxsleLP40YnpsFATA1ZJCg"
 	} else {
-		stripe.Key = "***REMOVED***"
+		stripe.Key = "sk_test_PsKvXuwitPqYwpR7hPse4PFk"
 	}
 	email, err := GetEmailForGuest(db, guest_data.Id)
 	if err != nil {
